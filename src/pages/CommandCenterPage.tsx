@@ -17,8 +17,8 @@ const recommendations = [
     id: 1,
     title: "Lower price on Wireless Earbuds Pro",
     product: "SKU-2847 • Electronics",
-    reason: "Competitor dropped price by 12% yesterday. You're now 15% above market average. Matching could recover ~$2,400/week in lost sales.",
-    impact: "+$2,400/week estimated",
+    reason: "Competitor dropped price by 12% yesterday. You're now 15% above market average. Matching could recover ~₹2,400/week in lost sales.",
+    impact: "+₹2,400/week estimated",
     confidence: 87,
     status: "pending" as const,
   },
@@ -27,7 +27,7 @@ const recommendations = [
     title: "Increase stock for Smart Watch Series X",
     product: "SKU-1923 • Electronics",
     reason: "Demand forecast shows 40% surge expected next week. Current stock covers only 3 days at projected rate.",
-    impact: "Prevent $8,200 stockout loss",
+    impact: "Prevent ₹8,200 stockout loss",
     confidence: 92,
     status: "pending" as const,
   },
@@ -36,13 +36,13 @@ const recommendations = [
     title: "Bundle offer on Fitness Tracker",
     product: "SKU-3421 • Wearables",
     reason: "Slow-moving inventory with 45 days of stock. Bundling with accessories could improve turnover by 60%.",
-    impact: "Clear $3,100 slow inventory",
+    impact: "Clear ₹3,100 slow inventory",
     confidence: 75,
     status: "implemented" as const,
   },
 ];
 
-export default function CopilotPage() {
+export default function CommandCenterPage() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
@@ -61,7 +61,7 @@ export default function CopilotPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">RetailMind Copilot</h1>
+            <h1 className="text-2xl font-semibold text-foreground">RetailMind Command Center</h1>
           </div>
           <p className="text-muted-foreground">
             Ask anything about your products, pricing, or market conditions.

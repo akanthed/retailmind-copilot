@@ -39,7 +39,7 @@ export default function Landing() {
             Sign in
           </Button>
           <Button 
-            onClick={() => navigate("/copilot")}
+            onClick={() => navigate("/command-center")}
             className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-soft"
           >
             Get Started
@@ -71,7 +71,7 @@ export default function Landing() {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
-              onClick={() => navigate("/copilot")}
+              onClick={() => navigate("/command-center")}
               size="lg"
               className="rounded-xl px-8 py-6 text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-medium ai-glow group"
             >

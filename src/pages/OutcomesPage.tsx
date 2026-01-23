@@ -8,10 +8,10 @@ const outcomes = [
     date: "Jan 15, 2024",
     status: "implemented" as const,
     impactType: "revenue" as const,
-    impactValue: "+$3,240",
+    impactValue: "+₹3,240",
     impactPercent: "+18%",
-    before: "$79.99",
-    after: "$69.99",
+    before: "₹79.99",
+    after: "₹69.99",
     beforeMetric: "42 units/week",
     afterMetric: "68 units/week",
   },
@@ -34,7 +34,7 @@ const outcomes = [
     date: "Jan 10, 2024",
     status: "implemented" as const,
     impactType: "revenue" as const,
-    impactValue: "+$1,850",
+    impactValue: "+₹1,850",
     impactPercent: "+45%",
     before: "45 days stock",
     after: "12 days stock",
@@ -49,8 +49,8 @@ const outcomes = [
     impactType: "revenue" as const,
     impactValue: "Tracking...",
     impactPercent: "",
-    before: "$24.99",
-    after: "$26.99",
+    before: "₹24.99",
+    after: "₹26.99",
     beforeMetric: "—",
     afterMetric: "—",
   },
@@ -78,7 +78,7 @@ export default function OutcomesPage() {
           <div className="premium-card rounded-2xl p-5">
             <p className="text-sm text-muted-foreground mb-1">Total Revenue Impact</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-semibold text-success">+$5,090</span>
+              <span className="text-3xl font-semibold text-success">+₹5,090</span>
               <span className="text-sm text-success">this month</span>
             </div>
           </div>
