@@ -16,9 +16,9 @@ import { useState } from "react";
 
 const navItems = [
   {
-    title: "Copilot",
+    title: "Command Center",
     icon: Sparkles,
-    href: "/copilot",
+    href: "/command-center",
     description: "AI recommendations",
   },
   {

@@ -17,16 +17,16 @@ const decisionData = {
   product: "Wireless Earbuds Pro",
   sku: "SKU-2847",
   category: "Electronics",
-  currentPrice: "$79.99",
-  recommendedPrice: "$69.99",
+  currentPrice: "₹79.99",
+  recommendedPrice: "₹69.99",
   priceChange: "-12.5%",
   status: "pending" as const,
   confidence: 87,
   createdAt: "2 hours ago",
   reasoning: {
-    what: "Reduce price from $79.99 to $69.99 (12.5% decrease)",
-    why: "Your main competitor (TechStore Pro) dropped their price to $67.99 yesterday. At current pricing, you're 15% above market average, which correlates with a 23% decrease in conversion rate over the past 3 days.",
-    impact: "Based on historical data and current demand patterns, this adjustment is projected to recover approximately $2,400/week in sales that are currently going to competitors.",
+    what: "Reduce price from ₹79.99 to ₹69.99 (12.5% decrease)",
+    why: "Your main competitor (TechStore Pro) dropped their price to ₹67.99 yesterday. At current pricing, you're 15% above market average, which correlates with a 23% decrease in conversion rate over the past 3 days.",
+    impact: "Based on historical data and current demand patterns, this adjustment is projected to recover approximately ₹2,400/week in sales that are currently going to competitors.",
   },
   chartData: [
     { date: "Jan 15", you: 79.99, competitor: 79.99 },
@@ -46,11 +46,11 @@ export default function DecisionDetailPage() {
       <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => navigate("/copilot")}
+          onClick={() => navigate("/command-center")}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Copilot
+          Back to Command Center
         </button>
 
         {/* Header Card */}
