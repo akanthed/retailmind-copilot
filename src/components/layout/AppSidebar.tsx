@@ -19,7 +19,7 @@ const navItems = [
     title: "AI Assistant",
     icon: Sparkles,
     href: "/command-center",
-    description: "AI recommendations",
+    description: "RetailMind AI recommendations",
   },
   {
     title: "Decisions",
