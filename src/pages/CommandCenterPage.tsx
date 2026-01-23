@@ -61,7 +61,7 @@ export default function CommandCenterPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">RetailMind Command Center</h1>
+            <h1 className="text-2xl font-semibold text-foreground">RetailMind AI Assistant</h1>
           </div>
           <p className="text-muted-foreground">
             Ask anything about your products, pricing, or market conditions.
