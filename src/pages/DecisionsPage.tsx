@@ -1,71 +1,71 @@
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard } from "@/components/ui/Cards";
-import { FileText, Filter, CheckCircle, Clock } from "lucide-react";
+import { FileText, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-
-const decisions = [
-  {
-    id: 1,
-    title: "Lower price on Wireless Earbuds Pro",
-    product: "SKU-2847 • Electronics",
-    reason: "Competitor dropped price by 12% yesterday. You're now 15% above market average.",
-    impact: "+₹2,400/week estimated",
-    confidence: 87,
-    status: "pending" as const,
-    date: "Today",
-  },
-  {
-    id: 2,
-    title: "Increase stock for Smart Watch Series X",
-    product: "SKU-1923 • Electronics",
-    reason: "Demand forecast shows 40% surge expected next week. Current stock covers only 3 days.",
-    impact: "Prevent ₹8,200 stockout loss",
-    confidence: 92,
-    status: "pending" as const,
-    date: "Today",
-  },
-  {
-    id: 3,
-    title: "Bundle offer on Fitness Tracker",
-    product: "SKU-3421 • Wearables",
-    reason: "Slow-moving inventory with 45 days of stock. Bundling with accessories could improve turnover.",
-    impact: "Clear ₹3,100 slow inventory",
-    confidence: 75,
-    status: "implemented" as const,
-    date: "Yesterday",
-  },
-  {
-    id: 4,
-    title: "Price increase on Portable Charger",
-    product: "SKU-5612 • Accessories",
-    reason: "All competitors out of stock. Strong demand spike detected.",
-    impact: "+₹890/week",
-    confidence: 81,
-    status: "implemented" as const,
-    date: "3 days ago",
-  },
-  {
-    id: 5,
-    title: "Promotional pricing on Bluetooth Speaker",
-    product: "SKU-7834 • Audio",
-    reason: "Seasonal demand pattern indicates optimal discount timing.",
-    impact: "+₹1,200/week",
-    confidence: 68,
-    status: "dismissed" as const,
-    date: "5 days ago",
-  },
-];
+import { apiClient, Recommendation } from "@/api/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DecisionsPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [filter, setFilter] = useState<"all" | "pending" | "implemented">("all");
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredDecisions = decisions.filter((d) => {
+  useEffect(() => {
+    loadRecommendations();
+  }, []);
+
+  async function loadRecommendations() {
+    setLoading(true);
+    try {
+      const result = await apiClient.getRecommendations();
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      } else if (result.data) {
+        setRecommendations(result.data.recommendations);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load recommendations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredRecommendations = recommendations.filter((d) => {
     if (filter === "all") return true;
     return d.status === filter;
   });
+
+  // Group by date (simplified - just show "Today" for recent ones)
+  const groupedRecommendations = filteredRecommendations.map(rec => ({
+    ...rec,
+    date: new Date(rec.createdAt).toDateString() === new Date().toDateString() ? "Today" : "Earlier"
+  }));
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading decisions...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -93,7 +93,7 @@ export default function DecisionsPage() {
             className="rounded-lg"
             onClick={() => setFilter("all")}
           >
-            All ({decisions.length})
+            All ({recommendations.length})
           </Button>
           <Button
             variant={filter === "pending" ? "default" : "outline"}
@@ -102,7 +102,7 @@ export default function DecisionsPage() {
             onClick={() => setFilter("pending")}
           >
             <Clock className="w-4 h-4 mr-1.5" />
-            Pending ({decisions.filter((d) => d.status === "pending").length})
+            Pending ({recommendations.filter((d) => d.status === "pending").length})
           </Button>
           <Button
             variant={filter === "implemented" ? "default" : "outline"}
@@ -111,28 +111,34 @@ export default function DecisionsPage() {
             onClick={() => setFilter("implemented")}
           >
             <CheckCircle className="w-4 h-4 mr-1.5" />
-            Done ({decisions.filter((d) => d.status === "implemented").length})
+            Done ({recommendations.filter((d) => d.status === "implemented").length})
           </Button>
         </div>
 
         {/* Decisions List */}
         <div className="space-y-4 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-          {filteredDecisions.map((decision, index) => (
+          {groupedRecommendations.map((decision, index) => (
             <div key={decision.id}>
-              {index === 0 || decisions[index - 1]?.date !== decision.date ? (
+              {index === 0 || groupedRecommendations[index - 1]?.date !== decision.date ? (
                 <p className="text-sm text-muted-foreground mb-3 mt-6 first:mt-0">
                   {decision.date}
                 </p>
               ) : null}
               <AIRecommendationCard
-                {...decision}
+                id={decision.id}
+                title={decision.title}
+                product={decision.product}
+                reason={decision.reason}
+                impact={decision.impact}
+                confidence={decision.confidence}
+                status={decision.status}
                 onClick={() => navigate(`/decisions/${decision.id}`)}
               />
             </div>
           ))}
         </div>
 
-        {filteredDecisions.length === 0 && (
+        {filteredRecommendations.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No decisions match this filter.</p>
           </div>

@@ -1,0 +1,10 @@
+{
+  "name": "retailmind-ai-copilot",
+  "version": "1.0.0",
+  "description": "RetailMind AI Copilot Lambda Function",
+  "type": "module",
+  "main": "index.mjs",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.515.0"
+  }
+}

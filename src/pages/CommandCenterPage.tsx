@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard } from "@/components/ui/Cards";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Lightbulb } from "lucide-react";
+import { Sparkles, Send, Lightbulb, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiClient, Recommendation } from "@/api/client";
+import { useToast } from "@/hooks/use-toast";
 
 const suggestedPrompts = [
   "Why are my sales down?",
@@ -12,44 +14,109 @@ const suggestedPrompts = [
   "Which products need repricing?",
 ];
 
-const recommendations = [
-  {
-    id: 1,
-    title: "Lower price on Wireless Earbuds Pro",
-    product: "SKU-2847 • Electronics",
-    reason: "Competitor dropped price by 12% yesterday. You're now 15% above market average. Matching could recover ~₹2,400/week in lost sales.",
-    impact: "+₹2,400/week estimated",
-    confidence: 87,
-    status: "pending" as const,
-  },
-  {
-    id: 2,
-    title: "Increase stock for Smart Watch Series X",
-    product: "SKU-1923 • Electronics",
-    reason: "Demand forecast shows 40% surge expected next week. Current stock covers only 3 days at projected rate.",
-    impact: "Prevent ₹8,200 stockout loss",
-    confidence: 92,
-    status: "pending" as const,
-  },
-  {
-    id: 3,
-    title: "Bundle offer on Fitness Tracker",
-    product: "SKU-3421 • Wearables",
-    reason: "Slow-moving inventory with 45 days of stock. Bundling with accessories could improve turnover by 60%.",
-    impact: "Clear ₹3,100 slow inventory",
-    confidence: 75,
-    status: "implemented" as const,
-  },
-];
-
 export default function CommandCenterPage() {
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadRecommendations();
+  }, []);
+
+  async function loadRecommendations() {
+    setLoadingRecommendations(true);
+    try {
+      const result = await apiClient.getRecommendations();
+      
+      if (result.error) {
+        console.error("Error loading recommendations:", result.error);
+      } else if (result.data) {
+        // Filter to show only pending recommendations
+        const pending = result.data.recommendations
+          .filter(r => r.status === 'pending')
+          .slice(0, 3); // Show top 3
+        setRecommendations(pending);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  }
+
+  async function handleGenerateRecommendations() {
+    setLoadingRecommendations(true);
+    try {
+      const result = await apiClient.generateRecommendations();
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      } else if (result.data) {
+        toast({
+          title: "Recommendations Generated",
+          description: `Generated ${result.data.recommendationsGenerated} new recommendations`,
+        });
+        await loadRecommendations();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate recommendations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle query submission
-    console.log("Query:", query);
+    
+    if (!query.trim()) {
+      toast({
+        title: "Empty query",
+        description: "Please enter a question",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    setAiResponse(null);
+
+    try {
+      const result = await apiClient.queryCopilot(query);
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      } else if (result.data) {
+        setAiResponse(result.data.response);
+        toast({
+          title: "AI Response Ready",
+          description: `Powered by ${result.data.model}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get AI response",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,17 +145,38 @@ export default function CommandCenterPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ask RetailMind: What should I do about Product X today?"
                 className="flex-1 px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-lg"
+                disabled={loading}
               />
               <Button
                 type="submit"
                 size="lg"
                 className="rounded-xl px-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={loading}
               >
-                <Send className="w-5 h-5" />
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </Button>
             </div>
           </div>
         </form>
+
+        {/* AI Response */}
+        {aiResponse && (
+          <div className="mb-8 animate-fade-in premium-card rounded-2xl p-6">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-foreground mb-2">AI Response</h3>
+                <div className="text-muted-foreground whitespace-pre-wrap">{aiResponse}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Suggested Prompts */}
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
@@ -113,20 +201,57 @@ export default function CommandCenterPage() {
         <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-foreground">Today's Recommendations</h2>
-            <span className="text-sm text-muted-foreground">
-              {recommendations.filter(r => r.status === "pending").length} pending actions
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {recommendations.length} pending actions
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateRecommendations}
+                disabled={loadingRecommendations}
+                className="rounded-lg"
+              >
+                {loadingRecommendations ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="space-y-4">
-            {recommendations.map((rec, index) => (
-              <div key={rec.id} className="animate-slide-in-right" style={{ animationDelay: `${0.1 * index}s` }}>
-                <AIRecommendationCard
-                  {...rec}
-                  onClick={() => navigate(`/decisions/${rec.id}`)}
-                />
-              </div>
-            ))}
-          </div>
+          
+          {loadingRecommendations ? (
+            <div className="premium-card rounded-2xl p-8 text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-muted-foreground">Loading recommendations...</p>
+            </div>
+          ) : recommendations.length === 0 ? (
+            <div className="premium-card rounded-2xl p-8 text-center">
+              <p className="text-muted-foreground mb-4">No recommendations yet</p>
+              <Button onClick={handleGenerateRecommendations} className="rounded-xl">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Recommendations
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recommendations.map((rec, index) => (
+                <div key={rec.id} className="animate-slide-in-right" style={{ animationDelay: `${0.1 * index}s` }}>
+                  <AIRecommendationCard
+                    id={rec.id}
+                    title={rec.title}
+                    product={rec.product}
+                    reason={rec.reason}
+                    impact={rec.impact}
+                    confidence={rec.confidence}
+                    status={rec.status}
+                    onClick={() => navigate(`/decisions/${rec.id}`)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

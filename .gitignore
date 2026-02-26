@@ -22,3 +22,42 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (CRITICAL - DO NOT COMMIT!)
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# AWS Credentials (NEVER COMMIT!)
+.aws/
+aws-credentials.json
+credentials.json
+
+# Lambda deployment packages
+backend/functions/**/node_modules/
+backend/functions/**/function.zip
+backend/functions/**/*.zip
+
+# Sensitive configuration
+config/secrets.json
+config/production.json
+
+# Test outputs
+response.json
+test-output.json
+
+# AWS CDK (if we use it later)
+cdk.out/
+.cdk.staging/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+*.ps1
+*.md
+*.sh
+function.zip

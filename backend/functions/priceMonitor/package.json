@@ -1,0 +1,11 @@
+{
+  "name": "retailmind-price-monitor",
+  "version": "1.0.0",
+  "description": "RetailMind Price Monitor Lambda Function",
+  "type": "module",
+  "main": "index.mjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.515.0",
+    "@aws-sdk/lib-dynamodb": "^3.515.0"
+  }
+}
