@@ -36,8 +36,7 @@ export default function AddProductPage() {
     stock: "",
     description: "",
     amazonUrl: "",
-    flipkartUrl: "",
-    snapdealUrl: ""
+    flipkartUrl: ""
   });
 
   // Log API configuration on mount
@@ -171,8 +170,6 @@ export default function AddProductPage() {
       setFormData({ ...formData, amazonUrl: match.url });
     } else if (match.platform === "Flipkart") {
       setFormData({ ...formData, flipkartUrl: match.url });
-    } else if (match.platform === "Snapdeal") {
-      setFormData({ ...formData, snapdealUrl: match.url });
     }
 
     toast({
@@ -194,7 +191,7 @@ export default function AddProductPage() {
       return;
     }
 
-    if (!formData.amazonUrl && !formData.flipkartUrl && !formData.snapdealUrl) {
+    if (!formData.amazonUrl && !formData.flipkartUrl) {
       toast({
         title: "No competitor URLs",
         description: "Please add at least one competitor URL to enable price monitoring",
@@ -215,8 +212,7 @@ export default function AddProductPage() {
         description: formData.description,
         competitorUrls: {
           amazon: formData.amazonUrl || undefined,
-          flipkart: formData.flipkartUrl || undefined,
-          snapdeal: formData.snapdealUrl || undefined
+          flipkart: formData.flipkartUrl || undefined
         }
       };
 
@@ -527,29 +523,6 @@ export default function AddProductPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => window.open(formData.flipkartUrl, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="snapdealUrl">Snapdeal URL (Optional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="snapdealUrl"
-                    name="snapdealUrl"
-                    value={formData.snapdealUrl}
-                    onChange={handleChange}
-                    placeholder="https://www.snapdeal.com/..."
-                  />
-                  {formData.snapdealUrl && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => window.open(formData.snapdealUrl, '_blank')}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>

@@ -79,7 +79,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+        "h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out flex-shrink-0",
         collapsed ? "w-20" : "w-64"
       )}
     >

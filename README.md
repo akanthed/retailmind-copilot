@@ -9,10 +9,68 @@ AI-powered price monitoring and market intelligence for Indian retailers.
 ## Features
 
 - 🤖 **AI Copilot** - Ask business questions in natural language (Amazon Bedrock)
-- 📊 **Price Monitoring** - Track competitor prices from Amazon.in, Flipkart, Snapdeal
+- 📊 **Real Price Monitoring** - Scrape actual prices from Amazon.in, Flipkart, Snapdeal
 - 💡 **Smart Recommendations** - AI-powered pricing and inventory suggestions
 - 🔔 **Proactive Alerts** - Get notified of price drops and opportunities
 - 📈 **Analytics Dashboard** - Track revenue impact and performance
+- 🔍 **Web Search & Scrape** - Find and monitor competitor products automatically
+
+---
+
+## 🚀 NEW: Real Data Monitoring
+
+RetailMind now supports genuine price monitoring with real competitor URLs!
+
+### Quick Start (5 Minutes)
+
+```powershell
+# Run the setup wizard
+.\START-REAL-MONITORING.ps1
+```
+
+This will:
+1. Deploy enhanced scraping functions
+2. Help you add products with real URLs
+3. Test price scraping
+4. Start monitoring competitor prices
+
+### Features
+
+- ✅ **Real Scraping:** Actual prices from Amazon.in, Flipkart, Snapdeal
+- ✅ **Complete Data:** Price, stock, ratings, reviews, images
+- ✅ **Search Mode:** Find products by name automatically
+- ✅ **Smart Fallback:** Uses synthetic data if URLs not provided
+- ✅ **Production Ready:** Error handling, retry logic, logging
+
+### Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [Get Started Guide](GET-STARTED-WITH-REAL-DATA.md) | **START HERE** - Master guide |
+| [Implementation Summary](IMPLEMENTATION-SUMMARY.md) | Overview & quick start |
+| [Setup Guide](REAL-PRICE-MONITORING-SETUP.md) | Detailed setup instructions |
+| [Finding URLs](HOW-TO-FIND-PRODUCT-URLS.md) | How to get competitor URLs |
+| [Visual Flow](VISUAL-FLOW-DIAGRAM.md) | Architecture diagrams |
+| [Verification](VERIFICATION-CHECKLIST.md) | Testing checklist |
+
+### Example: Add Product with Real URLs
+
+```powershell
+# Interactive script
+.\scripts\add-real-product.ps1
+
+# Or via API
+$product = @{
+    name = "iPhone 15 Pro Max 256GB"
+    currentPrice = 159900
+    competitorUrls = @{
+        amazon = "https://www.amazon.in/dp/B0CHX1W1XY"
+        flipkart = "https://www.flipkart.com/iphone-15-pro-max/p/itm123"
+    }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$env:VITE_API_URL/products" -Method Post -Body $product -ContentType "application/json"
+```
 
 ---
 

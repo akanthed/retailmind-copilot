@@ -89,8 +89,7 @@ export default function InsightsPage() {
       setCompetitorStats(stats.length > 0 ? stats : [
         // Fallback if no price history yet
         { name: "Amazon.in", avgPriceDiff: "N/A", products: fetchedProducts.length, lastUpdate: "No data yet" },
-        { name: "Flipkart", avgPriceDiff: "N/A", products: fetchedProducts.length, lastUpdate: "No data yet" },
-        { name: "Snapdeal", avgPriceDiff: "N/A", products: fetchedProducts.length, lastUpdate: "No data yet" }
+        { name: "Flipkart", avgPriceDiff: "N/A", products: fetchedProducts.length, lastUpdate: "No data yet" }
       ]);
 
     } catch (error) {

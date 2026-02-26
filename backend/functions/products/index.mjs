@@ -2,13 +2,14 @@
 // Handles CRUD operations for products
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand, UpdateCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand, UpdateCommand, DeleteCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const PRODUCTS_TABLE = "RetailMind-Products";
+const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 
 export const handler = async (event) => {
     console.log('Products API invoked:', JSON.stringify(event, null, 2));
@@ -24,6 +25,9 @@ export const handler = async (event) => {
         if (httpMethod === 'GET' && !pathParameters.id) {
             // GET /products - List all products
             response = await listProducts();
+        } else if (httpMethod === 'GET' && pathParameters.id && path.includes('/prices')) {
+            // GET /products/{id}/prices - Get price history
+            response = await getPriceHistory(pathParameters.id);
         } else if (httpMethod === 'GET' && pathParameters.id) {
             // GET /products/{id} - Get single product
             response = await getProduct(pathParameters.id);
@@ -122,6 +126,8 @@ async function createProduct(data) {
         stock: parseInt(data.stock || 0),
         stockDays: parseInt(data.stockDays || 0),
         competitors: data.competitors || [],
+        competitorUrls: data.competitorUrls || {},
+        description: data.description || '',
         createdAt: Date.now(),
         updatedAt: Date.now()
     };
@@ -146,7 +152,7 @@ async function updateProduct(id, data) {
     const expressionAttributeValues = {};
     
     // Build update expression dynamically
-    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category'];
+    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category', 'competitorUrls', 'description'];
     
     allowedFields.forEach(field => {
         if (data[field] !== undefined) {
@@ -198,4 +204,55 @@ async function deleteProduct(id) {
         statusCode: 200,
         body: { message: 'Product deleted successfully', id }
     };
+}
+
+
+// Get price history for a product
+async function getPriceHistory(productId) {
+    try {
+        const command = new QueryCommand({
+            TableName: PRICE_HISTORY_TABLE,
+            IndexName: 'productId-timestamp-index',
+            KeyConditionExpression: 'productId = :productId',
+            ExpressionAttributeValues: {
+                ':productId': productId
+            },
+            ScanIndexForward: false,
+            Limit: 50
+        });
+        
+        const result = await docClient.send(command);
+        
+        return {
+            statusCode: 200,
+            body: result.Items || []
+        };
+    } catch (error) {
+        console.error('Error getting price history:', error);
+        
+        // If GSI doesn't exist, do a scan as fallback
+        try {
+            const scanCommand = new ScanCommand({
+                TableName: PRICE_HISTORY_TABLE,
+                FilterExpression: 'productId = :productId',
+                ExpressionAttributeValues: {
+                    ':productId': productId
+                },
+                Limit: 50
+            });
+            
+            const scanResult = await docClient.send(scanCommand);
+            
+            return {
+                statusCode: 200,
+                body: scanResult.Items || []
+            };
+        } catch (scanError) {
+            console.error('Scan also failed:', scanError);
+            return {
+                statusCode: 200,
+                body: []
+            };
+        }
+    }
 }

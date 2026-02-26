@@ -58,7 +58,11 @@ export default function ProductDetailPage() {
       const pricesResult = await apiClient.getProductPrices(id);
       
       if (pricesResult.data) {
-        setPriceHistory(pricesResult.data);
+        // Ensure it's an array
+        const prices = Array.isArray(pricesResult.data) ? pricesResult.data : [];
+        setPriceHistory(prices);
+      } else {
+        setPriceHistory([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load product");
@@ -211,24 +215,6 @@ export default function ProductDetailPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => window.open(product.competitorUrls?.flipkart, "_blank")}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                
-                {product.competitorUrls.snapdeal && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#E40046]/10 flex items-center justify-center">
-                        <Package className="w-4 h-4 text-[#E40046]" />
-                      </div>
-                      <span className="font-medium text-foreground">Snapdeal</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.open(product.competitorUrls?.snapdeal, "_blank")}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>

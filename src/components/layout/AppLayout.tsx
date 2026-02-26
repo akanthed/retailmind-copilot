@@ -16,13 +16,13 @@ export function AppLayout({
   showSearch = false 
 }: AppLayoutProps) {
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         {showHeader && (
           <AppHeader title={headerTitle} showSearch={showSearch} />
         )}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-background">
           {children}
         </main>
       </div>
