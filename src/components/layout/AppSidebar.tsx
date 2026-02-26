@@ -16,10 +16,16 @@ import { useState } from "react";
 
 const navItems = [
   {
-    title: "AI Assistant",
+    title: "Dashboard",
+    icon: BarChart3,
+    href: "/dashboard",
+    description: "Business overview",
+  },
+  {
+    title: "Command Center",
     icon: Sparkles,
     href: "/command-center",
-    description: "RetailMind AI recommendations",
+    description: "AI recommendations",
   },
   {
     title: "Decisions",
@@ -29,7 +35,7 @@ const navItems = [
   },
   {
     title: "Insights",
-    icon: BarChart3,
+    icon: Target,
     href: "/insights",
     description: "Market evidence",
   },

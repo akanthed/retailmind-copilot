@@ -19,7 +19,7 @@ export default function Landing() {
       <header className="h-16 flex items-center justify-between px-6 md:px-12 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <Logo size="md" />
         <Button 
-          onClick={() => navigate("/command-center")}
+          onClick={() => navigate("/dashboard")}
           className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
         >
           Try It Free
@@ -64,7 +64,7 @@ export default function Landing() {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
-              onClick={() => navigate("/command-center")}
+              onClick={() => navigate("/dashboard")}
               size="lg"
               className="rounded-xl px-8 py-6 text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg group"
             >
