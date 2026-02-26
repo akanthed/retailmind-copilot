@@ -1,0 +1,10 @@
+{
+  "name": "retailmind-price-scraper",
+  "version": "1.0.0",
+  "description": "RetailMind Price Scraper - Real-time price monitoring from Indian e-commerce",
+  "type": "module",
+  "main": "index.mjs",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12"
+  }
+}

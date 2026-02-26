@@ -25,8 +25,14 @@ export interface Product {
   currentPrice: number;
   costPrice: number;
   stock: number;
-  stockDays: number;
+  stockDays?: number;
+  description?: string;
   competitors?: string[];
+  competitorUrls?: {
+    amazon?: string;
+    flipkart?: string;
+    snapdeal?: string;
+  };
   createdAt: number;
   updatedAt: number;
 }
@@ -88,8 +94,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const fullUrl = `${this.baseUrl}${endpoint}`;
+    
+    console.group(`🌐 API Request: ${options.method || 'GET'} ${endpoint}`);
+    console.log('Full URL:', fullUrl);
+    console.log('Options:', options);
+    
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const response = await fetch(fullUrl, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -97,15 +109,53 @@ class ApiClient {
         },
       });
 
+      console.log('Response Status:', response.status, response.statusText);
+      console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Error Response Body:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        
+        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.error('Error Message:', errorMessage);
+        console.groupEnd();
+        
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('Response Body (raw):', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Response Body (parsed):', data);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        console.groupEnd();
+        throw new Error('Invalid JSON response from server');
+      }
+      
+      console.log('✅ Request successful');
+      console.groupEnd();
+      
       return { data };
     } catch (error) {
-      console.error('API Error:', error);
+      console.error('❌ API Error:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      console.groupEnd();
+      
       return {
         error: error instanceof Error ? error.message : 'An unknown error occurred',
       };
@@ -136,8 +186,35 @@ class ApiClient {
     });
   }
 
+  async updateProduct(productId: string, data: Partial<Product>): Promise<ApiResponse<Product>> {
+    return this.request(`/products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProduct(productId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/products/${productId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getProductPrices(productId: string): Promise<ApiResponse<PriceHistory[]>> {
     return this.request(`/products/${productId}/prices`, { method: 'GET' });
+  }
+
+  async searchCompetitorProducts(query: string): Promise<ApiResponse<{ matches: any[] }>> {
+    return this.request('/products/search-competitors', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    });
+  }
+
+  async scrapePrice(url: string, platform: string): Promise<ApiResponse<any>> {
+    return this.request('/scraper/price', {
+      method: 'POST',
+      body: JSON.stringify({ url, platform }),
+    });
   }
 
   // Recommendations

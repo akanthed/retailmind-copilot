@@ -9,6 +9,7 @@ import CommandCenterPage from "./pages/CommandCenterPage";
 import DecisionsPage from "./pages/DecisionsPage";
 import DecisionDetailPage from "./pages/DecisionDetailPage";
 import InsightsPage from "./pages/InsightsPage";
+import AddProductPage from "./pages/AddProductPage";
 import AlertsPage from "./pages/AlertsPage";
 import OutcomesPage from "./pages/OutcomesPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/decisions" element={<DecisionsPage />} />
           <Route path="/decisions/:id" element={<DecisionDetailPage />} />
           <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/products/add" element={<AddProductPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/outcomes" element={<OutcomesPage />} />
           <Route path="/reports" element={<ReportsPage />} />

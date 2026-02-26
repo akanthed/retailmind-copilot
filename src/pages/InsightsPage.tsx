@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/ui/Cards";
-import { BarChart3, TrendingUp, Package, AlertTriangle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BarChart3, TrendingUp, Package, AlertTriangle, Loader2, Plus } from "lucide-react";
 import { apiClient, Product, PriceHistory } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,6 +15,7 @@ interface CompetitorStats {
 }
 
 export default function InsightsPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,15 +97,23 @@ export default function InsightsPage() {
       <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-primary" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground">Evidence & Insights</h1>
+                <p className="text-muted-foreground">
+                  Data-driven market intelligence powering your recommendations.
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Evidence & Insights</h1>
+            <Button onClick={() => navigate("/products/add")}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
           </div>
-          <p className="text-muted-foreground">
-            Data-driven market intelligence powering your recommendations.
-          </p>
         </div>
 
         {/* Metrics Grid */}

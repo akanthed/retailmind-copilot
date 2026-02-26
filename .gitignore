@@ -58,5 +58,6 @@ cdk.out/
 *~
 
 *.ps1
+*.md
 *.sh
 function.zip
