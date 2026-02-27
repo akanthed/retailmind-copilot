@@ -23,6 +23,8 @@ export const handler = async (event) => {
     const pathParameters = event.pathParameters || {};
     const productId = pathParameters.productId || pathParameters.id;
     const action = pathParameters.action;
+    const requestPath = event.resource || event.path || '';
+    const isSearchRequest = requestPath.includes('/compare/search');
 
     try {
         let response;
@@ -40,10 +42,10 @@ export const handler = async (event) => {
             };
         }
 
-        if (httpMethod === 'GET' && productId && !action) {
+        if (httpMethod === 'GET' && productId && !action && !isSearchRequest) {
             // GET /products/{productId}/compare - Get stored comparisons
             response = await getStoredComparisons(productId);
-        } else if (httpMethod === 'POST' && productId && action === 'search') {
+        } else if (httpMethod === 'POST' && productId && (action === 'search' || isSearchRequest)) {
             // POST /products/{productId}/compare/search - Search e-commerce for prices
             const body = JSON.parse(event.body || '{}');
             response = await searchCompetitorPrices(productId, body);
@@ -144,8 +146,13 @@ async function searchCompetitorPrices(productId, searchParams) {
         console.log(`Searching Google Shopping for: "${searchQuery}"`);
         try {
             const serpResults = await searchGoogleShopping(searchQuery, product.currentPrice);
-            results = serpResults;
-            console.log(`Found ${results.length} results from Google Shopping`);
+            if (serpResults.length > 0) {
+                results = serpResults;
+                console.log(`Found ${results.length} results from Google Shopping`);
+            } else {
+                console.log('No live shopping results found, falling back to synthetic data');
+                results = generateSyntheticPrices(product);
+            }
         } catch (error) {
             console.error('SerpAPI search failed, falling back to synthetic:', error.message);
             results = generateSyntheticPrices(product);
@@ -219,6 +226,10 @@ async function searchGoogleShopping(query, yourPrice) {
 
     const data = await httpGet(url);
     const parsed = JSON.parse(data);
+
+    if (parsed.error) {
+        throw new Error(`SerpAPI error: ${parsed.error}`);
+    }
 
     if (!parsed.shopping_results || parsed.shopping_results.length === 0) {
         console.log('No Google Shopping results found');
