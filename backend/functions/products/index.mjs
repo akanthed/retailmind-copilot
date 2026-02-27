@@ -122,6 +122,9 @@ async function createProduct(data) {
         stock: parseInt(data.stock || 0),
         stockDays: parseInt(data.stockDays || 0),
         competitors: data.competitors || [],
+        amazonUrl: data.amazonUrl || '',
+        flipkartUrl: data.flipkartUrl || '',
+        keywords: data.keywords || data.name,
         createdAt: Date.now(),
         updatedAt: Date.now()
     };
@@ -146,7 +149,7 @@ async function updateProduct(id, data) {
     const expressionAttributeValues = {};
     
     // Build update expression dynamically
-    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category'];
+    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category', 'amazonUrl', 'flipkartUrl', 'keywords'];
     
     allowedFields.forEach(field => {
         if (data[field] !== undefined) {

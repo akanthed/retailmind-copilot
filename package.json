@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "aws:setup:core": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\setup-core.ps1",
+    "aws:deploy:lambdas": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\deploy-lambdas.ps1",
+    "aws:wire:api": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\wire-api.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
