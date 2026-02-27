@@ -16,7 +16,6 @@ import {
   TrendingUp,
   TrendingDown,
   Loader2,
-  RefreshCw,
   ExternalLink,
   IndianRupee,
   ShoppingCart,
@@ -41,6 +40,22 @@ interface CompetitorPrice {
   source: string;
 }
 
+interface SearchDebugAttempt {
+  query: string;
+  rawShoppingResults: number;
+  mappedResults: number;
+  droppedNoPrice: number;
+  droppedNoLink: number;
+  finalResults: number;
+}
+
+interface SearchDebugInfo {
+  selectedQuery?: string;
+  searchQuery?: string;
+  attemptedQueries: string[];
+  debugAttempts: SearchDebugAttempt[];
+}
+
 export default function PriceComparisonPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
@@ -51,6 +66,7 @@ export default function PriceComparisonPage() {
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [searchDebug, setSearchDebug] = useState<SearchDebugInfo | null>(null);
 
   useEffect(() => {
     if (productId) {
@@ -78,11 +94,6 @@ export default function PriceComparisonPage() {
       const priceResult = await apiClient.getProductPriceComparison(productId!);
       if (priceResult.data) {
         setCompetitorPrices(priceResult.data.comparisons || []);
-        // Auto-search if no data exists
-        if (!priceResult.data.comparisons || priceResult.data.comparisons.length === 0) {
-          console.log("No price data found, triggering automatic search...");
-          setTimeout(() => handleSearchPrices(), 500);
-        }
       }
 
       // Load price history
@@ -102,13 +113,20 @@ export default function PriceComparisonPage() {
   }
 
   async function handleSearchPrices() {
-    if (!product) return;
+    if (!product || searching) return;
     setSearching(true);
     try {
       const result = await apiClient.searchCompetitorPrices(productId!, {
         keywords: (product as any).keywords || product.name,
         amazonUrl: (product as any).amazonUrl,
         flipkartUrl: (product as any).flipkartUrl,
+      });
+
+      setSearchDebug({
+        selectedQuery: (result.data as any)?.searchQuery,
+        searchQuery: (result.data as any)?.searchQuery,
+        attemptedQueries: (result.data as any)?.attemptedQueries || [],
+        debugAttempts: (result.data as any)?.debugAttempts || [],
       });
 
       if (result.error) {
@@ -126,9 +144,6 @@ export default function PriceComparisonPage() {
         title: "Prices Updated",
         description: `Found ${result.data?.results?.length || 0} competitor prices`,
       });
-
-      // Reload data
-      await loadProductData();
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -215,6 +230,71 @@ export default function PriceComparisonPage() {
             </Button>
           </div>
         </div>
+
+        {/* Debug Details */}
+        {searchDebug &&
+          (searchDebug.attemptedQueries.length > 0 ||
+            searchDebug.debugAttempts.length > 0) && (
+            <div
+              className="premium-card rounded-2xl p-4 mb-6 animate-fade-in"
+              style={{ animationDelay: "0.08s" }}
+            >
+              <details>
+                <summary className="cursor-pointer font-medium text-sm text-foreground">
+                  Debug details (search queries & result mapping)
+                </summary>
+                <div className="mt-3 space-y-3 text-sm">
+                  {searchDebug.searchQuery && (
+                    <p className="text-muted-foreground">
+                      Selected query: <span className="text-foreground">{searchDebug.searchQuery}</span>
+                    </p>
+                  )}
+
+                  {searchDebug.attemptedQueries.length > 0 && (
+                    <div>
+                      <p className="text-muted-foreground mb-1">Attempted queries:</p>
+                      <ul className="space-y-1">
+                        {searchDebug.attemptedQueries.map((query, idx) => (
+                          <li key={`${query}-${idx}`} className="text-foreground">
+                            {idx + 1}. {query}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {searchDebug.debugAttempts.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Query</TableHead>
+                            <TableHead className="text-right">Raw</TableHead>
+                            <TableHead className="text-right">Mapped</TableHead>
+                            <TableHead className="text-right">No Price</TableHead>
+                            <TableHead className="text-right">No Link</TableHead>
+                            <TableHead className="text-right">Final</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {searchDebug.debugAttempts.map((attempt, idx) => (
+                            <TableRow key={`${attempt.query}-${idx}`}>
+                              <TableCell className="max-w-xs truncate">{attempt.query}</TableCell>
+                              <TableCell className="text-right">{attempt.rawShoppingResults}</TableCell>
+                              <TableCell className="text-right">{attempt.mappedResults}</TableCell>
+                              <TableCell className="text-right">{attempt.droppedNoPrice}</TableCell>
+                              <TableCell className="text-right">{attempt.droppedNoLink}</TableCell>
+                              <TableCell className="text-right">{attempt.finalResults}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
+          )}
 
         {/* Price Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>

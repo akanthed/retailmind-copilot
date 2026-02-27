@@ -1,9 +1,9 @@
 // Price Comparison API - Lambda Function
 // Searches for product prices across e-commerce platforms using SerpAPI (Google Shopping)
-// Falls back to synthetic data if no API key is configured
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
 import https from "https";
 
@@ -15,6 +15,8 @@ const PRICE_COMPARISON_TABLE = "RetailMind-PriceComparison";
 
 // SerpAPI key from environment variable
 const SERPAPI_KEY = process.env.SERPAPI_KEY || "";
+const BEDROCK_QUERY_MODEL = process.env.BEDROCK_QUERY_MODEL || "";
+const bedrockClient = BEDROCK_QUERY_MODEL ? new BedrockRuntimeClient({ region: "us-east-1" }) : null;
 
 export const handler = async (event) => {
     console.log('Price Comparison API invoked:', JSON.stringify(event, null, 2));
@@ -146,30 +148,101 @@ async function searchCompetitorPrices(productId, searchParams) {
     }
 
     const product = productResult.Item;
-    const searchQuery = searchParams.keywords || product.keywords || product.name;
+
+    console.log('[PRICE-COMPARE] Search requested', {
+        productId,
+        productName: product.name,
+        sku: product.sku,
+        category: product.category,
+        currentPrice: product.currentPrice,
+        incomingKeywords: searchParams?.keywords || null,
+        hasStoredKeywords: Boolean(product.keywords),
+        hasSerpApiKey: Boolean(SERPAPI_KEY),
+        aiQueryExpansionEnabled: Boolean(BEDROCK_QUERY_MODEL)
+    });
+
+    const queryCandidates = await buildSearchQueryCandidates(product, searchParams);
+    console.log('[PRICE-COMPARE] Query candidates prepared', {
+        productId,
+        count: queryCandidates.length,
+        candidates: queryCandidates
+    });
+
+    // 2. Search via SerpAPI (Google Shopping) - no synthetic fallback for explicit user search
+    if (!SERPAPI_KEY) {
+        console.error('[PRICE-COMPARE] SERPAPI_KEY missing - cannot perform live competitor search', { productId });
+        return {
+            statusCode: 500,
+            body: {
+                error: 'SERPAPI_KEY is not configured on the backend',
+                message: 'Add SERPAPI_KEY to Lambda environment variables and redeploy.'
+            }
+        };
+    }
 
     let results = [];
+    let selectedQuery = '';
+    const queryAttempts = [];
 
-    // 2. Try real search via SerpAPI (Google Shopping)
-    if (SERPAPI_KEY) {
-        console.log(`Searching Google Shopping for: "${searchQuery}"`);
-        try {
-            const serpResults = await searchGoogleShopping(searchQuery, product.currentPrice);
-            if (serpResults.length > 0) {
-                results = serpResults;
-                console.log(`Found ${results.length} results from Google Shopping`);
-            } else {
-                console.log('No live shopping results found, falling back to synthetic data');
-                results = generateSyntheticPrices(product);
+    try {
+        for (const candidateQuery of queryCandidates) {
+            console.log('[PRICE-COMPARE] Searching Google Shopping', {
+                productId,
+                query: candidateQuery
+            });
+
+            const searchResult = await searchGoogleShopping(candidateQuery, product.currentPrice);
+            queryAttempts.push({
+                query: candidateQuery,
+                rawShoppingResults: searchResult.rawShoppingResults,
+                mappedResults: searchResult.mappedResults,
+                droppedNoPrice: searchResult.droppedNoPrice,
+                droppedNoLink: searchResult.droppedNoLink,
+                finalResults: searchResult.results.length
+            });
+
+            if (searchResult.results.length > 0) {
+                results = searchResult.results;
+                selectedQuery = candidateQuery;
+                break;
             }
-        } catch (error) {
-            console.error('SerpAPI search failed, falling back to synthetic:', error.message);
-            results = generateSyntheticPrices(product);
         }
-    } else {
-        // No API key - use synthetic data
-        console.log('No SERPAPI_KEY configured, using synthetic price data');
-        results = generateSyntheticPrices(product);
+
+        console.log('[PRICE-COMPARE] SerpAPI attempt summary', {
+            productId,
+            selectedQuery: selectedQuery || null,
+            attempts: queryAttempts
+        });
+    } catch (error) {
+        console.error('[PRICE-COMPARE] SerpAPI search failed', {
+            productId,
+            message: error.message
+        });
+        return {
+            statusCode: 502,
+            body: {
+                error: 'SerpAPI search failed',
+                message: error.message
+            }
+        };
+    }
+
+    if (!results.length) {
+        console.warn('[PRICE-COMPARE] No competitor prices found after all query attempts', {
+            productId,
+            productName: product.name,
+            attempts: queryAttempts
+        });
+        return {
+            statusCode: 404,
+            body: {
+                error: 'No live prices found on Google Shopping for this query',
+                message: 'No competitor prices matched this product on Google Shopping. Try adding model number/variant in keywords.',
+                searchQuery: queryCandidates[0],
+                attemptedQueries: queryCandidates,
+                debugAttempts: queryAttempts
+            }
+        };
     }
 
     // 3. Calculate price differences
@@ -180,6 +253,7 @@ async function searchCompetitorPrices(productId, searchParams) {
     }));
 
     // 4. Store results in DynamoDB
+    let storedCount = 0;
     for (const result of results) {
         try {
             await docClient.send(new PutCommand({
@@ -199,20 +273,29 @@ async function searchCompetitorPrices(productId, searchParams) {
                     createdAt: new Date().toISOString()
                 }
             }));
+            storedCount += 1;
         } catch (err) {
             console.warn('Failed to store comparison:', err.message);
         }
     }
+
+    console.log('[PRICE-COMPARE] Search completed', {
+        productId,
+        selectedQuery,
+        resultsCount: results.length,
+        storedCount
+    });
 
     return {
         statusCode: 200,
         body: {
             productId,
             product: product.name,
-            searchQuery,
+            searchQuery: selectedQuery || queryCandidates[0],
+            attemptedQueries: queryCandidates,
             results,
             resultsCount: results.length,
-            source: SERPAPI_KEY ? 'google_shopping' : 'synthetic',
+            source: 'google_shopping',
             timestamp: new Date().toISOString()
         }
     };
@@ -240,19 +323,49 @@ async function searchGoogleShopping(query, yourPrice) {
         throw new Error(`SerpAPI error: ${parsed.error}`);
     }
 
-    if (!parsed.shopping_results || parsed.shopping_results.length === 0) {
-        console.log('No Google Shopping results found');
-        return [];
+    const shoppingResults = parsed.shopping_results || [];
+    const topResults = shoppingResults.slice(0, 10);
+
+    if (!shoppingResults.length) {
+        console.log('[SERPAPI] No shopping_results for query', { query });
+        return {
+            results: [],
+            rawShoppingResults: 0,
+            mappedResults: 0,
+            droppedNoPrice: 0,
+            droppedNoLink: 0
+        };
     }
 
+    console.log('[SERPAPI] Raw response summary', {
+        query,
+        rawShoppingResults: shoppingResults.length,
+        hasSearchMetadata: Boolean(parsed.search_metadata),
+        firstTitles: topResults.slice(0, 3).map(item => item?.title || 'N/A')
+    });
+
+    let droppedNoPrice = 0;
+    let droppedNoLink = 0;
+
     // Map SerpAPI results to our format
-    return parsed.shopping_results.slice(0, 10).map(item => {
+    const mapped = topResults.map(item => {
         // Extract price (SerpAPI returns price as string like "₹1,29,999")
         let price = 0;
         if (item.extracted_price) {
             price = item.extracted_price;
         } else if (item.price) {
             price = parseFloat(item.price.replace(/[₹,\s]/g, '')) || 0;
+        }
+
+        if (!price || Number.isNaN(price)) {
+            droppedNoPrice += 1;
+            return null;
+        }
+
+        const url = item.link || item.product_link || '';
+        if (!url) {
+            droppedNoLink += 1;
+            return null;
         }
 
         // Detect platform from source
@@ -262,62 +375,167 @@ async function searchGoogleShopping(query, yourPrice) {
             platform,
             title: item.title || query,
             price,
-            url: item.link || item.product_link || '',
+            url,
             inStock: !item.out_of_stock,
             source: 'live',
             rating: item.rating || null,
             reviews: item.reviews || null,
             thumbnail: item.thumbnail || null
         };
-    }).filter(r => r.price > 0); // Only include results with valid prices
+    }).filter(Boolean);
+
+    console.log('[SERPAPI] Mapped response summary', {
+        query,
+        rawShoppingResults: shoppingResults.length,
+        mappedResults: mapped.length,
+        droppedNoPrice,
+        droppedNoLink
+    });
+
+    return {
+        results: mapped,
+        rawShoppingResults: shoppingResults.length,
+        mappedResults: mapped.length,
+        droppedNoPrice,
+        droppedNoLink
+    };
 }
 
-// ============================================================
-// Generate synthetic but realistic prices (fallback)
-// ============================================================
-function generateSyntheticPrices(product) {
-    const basePrice = product.currentPrice || 1000;
-    const productName = product.name || 'Product';
+async function buildSearchQueryCandidates(product, searchParams) {
+    const userQuery = cleanQuery(searchParams?.keywords || '');
+    const storedKeywords = cleanQuery(product.keywords || '');
+    const productName = cleanQuery(product.name || '');
 
-    const platforms = [
-        { name: 'Amazon.in', urlPrefix: 'https://www.amazon.in/s?k=' },
-        { name: 'Flipkart', urlPrefix: 'https://www.flipkart.com/search?q=' },
-        { name: 'JioMart', urlPrefix: 'https://www.jiomart.com/search/' },
-        { name: 'Croma', urlPrefix: 'https://www.croma.com/searchB?q=' },
-        { name: 'Reliance Digital', urlPrefix: 'https://www.reliancedigital.in/search?q=' },
-        { name: 'Meesho', urlPrefix: 'https://www.meesho.com/search?q=' }
-    ];
+    const deterministic = [
+        userQuery,
+        storedKeywords,
+        productName,
+        buildBrandModelQuery(productName),
+        buildModelOnlyQuery(productName),
+        buildProductCategoryQuery(productName, product.category)
+    ].filter(Boolean);
 
-    // Pick 3-5 random platforms
-    const count = 3 + Math.floor(Math.random() * 3);
-    const selected = platforms.sort(() => Math.random() - 0.5).slice(0, count);
+    const aiSuggested = await generateAiSearchQueries(product, deterministic[0] || productName);
+    const all = [...deterministic, ...aiSuggested]
+        .map(cleanQuery)
+        .filter(Boolean);
 
-    return selected.map(platform => {
-        // Generate realistic price variation:
-        // -15% to +10% from your price, based on platform tendencies
-        let variation;
-        if (platform.name === 'Amazon.in') {
-            variation = (Math.random() * 0.20) - 0.10; // -10% to +10%
-        } else if (platform.name === 'Flipkart') {
-            variation = (Math.random() * 0.20) - 0.12; // -12% to +8%
-        } else if (platform.name === 'Meesho') {
-            variation = (Math.random() * 0.25) - 0.20; // -20% to +5%
-        } else {
-            variation = (Math.random() * 0.25) - 0.10; // -10% to +15%
+    return uniqueStrings(all).slice(0, 6);
+}
+
+async function generateAiSearchQueries(product, baseQuery) {
+    if (!bedrockClient || !BEDROCK_QUERY_MODEL) {
+        return [];
+    }
+
+    try {
+        const prompt = `Create 3 short Google Shopping search queries for finding the exact same product from Indian e-commerce competitors.
+
+Product name: ${product.name || ''}
+Category: ${product.category || ''}
+SKU: ${product.sku || ''}
+Existing query: ${baseQuery || ''}
+
+Rules:
+- Focus on exact model/variant matching
+- Keep each query under 12 words
+- Include brand/model identifiers if visible
+- Return ONLY a JSON array of strings`;
+
+        const command = new InvokeModelCommand({
+            modelId: BEDROCK_QUERY_MODEL,
+            contentType: 'application/json',
+            accept: 'application/json',
+            body: JSON.stringify({
+                messages: [{ role: 'user', content: [{ text: prompt }] }],
+                inferenceConfig: {
+                    max_new_tokens: 250,
+                    temperature: 0.2,
+                    top_p: 0.9
+                }
+            })
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+        const text = responseBody?.output?.message?.content?.[0]?.text || '';
+
+        const parsed = tryParseJsonArray(text);
+        const cleaned = parsed.map(cleanQuery).filter(Boolean).slice(0, 3);
+
+        console.log('[PRICE-COMPARE] AI query suggestions generated', {
+            productId: product.id,
+            count: cleaned.length,
+            suggestions: cleaned
+        });
+
+        return cleaned;
+    } catch (error) {
+        console.warn('[PRICE-COMPARE] AI query suggestion failed, continuing with deterministic queries', {
+            productId: product.id,
+            message: error.message
+        });
+        return [];
+    }
+}
+
+function tryParseJsonArray(text) {
+    if (!text) return [];
+    try {
+        const parsed = JSON.parse(text);
+        return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
+    } catch {
+        const match = text.match(/\[[\s\S]*\]/);
+        if (!match) return [];
+        try {
+            const parsed = JSON.parse(match[0]);
+            return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
+        } catch {
+            return [];
         }
+    }
+}
 
-        const competitorPrice = Math.round(basePrice * (1 + variation));
-        const searchTerm = encodeURIComponent(productName);
+function buildBrandModelQuery(productName) {
+    const model = extractLikelyModel(productName);
+    if (!model) return '';
+    const brand = productName.split(' ')[0] || '';
+    return cleanQuery(`${brand} ${model}`);
+}
 
-        return {
-            platform: platform.name,
-            title: productName,
-            price: competitorPrice,
-            url: `${platform.urlPrefix}${searchTerm}`,
-            inStock: Math.random() > 0.1, // 90% chance in stock
-            source: 'synthetic'
-        };
-    });
+function buildModelOnlyQuery(productName) {
+    const model = extractLikelyModel(productName);
+    return cleanQuery(model || '');
+}
+
+function buildProductCategoryQuery(productName, category) {
+    if (!productName && !category) return '';
+    return cleanQuery(`${productName} ${category || ''} India`);
+}
+
+function extractLikelyModel(name) {
+    if (!name) return '';
+    const matches = name.match(/\b[A-Za-z0-9]*\d+[A-Za-z0-9-]*\b/g) || [];
+    return matches.slice(0, 2).join(' ');
+}
+
+function cleanQuery(value) {
+    return String(value || '')
+        .replace(/[|,;]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function uniqueStrings(values) {
+    const seen = new Set();
+    const result = [];
+    for (const value of values) {
+        const key = value.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(value);
+    }
+    return result;
 }
 
 // ============================================================
