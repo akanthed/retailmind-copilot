@@ -115,13 +115,15 @@ export default function PriceComparisonPage() {
         return;
       }
 
+      setCompetitorPrices(result.data?.results || []);
+
       toast({
         title: "Prices Updated",
         description: `Found ${result.data?.results?.length || 0} competitor prices`,
       });
 
       // Reload data
-      loadProductData();
+      await loadProductData();
     } catch (error) {
       console.error("Error:", error);
       toast({
