@@ -447,3 +447,10 @@
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 }
+
+/* Fixed sidebar layout - keeps sidebar in place while content scrolls */
+@media (min-width: 768px) {
+  main[id="main-content"] {
+    margin-left: 16rem; /* w-64 = 256px */
+  }
+}

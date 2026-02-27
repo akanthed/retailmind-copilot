@@ -1,73 +1,41 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { HelpCircle, Book, Video, Mail, Phone, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { HelpCircle, Book, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/i18n/LanguageContext";
-
-const faqs = [
-  {
-    question: "How do I get started?",
-    answer: "Just add a product with name, price, and stock. AI does the rest automatically - finds competitor prices and creates recommendations."
-  },
-  {
-    question: "What should I ask the AI?",
-    answer: "Ask simple questions like: 'Should I lower my price?', 'Which products sell best?', 'What needs attention today?'. AI understands plain English."
-  },
-  {
-    question: "How do I know if a recommendation is good?",
-    answer: "Each recommendation shows confidence (like 92%). Higher = more confident. AI also explains why it's suggesting this action."
-  },
-  {
-    question: "What do the alerts mean?",
-    answer: "Alerts notify you of important changes. Check your To-Do List daily - AI prioritizes what matters most."
-  },
-  {
-    question: "How often should I check?",
-    answer: "Once daily (5 minutes). AI monitors 24/7 and shows you only what needs your attention."
-  },
-  {
-    question: "Is my data safe?",
-    answer: "Yes. All data is encrypted and stored securely on AWS. We never share your information."
-  },
-  {
-    question: "How much does it cost?",
-    answer: "Less than ₹50/month - about one cup of coffee. No hidden fees, cancel anytime."
-  }
-];
-
-const quickGuides = [
-  {
-    title: "Your First Day",
-    steps: [
-      "1. Add a product (just 3 fields!)",
-      "2. AI finds competitor prices automatically",
-      "3. Review your first recommendation",
-      "4. That's it - you're set up!"
-    ]
-  },
-  {
-    title: "Daily Routine (5 minutes)",
-    steps: [
-      "1. Open Dashboard",
-      "2. Check To-Do List",
-      "3. Take 1-2 actions",
-      "4. Done for the day!"
-    ]
-  },
-  {
-    title: "Understanding Recommendations",
-    steps: [
-      "Lower Price = Match competitors",
-      "Raise Price = You have advantage",
-      "Restock = Order more soon",
-      "Confidence = How sure AI is"
-    ]
-  }
-];
 
 export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { t } = useLanguage();
+
+  const quickGuides = [
+    {
+      title: t('help.guide1Title'),
+      steps: [
+        t('help.guide1Step1'),
+        t('help.guide1Step2'),
+        t('help.guide1Step3'),
+        t('help.guide1Step4')
+      ]
+    },
+    {
+      title: t('help.guide2Title'),
+      steps: [
+        t('help.guide2Step1'),
+        t('help.guide2Step2'),
+        t('help.guide2Step3'),
+        t('help.guide2Step4')
+      ]
+    },
+    {
+      title: t('help.guide3Title'),
+      steps: [
+        t('help.guide3Step1'),
+        t('help.guide3Step2'),
+        t('help.guide3Step3'),
+        t('help.guide3Step4')
+      ]
+    }
+  ];
 
   const translatedFaqs = [
     { question: t('help.faq1Q'), answer: t('help.faq1A') },
@@ -96,7 +64,7 @@ export default function HelpPage() {
 
         {/* Quick Start Guides */}
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <h2 className="text-lg font-medium text-foreground mb-4">Quick Start Guides</h2>
+          <h2 className="text-lg font-medium text-foreground mb-4">{t('help.quickStartGuides')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickGuides.map((guide) => (
               <div key={guide.title} className="premium-card rounded-2xl p-5">
@@ -114,20 +82,21 @@ export default function HelpPage() {
           </div>
         </div>
 
-        {/* Video Tutorial */}
+        {/* Key Features */}
         <div className="premium-card rounded-2xl p-6 mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Video className="w-6 h-6 text-primary" />
+              <Book className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-medium text-foreground mb-2">Watch: 5-Minute Tutorial</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                See how a real retailer uses RetailMind AI to make better pricing decisions
-              </p>
-              <Button className="rounded-xl bg-primary text-primary-foreground">
-                Watch Tutorial
-              </Button>
+              <h3 className="font-medium text-foreground mb-3">{t('help.featuresTitle')}</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• <span className="text-foreground font-medium">{t('help.featureAICopilot')}</span> {t('help.featureAICopilotDesc')}</p>
+                <p>• <span className="text-foreground font-medium">{t('help.featurePriceMonitoring')}</span> {t('help.featurePriceMonitoringDesc')}</p>
+                <p>• <span className="text-foreground font-medium">{t('help.featureRecommendations')}</span> {t('help.featureRecommendationsDesc')}</p>
+                <p>• <span className="text-foreground font-medium">{t('help.featureAlerts')}</span> {t('help.featureAlertsDesc')}</p>
+                <p>• <span className="text-foreground font-medium">{t('help.featureAnalytics')}</span> {t('help.featureAnalyticsDesc')}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -159,27 +128,29 @@ export default function HelpPage() {
           </div>
         </div>
 
-        {/* Contact Support */}
+        {/* Technical Details & Support */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-          <div className="premium-card rounded-2xl p-6 text-center">
-            <Mail className="w-8 h-8 text-primary mx-auto mb-3" />
-            <h3 className="font-medium text-foreground mb-2">Email Support</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get help within 24 hours
-            </p>
-            <Button variant="outline" className="rounded-xl">
-              support@retailmind.ai
-            </Button>
+          <div className="premium-card rounded-2xl p-6">
+            <Book className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-medium text-foreground mb-2">{t('help.technicalStackTitle')}</h3>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>• {t('help.techBedrock')}</p>
+              <p>• {t('help.techLambda')}</p>
+              <p>• {t('help.techDynamoDB')}</p>
+              <p>• {t('help.techAPIGateway')}</p>
+              <p>• {t('help.techFrontend')}</p>
+            </div>
           </div>
-          <div className="premium-card rounded-2xl p-6 text-center">
-            <Phone className="w-8 h-8 text-primary mx-auto mb-3" />
-            <h3 className="font-medium text-foreground mb-2">Phone Support</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Mon-Fri, 9 AM - 6 PM IST
-            </p>
-            <Button variant="outline" className="rounded-xl">
-              +91-XXXX-XXXXXX
-            </Button>
+          <div className="premium-card rounded-2xl p-6">
+            <HelpCircle className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-medium text-foreground mb-2">{t('help.needHelpTitle')}</h3>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>{t('help.needHelpDesc')} <code className="text-xs bg-accent px-1 py-0.5 rounded">docs/</code> {t('help.needHelpFolder')}</p>
+              <p>• {t('help.needHelpFile1')}</p>
+              <p>• {t('help.needHelpFile2')}</p>
+              <p>• {t('help.needHelpFile3')}</p>
+              <p className="pt-2">{t('help.needHelpCommand')} <code className="text-xs bg-accent px-1 py-0.5 rounded">./check-config.ps1</code></p>
+            </div>
           </div>
         </div>
       </div>

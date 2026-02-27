@@ -49,7 +49,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out hidden md:flex",
+        "fixed left-0 top-0 h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out hidden md:flex z-40",
         collapsed ? "w-20" : "w-64"
       )}
       aria-label="Main navigation"
