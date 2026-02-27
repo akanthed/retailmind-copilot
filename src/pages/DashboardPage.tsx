@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard, AlertCard } from "@/components/ui/Cards";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { Sparkles, Send, Lightbulb, Loader2, Package, TrendingUp, Bell, IndianRupee } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation, Alert } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 
 const suggestedPrompts = [
   "Why are my sales down?",
@@ -55,6 +57,12 @@ export default function DashboardPage() {
       setAlerts((alertsResult.data?.alerts || []).slice(0, 3));
     } catch (error) {
       console.error("Error:", error);
+      const friendlyError = getUserFriendlyError(error);
+      toast({
+        title: friendlyError.title,
+        description: friendlyError.description,
+        variant: "destructive"
+      });
     } finally {
       setLoadingData(false);
     }
@@ -86,17 +94,18 @@ export default function DashboardPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
-          description: result.error,
+          title: errorMessages.aiResponseFailed.title,
+          description: errorMessages.aiResponseFailed.description,
           variant: "destructive"
         });
       } else if (result.data) {
         setAiResponse(result.data.response);
       }
     } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to get AI response",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive"
       });
     } finally {
@@ -139,6 +148,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Package className="w-4 h-4" />
               Products
+              <HelpTooltip content="Total products you're tracking" />
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
@@ -146,6 +156,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <IndianRupee className="w-4 h-4" />
               Inventory
+              <HelpTooltip content="Total value of all your stock" />
             </div>
             <p className="text-2xl font-bold">₹{(totalInventoryValue / 1000).toFixed(0)}K</p>
           </div>
@@ -153,6 +164,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <TrendingUp className="w-4 h-4" />
               Actions
+              <HelpTooltip content="AI recommendations waiting for you" />
             </div>
             <p className="text-2xl font-bold">{recommendations.length}</p>
           </div>
@@ -160,6 +172,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Bell className="w-4 h-4" />
               Alerts
+              <HelpTooltip content="Products needing immediate attention" />
             </div>
             <p className="text-2xl font-bold text-warning">{lowStockCount}</p>
           </div>
@@ -259,7 +272,6 @@ export default function DashboardPage() {
               {recommendations.map((rec, index) => (
                 <div key={rec.id} className="animate-slide-in-right" style={{ animationDelay: `${0.1 * index}s` }}>
                   <AIRecommendationCard
-                    id={rec.id}
                     title={rec.title}
                     product={rec.product}
                     reason={rec.reason}

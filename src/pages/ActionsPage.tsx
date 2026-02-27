@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 
 export default function ActionsPage() {
   const navigate = useNavigate();
@@ -25,17 +26,18 @@ export default function ActionsPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
-          description: result.error,
+          title: errorMessages.recommendationsFailed.title,
+          description: errorMessages.recommendationsFailed.description,
           variant: "destructive"
         });
       } else if (result.data) {
         setRecommendations(result.data.recommendations);
       }
     } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to load actions",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive"
       });
     } finally {
@@ -146,7 +148,6 @@ export default function ActionsPage() {
             filteredRecommendations.map((action, index) => (
               <div key={action.id} className="animate-slide-in-right" style={{ animationDelay: `${0.05 * index}s` }}>
                 <AIRecommendationCard
-                  id={action.id}
                   title={action.title}
                   product={action.product}
                   reason={action.reason}

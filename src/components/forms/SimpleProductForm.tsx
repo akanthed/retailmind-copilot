@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 
 interface SimpleProductFormProps {
   initialData?: {
@@ -137,8 +138,9 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
       {showAdvanced && (
         <div className="space-y-4 pt-2 border-t border-border">
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium mb-2 flex items-center gap-2">
               Cost Price (₹)
+              <HelpTooltip content="What you paid for this product. Helps calculate profit margins." />
             </label>
             <Input
               type="number"
@@ -149,9 +151,6 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               min="0"
               step="0.01"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Helps calculate profit margins
-            </p>
           </div>
 
           <div>
@@ -172,8 +171,9 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium mb-2 flex items-center gap-2">
               Product Code / SKU
+              <HelpTooltip content="Your internal product code. Auto-generated if left empty." />
             </label>
             <Input
               placeholder="Auto-generated if empty"
@@ -184,8 +184,9 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium mb-2 flex items-center gap-2">
               Amazon Product URL
+              <HelpTooltip content="Link to this product on Amazon. Helps AI find exact matches for price tracking." />
             </label>
             <Input
               placeholder="https://www.amazon.in/dp/..."
@@ -193,14 +194,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               onChange={(e) => setAmazonUrl(e.target.value)}
               className="h-12 text-base"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              For better price tracking
-            </p>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium mb-2 flex items-center gap-2">
               Flipkart Product URL
+              <HelpTooltip content="Link to this product on Flipkart for better price tracking." />
             </label>
             <Input
               placeholder="https://www.flipkart.com/..."
@@ -211,8 +210,9 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium mb-2 flex items-center gap-2">
               Search Keywords
+              <HelpTooltip content="Specific terms to help AI find this exact product (e.g., brand, model, size)." />
             </label>
             <Input
               placeholder="e.g. Samsung Galaxy S24 256GB Black"
@@ -220,9 +220,6 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               onChange={(e) => setKeywords(e.target.value)}
               className="h-12 text-base"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Helps find exact matches on competitor sites
-            </p>
           </div>
         </div>
       )}

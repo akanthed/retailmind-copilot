@@ -33,6 +33,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { apiClient, Product } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -56,7 +57,7 @@ export default function ProductsPage() {
       const result = await apiClient.getProducts();
       if (result.error) {
         toast({
-          title: "Error loading products",
+          title: errorMessages.genericError.title,
           description: result.error,
           variant: "destructive",
         });
@@ -65,9 +66,10 @@ export default function ProductsPage() {
       setProducts(result.data?.products || []);
     } catch (error) {
       console.error("Error:", error);
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to load products",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -85,9 +87,12 @@ export default function ProductsPage() {
       }
 
       if (result.error) {
+        const friendlyError = editingProduct 
+          ? errorMessages.productUpdateFailed 
+          : errorMessages.productCreateFailed;
         toast({
-          title: "Error",
-          description: result.error,
+          title: friendlyError.title,
+          description: friendlyError.description,
           variant: "destructive"
         });
         throw new Error(result.error);
@@ -114,7 +119,7 @@ export default function ProductsPage() {
       const result = await apiClient.deleteProduct(deletingProduct.id);
       if (result.error) {
         toast({
-          title: "Error",
+          title: errorMessages.genericError.title,
           description: result.error,
           variant: "destructive",
         });
@@ -128,9 +133,10 @@ export default function ProductsPage() {
       setDeletingProduct(null);
       loadProducts();
     } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to delete product",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     }

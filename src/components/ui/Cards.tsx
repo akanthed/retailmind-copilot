@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Sparkles, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { Sparkles, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
+import { ConfidenceIndicator } from "./ConfidenceIndicator";
 
 interface AIRecommendationCardProps {
   title: string;
@@ -20,18 +21,6 @@ export function AIRecommendationCard({
   status = "pending",
   onClick,
 }: AIRecommendationCardProps) {
-  const getConfidenceColor = () => {
-    if (confidence >= 80) return "text-success";
-    if (confidence >= 60) return "text-warning";
-    return "text-muted-foreground";
-  };
-
-  const getConfidenceLabel = () => {
-    if (confidence >= 80) return "High confidence";
-    if (confidence >= 60) return "Medium confidence";
-    return "Low confidence";
-  };
-
   return (
     <div
       onClick={onClick}
@@ -72,10 +61,7 @@ export function AIRecommendationCard({
           <TrendingUp className="w-4 h-4 text-success" />
           <span className="text-foreground font-medium">{impact}</span>
         </div>
-        <div className={cn("flex items-center gap-1.5 text-sm", getConfidenceColor())}>
-          <div className="w-2 h-2 rounded-full bg-current" />
-          <span>{getConfidenceLabel()}</span>
-        </div>
+        <ConfidenceIndicator score={confidence / 100} showLabel={false} />
       </div>
     </div>
   );

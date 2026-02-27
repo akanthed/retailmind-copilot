@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { apiClient, Product, PriceHistory } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { DataFreshness } from "@/components/ui/DataFreshness";
 
 interface CompetitorPrice {
   platform: string;
@@ -82,8 +84,8 @@ export default function PriceComparisonPage() {
       const productResult = await apiClient.getProduct(productId!);
       if (productResult.error) {
         toast({
-          title: "Error",
-          description: "Product not found",
+          title: errorMessages.productNotFound.title,
+          description: errorMessages.productNotFound.description,
           variant: "destructive",
         });
         navigate("/products");
@@ -151,8 +153,8 @@ export default function PriceComparisonPage() {
 
         if (result.error) {
           toast({
-            title: "Search Error",
-            description: result.error,
+            title: errorMessages.priceSearchFailed.title,
+            description: errorMessages.priceSearchFailed.description,
             variant: "destructive",
           });
           return;
@@ -182,17 +184,18 @@ export default function PriceComparisonPage() {
 
           if (results.length === 0) {
             toast({
-              title: "No Prices Found",
-              description: "Try adding keywords in product details",
+              title: errorMessages.noPricesFound.title,
+              description: errorMessages.noPricesFound.description,
             });
           }
         }
       } catch (error) {
         console.error("Error:", error);
         if (!isAutoSearch) {
+          const friendlyError = getUserFriendlyError(error);
           toast({
-            title: "Error",
-            description: "Failed to search prices",
+            title: friendlyError.title,
+            description: friendlyError.description,
             variant: "destructive",
           });
         }
