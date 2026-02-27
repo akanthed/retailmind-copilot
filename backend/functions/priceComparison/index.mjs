@@ -21,10 +21,11 @@ export const handler = async (event) => {
 
     const httpMethod = event.httpMethod;
     const pathParameters = event.pathParameters || {};
-    const productId = pathParameters.productId || pathParameters.id;
-    const action = pathParameters.action;
     const requestPath = event.resource || event.path || '';
+    const productId = pathParameters.productId || pathParameters.id || extractProductIdFromPath(requestPath);
+    const action = pathParameters.action;
     const isSearchRequest = requestPath.includes('/compare/search');
+    const isCompareAllRequest = requestPath === '/compare' || requestPath.endsWith('/compare');
 
     try {
         let response;
@@ -49,7 +50,15 @@ export const handler = async (event) => {
             // POST /products/{productId}/compare/search - Search e-commerce for prices
             const body = JSON.parse(event.body || '{}');
             response = await searchCompetitorPrices(productId, body);
-        } else if (httpMethod === 'POST' && !productId) {
+        } else if (httpMethod === 'POST' && isSearchRequest && !productId) {
+            response = {
+                statusCode: 400,
+                body: {
+                    error: 'Missing productId in request path',
+                    path: requestPath
+                }
+            };
+        } else if (httpMethod === 'POST' && isCompareAllRequest) {
             // POST /compare - Search all products
             response = await searchAllProducts();
         } else {
@@ -378,4 +387,10 @@ function httpGet(url) {
             res.on('error', reject);
         }).on('error', reject);
     });
+}
+
+function extractProductIdFromPath(path) {
+    if (!path) return undefined;
+    const match = path.match(/\/products\/([^/]+)\/compare(?:\/search)?/);
+    return match?.[1];
 }
