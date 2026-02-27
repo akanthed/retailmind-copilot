@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { HelpCircle, Book, Video, Mail, Phone, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const faqs = [
   {
@@ -66,6 +67,16 @@ const quickGuides = [
 
 export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { t } = useLanguage();
+
+  const translatedFaqs = [
+    { question: t('help.faq1Q'), answer: t('help.faq1A') },
+    { question: t('help.faq2Q'), answer: t('help.faq2A') },
+    { question: t('help.faq3Q'), answer: t('help.faq3A') },
+    { question: t('help.faq4Q'), answer: t('help.faq4A') },
+    { question: t('help.faq5Q'), answer: t('help.faq5A') },
+    { question: t('help.faq6Q'), answer: t('help.faq6A') },
+  ];
 
   return (
     <AppLayout>
@@ -76,10 +87,10 @@ export default function HelpPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <HelpCircle className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Help & Support</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('help.title')}</h1>
           </div>
           <p className="text-muted-foreground">
-            Simple guides to help you succeed with RetailMind AI
+            {t('help.subtitle')}
           </p>
         </div>
 
@@ -123,9 +134,9 @@ export default function HelpPage() {
 
         {/* FAQ */}
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <h2 className="text-lg font-medium text-foreground mb-4">Common Questions</h2>
+          <h2 className="text-lg font-medium text-foreground mb-4">{t('help.commonQuestions')}</h2>
           <div className="space-y-3">
-            {faqs.map((faq, index) => (
+            {translatedFaqs.map((faq, index) => (
               <div key={index} className="premium-card rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}

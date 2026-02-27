@@ -1,0 +1,17 @@
+{
+  "title": "Decision Detail",
+  "backToDecisions": "Back to Decisions",
+  "loading": "Loading recommendation...",
+  "notFound": "Recommendation not found",
+  "confidence": "confidence",
+  "markAsDone": "Mark as Done",
+  "updating": "Updating...",
+  "done": "Done",
+  "whatToDo": "What to do",
+  "whyMatters": "Why this matters",
+  "expectedImpact": "Expected Impact",
+  "createdAt": "Created",
+  "status": "Status",
+  "pending": "Pending",
+  "implemented": "Implemented"
+}

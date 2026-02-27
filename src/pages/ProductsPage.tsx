@@ -35,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { apiClient, Product } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,6 +48,7 @@ export default function ProductsPage() {
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadProducts();
@@ -194,17 +196,16 @@ export default function ProductsPage() {
                 <Package className="w-5 h-5 text-primary" />
               </div>
               <h1 className="text-2xl font-semibold text-foreground">
-                My Products
+                {t('products.title')}
               </h1>
             </div>
             <p className="text-muted-foreground">
-              Add your products and track competitor prices across e-commerce
-              platforms
+              {t('products.subtitle')}
             </p>
           </div>
           <Button onClick={openAddDialog} className="gap-2">
             <Plus className="w-4 h-4" />
-            Add Product
+            {t('products.addProduct')}
           </Button>
         </div>
 
@@ -213,14 +214,14 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Package className="w-4 h-4" />
-              Total Products
+              {t('products.totalProducts')}
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <IndianRupee className="w-4 h-4" />
-              Inventory Value
+              {t('products.inventoryValue')}
             </div>
             <p className="text-2xl font-bold">
               ₹{totalInventoryValue.toLocaleString("en-IN")}
@@ -229,14 +230,14 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <TrendingUp className="w-4 h-4" />
-              Avg Margin
+              {t('products.avgMargin')}
             </div>
             <p className="text-2xl font-bold">{avgMargin.toFixed(1)}%</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <BarChart3 className="w-4 h-4" />
-              Being Tracked
+              {t('products.beingTracked')}
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
@@ -247,7 +248,7 @@ export default function ProductsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search products by name, SKU, or category..."
+              placeholder={t('products.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -263,7 +264,7 @@ export default function ProductsPage() {
             className="gap-1"
           >
             <Package className="w-4 h-4" />
-            Cards
+            {t('products.cards')}
           </Button>
           <Button
             variant={viewMode === "table" ? "default" : "outline"}
@@ -272,7 +273,7 @@ export default function ProductsPage() {
             className="gap-1"
           >
             <BarChart3 className="w-4 h-4" />
-            Table
+            {t('products.table')}
           </Button>
         </div>
 
@@ -290,45 +291,55 @@ export default function ProductsPage() {
                       100
                     ).toFixed(1)
                   : "—";
+              const isInStock = product.stock > 10;
               return (
-                <div key={product.id} className="premium-card rounded-2xl p-4">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <h3 className="font-medium text-foreground">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground">{product.category}</p>
+                <div key={product.id} className="premium-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground">{product.category}</p>
                     </div>
-                    <Badge variant={product.stock > 10 ? "default" : "destructive"}>
-                      {product.stock > 10 ? "In Stock" : "Low Stock"}
+                    <Badge 
+                      variant={isInStock ? "default" : "destructive"}
+                      className="shrink-0 h-6 px-2.5 text-xs font-medium"
+                    >
+                      {isInStock ? t('products.inStock') : t('products.lowStock')}
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-primary/10 rounded-xl p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Your Price</p>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-primary/10 rounded-xl p-3">
+                      <p className="text-xs text-muted-foreground mb-1">{t('products.yourPrice')}</p>
                       <p className="text-lg font-semibold text-primary">
                         ₹{product.currentPrice.toLocaleString("en-IN")}
                       </p>
                     </div>
-                    <div className="bg-secondary rounded-xl p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Margin</p>
-                      <p className="text-lg font-semibold">{margin}%</p>
+                    <div className="bg-secondary rounded-xl p-3">
+                      <p className="text-xs text-muted-foreground mb-1">{t('products.margin')}</p>
+                      <p className="text-lg font-semibold text-foreground">{margin}%</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 h-9"
                       onClick={() => navigate(`/products/${product.id}/compare`)}
                     >
-                      Compare
+                      {t('products.compare')}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => openEditDialog(product)}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 w-9 p-0"
+                      onClick={() => openEditDialog(product)}
+                    >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-9 w-9 p-0"
                       onClick={() => {
                         setDeletingProduct(product);
                         setShowDeleteDialog(true);
@@ -347,17 +358,17 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-12 text-center animate-fade-in" style={{ animationDelay: "0.14s" }}>
             <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {products.length === 0 ? "No products yet" : "No matching products"}
+              {products.length === 0 ? t('products.noProducts') : t('products.noMatchingProducts')}
             </h3>
             <p className="text-muted-foreground mb-4">
               {products.length === 0
-                ? "Add your first product to start tracking competitor prices"
-                : "Try a different search term"}
+                ? t('products.noProductsDesc')
+                : t('products.tryDifferentSearch')}
             </p>
             {products.length === 0 && (
               <Button onClick={openAddDialog} className="gap-2">
                 <Plus className="w-4 h-4" />
-                Add Your First Product
+                {t('products.addFirstProduct')}
               </Button>
             )}
           </div>
@@ -390,13 +401,13 @@ export default function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Your Price</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">Margin</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead>{t('products.productName')}</TableHead>
+                  <TableHead>{t('products.category')}</TableHead>
+                  <TableHead className="text-right">{t('products.yourPrice')}</TableHead>
+                  <TableHead className="text-right">{t('products.cost')}</TableHead>
+                  <TableHead className="text-right">{t('products.margin')}</TableHead>
+                  <TableHead className="text-right">{t('products.stock')}</TableHead>
+                  <TableHead className="text-center">{t('products.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -510,10 +521,10 @@ export default function ProductsPage() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProduct ? "Edit Product" : "Add Product"}
+              {editingProduct ? t('products.editProduct') : t('products.addProduct')}
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-              {editingProduct ? "Update product details" : "Just the basics - we'll handle the rest"}
+              {editingProduct ? t('products.updateDetails') : t('products.justBasics')}
             </p>
           </DialogHeader>
 
@@ -540,25 +551,24 @@ export default function ProductsPage() {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Product</DialogTitle>
+            <DialogTitle>{t('products.deleteProduct')}</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            Are you sure you want to delete{" "}
+            {t('products.deleteConfirm')}{" "}
             <span className="font-medium text-foreground">
               {deletingProduct?.name}
             </span>
-            ? This will also remove all price history and alerts for this
-            product.
+            ? {t('products.deleteWarning')}
           </p>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
             >
-              Cancel
+              {t('products.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDeleteProduct}>
-              Delete
+              {t('products.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

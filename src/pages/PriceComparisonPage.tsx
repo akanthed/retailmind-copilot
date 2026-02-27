@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { DataFreshness } from "@/components/ui/DataFreshness";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface CompetitorPrice {
   platform: string;
@@ -63,6 +64,7 @@ export default function PriceComparisonPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [competitorPrices, setCompetitorPrices] = useState<CompetitorPrice[]>([]);
@@ -264,7 +266,7 @@ export default function PriceComparisonPage() {
             className="mb-4 gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Products
+            {t('priceComparison.backToProducts')}
           </Button>
 
           <div className="flex items-center justify-between">
@@ -291,12 +293,12 @@ export default function PriceComparisonPage() {
               {searching ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Updating...
+                  {t('priceComparison.updating')}
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Refresh Prices
+                  {t('priceComparison.refreshPrices')}
                 </>
               )}
             </Button>
@@ -306,17 +308,17 @@ export default function PriceComparisonPage() {
         {/* Price Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           <div className="premium-card rounded-2xl p-4">
-            <p className="text-muted-foreground text-sm mb-1">Your Price</p>
+            <p className="text-muted-foreground text-sm mb-1">{t('priceComparison.yourPrice')}</p>
             <p className="text-2xl font-bold text-primary">
               ₹{currentPrice.toLocaleString("en-IN")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Cost: ₹{costPrice.toLocaleString("en-IN")}
+              {t('priceComparison.cost')}: ₹{costPrice.toLocaleString("en-IN")}
             </p>
           </div>
 
           <div className="premium-card rounded-2xl p-4">
-            <p className="text-muted-foreground text-sm mb-1">Lowest Found</p>
+            <p className="text-muted-foreground text-sm mb-1">{t('priceComparison.lowestFound')}</p>
             {lowestCompetitor ? (
               <>
                 <p className="text-2xl font-bold text-green-500">
@@ -327,13 +329,13 @@ export default function PriceComparisonPage() {
                 </p>
               </>
             ) : (
-              <p className="text-lg text-muted-foreground">No data yet</p>
+              <p className="text-lg text-muted-foreground">{t('priceComparison.noDataYet')}</p>
             )}
           </div>
 
           <div className="premium-card rounded-2xl p-4">
             <p className="text-muted-foreground text-sm mb-1">
-              Average Market Price
+              {t('priceComparison.avgMarketPrice')}
             </p>
             {avgCompetitorPrice > 0 ? (
               <>
@@ -341,17 +343,17 @@ export default function PriceComparisonPage() {
                   ₹{Math.round(avgCompetitorPrice).toLocaleString("en-IN")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Across {competitorPrices.length} listings
+                  {t('priceComparison.acrossListings').replace('{count}', competitorPrices.length.toString())}
                 </p>
               </>
             ) : (
-              <p className="text-lg text-muted-foreground">No data yet</p>
+              <p className="text-lg text-muted-foreground">{t('priceComparison.noDataYet')}</p>
             )}
           </div>
 
           <div className="premium-card rounded-2xl p-4">
             <p className="text-muted-foreground text-sm mb-1">
-              Your Position
+              {t('priceComparison.yourPosition')}
             </p>
             {competitorPrices.length > 0 ? (
               <>
@@ -359,17 +361,17 @@ export default function PriceComparisonPage() {
                   {isYourPriceLowest ? (
                     <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
                       <TrendingDown className="w-3 h-3 mr-1" />
-                      Lowest
+                      {t('priceComparison.lowest')}
                     </Badge>
                   ) : (
                     <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
                       <TrendingUp className="w-3 h-3 mr-1" />
-                      {pricePosition.toFixed(1)}% higher
+                      {t('priceComparison.higher').replace('{percent}', pricePosition.toFixed(1))}
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  vs. {competitorPrices.length} competitors
+                  {t('priceComparison.vsCompetitors').replace('{count}', competitorPrices.length.toString())}
                 </p>
               </>
             ) : (
@@ -383,10 +385,10 @@ export default function PriceComparisonPage() {
           <div className="p-4 border-b border-border">
             <h2 className="font-semibold flex items-center gap-2">
               <Globe className="w-5 h-5 text-primary" />
-              Competitor Prices
+              {t('priceComparison.competitorPrices')}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Prices found across e-commerce platforms for this product
+              {t('priceComparison.pricesFoundDesc')}
             </p>
           </div>
 
@@ -407,116 +409,110 @@ export default function PriceComparisonPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Product Title</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">vs. Your Price</TableHead>
-                  <TableHead className="text-center">Stock</TableHead>
-                  <TableHead className="text-center">Source</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="w-[100px]">{t('priceComparison.platform')}</TableHead>
+                  <TableHead className="min-w-[200px]">{t('priceComparison.productTitle')}</TableHead>
+                  <TableHead className="text-right w-[90px]">{t('priceComparison.price')}</TableHead>
+                  <TableHead className="text-right w-[110px]">{t('priceComparison.vsYourPrice')}</TableHead>
+                  <TableHead className="text-center w-[100px]">{t('priceComparison.stock')}</TableHead>
+                  <TableHead className="text-center w-[90px]">{t('priceComparison.source')}</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {/* Your price row */}
                 <TableRow className="bg-primary/5">
-                  <TableCell>
-                    <Badge variant="default">Your Store</Badge>
+                  <TableCell className="w-[100px]">
+                    <Badge variant="default" className="h-6 whitespace-nowrap text-xs">{t('priceComparison.yourStore')}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right font-bold text-primary">
+                  <TableCell className="font-medium min-w-[200px] text-sm">{product.name}</TableCell>
+                  <TableCell className="text-right font-bold text-primary w-[90px] text-sm">
                     ₹{currentPrice.toLocaleString("en-IN")}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Minus className="w-4 h-4 mx-auto text-muted-foreground" />
+                  <TableCell className="text-right w-[110px]">
+                    <div className="flex items-center justify-end">
+                      <Minus className="w-4 h-4 text-muted-foreground" />
+                    </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center w-[100px]">
                     <Badge
                       variant={product.stock > 0 ? "default" : "destructive"}
+                      className="h-6 whitespace-nowrap text-xs"
                     >
-                      {product.stock > 0 ? `${product.stock} units` : "Out of Stock"}
+                      {product.stock > 0 ? t('priceComparison.inStock') : t('priceComparison.out')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center text-muted-foreground text-sm">
-                    —
+                  <TableCell className="text-center w-[90px]">
+                    <Badge variant="outline" className="h-6 whitespace-nowrap text-xs">
+                      {t('priceComparison.yourData')}
+                    </Badge>
                   </TableCell>
-                  <TableCell></TableCell>
+                  <TableCell className="w-[50px]"></TableCell>
                 </TableRow>
 
                 {/* Competitor rows */}
                 {competitorPrices.map((comp, idx) => (
                   <TableRow key={idx}>
-                    <TableCell>
+                    <TableCell className="w-[100px]">
                       <Badge
                         variant="outline"
-                        className={getPlatformColor(comp.platform)}
+                        className={`${getPlatformColor(comp.platform)} h-6 w-fit whitespace-nowrap text-xs`}
                       >
                         {comp.platform}
                       </Badge>
-                      {comp.source === 'live' && (
-                        <Badge variant="default" className="ml-2 bg-green-500 text-white text-xs">
-                          Live
-                        </Badge>
-                      )}
-                      {comp.source === 'synthetic' && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          Demo
-                        </Badge>
-                      )}
                     </TableCell>
-                    <TableCell>
-                      <p className="max-w-xs truncate">{comp.title}</p>
+                    <TableCell className="min-w-[200px]">
+                      <p className="max-w-[250px] truncate text-sm" title={comp.title}>{comp.title}</p>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium w-[90px] text-sm">
                       ₹{comp.price.toLocaleString("en-IN")}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right w-[110px]">
                       {comp.priceDiff < 0 ? (
-                        <span className="flex items-center justify-end gap-1 text-green-500">
-                          <ArrowDownRight className="w-3 h-3" />₹
-                          {Math.abs(comp.priceDiff).toLocaleString("en-IN")} (
-                          {Math.abs(comp.priceDiffPercent).toFixed(1)}% cheaper)
+                        <span className="flex items-center justify-end gap-1 text-green-500 text-xs">
+                          <ArrowDownRight className="w-3 h-3" />
+                          {Math.abs(comp.priceDiffPercent).toFixed(1)}%
                         </span>
                       ) : comp.priceDiff > 0 ? (
-                        <span className="flex items-center justify-end gap-1 text-red-500">
-                          <ArrowUpRight className="w-3 h-3" />₹
-                          {comp.priceDiff.toLocaleString("en-IN")} (
-                          {comp.priceDiffPercent.toFixed(1)}% more)
+                        <span className="flex items-center justify-end gap-1 text-red-500 text-xs">
+                          <ArrowUpRight className="w-3 h-3" />
+                          {comp.priceDiffPercent.toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Same</span>
+                        <span className="text-muted-foreground text-xs">Same</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center w-[100px]">
                       <Badge
                         variant={comp.inStock ? "default" : "destructive"}
-                        className={
+                        className={`h-6 whitespace-nowrap text-xs ${
                           comp.inStock
                             ? "bg-green-500/10 text-green-500 border-green-500/20"
                             : ""
-                        }
+                        }`}
                       >
-                        {comp.inStock ? "In Stock" : "Out of Stock"}
+                        {comp.inStock ? t('priceComparison.inStock') : t('priceComparison.out')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center w-[90px]">
                       <Badge
                         variant="outline"
-                        className={
+                        className={`h-6 whitespace-nowrap text-xs ${
                           comp.source === "live"
                             ? "text-green-500 border-green-500/30"
                             : "text-muted-foreground"
-                        }
+                        }`}
                       >
-                        {comp.source === "live" ? "Live" : "Cached"}
+                        {comp.source === "live" ? t('priceComparison.live') : t('priceComparison.cache')}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[50px]">
                       {comp.url && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => window.open(comp.url, "_blank")}
                           title="View on platform"
+                          className="h-8 w-8 p-0"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>

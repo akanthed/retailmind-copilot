@@ -1,5 +1,9 @@
 {
   "title": "To-Do List",
+  "subtitle": "AI-powered recommendations to grow your business",
+  "all": "All",
+  "pending": "Pending",
+  "implemented": "Implemented",
   "noActions": "All caught up!",
   "noActionsDesc": "No pending actions right now",
   "markComplete": "Mark Complete",
@@ -8,5 +12,10 @@
   "dueDate": "Due Date",
   "high": "High",
   "medium": "Medium",
-  "low": "Low"
+  "low": "Low",
+  "totalRecommendations": "Total Recommendations",
+  "pendingActions": "Pending Actions",
+  "avgConfidence": "Avg Confidence",
+  "noRecommendations": "No recommendations yet",
+  "noRecommendationsDesc": "AI is analyzing your products. Recommendations will appear here soon."
 }

@@ -1,0 +1,13 @@
+{
+  "title": "Alerts & Signals",
+  "subtitle": "Stay ahead with real-time market intelligence",
+  "generateAlerts": "Generate Alerts",
+  "generating": "Generating...",
+  "priceChanges": "Price Changes",
+  "stockRisks": "Stock Risks",
+  "opportunities": "Opportunities",
+  "recentActivity": "Recent Activity",
+  "loadingAlerts": "Loading alerts...",
+  "noAlerts": "No alerts yet. Click \"Generate Alerts\" to analyze your products.",
+  "total": "Total"
+}

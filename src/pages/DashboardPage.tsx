@@ -9,12 +9,14 @@ import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation, Alert } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const suggestedPrompts = [
-  "Why are my sales down?",
-  "Should I change my prices?",
-  "What needs attention today?",
-  "Which products sell best?",
+  "dashboard.prompt1",
+  "dashboard.prompt2",
+  "dashboard.prompt3",
+  "dashboard.prompt4",
 ];
 
 export default function DashboardPage() {
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const [loadingData, setLoadingData] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadDashboardData();
@@ -117,6 +120,26 @@ export default function DashboardPage() {
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.currentPrice * p.stock), 0);
   const lowStockCount = products.filter(p => p.stock < 10).length;
 
+  // Prepare chart data
+  const categoryData = products.reduce((acc: any[], product) => {
+    const existing = acc.find(item => item.name === product.category);
+    const value = product.currentPrice * product.stock;
+    if (existing) {
+      existing.value += value;
+    } else {
+      acc.push({ name: product.category, value });
+    }
+    return acc;
+  }, []);
+
+  const stockData = [
+    { name: t('dashboard.inStock'), value: products.filter(p => p.stock > 10).length },
+    { name: t('dashboard.lowStock'), value: products.filter(p => p.stock > 0 && p.stock <= 10).length },
+    { name: t('dashboard.outOfStock'), value: products.filter(p => p.stock === 0).length },
+  ].filter(item => item.value > 0);
+
+  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
+
   if (loadingData) {
     return (
       <AppLayout>
@@ -131,10 +154,10 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8 animate-fade-in">
           <h1 className="text-2xl font-semibold text-foreground mb-1">
-            Welcome back! 👋
+            {t('dashboard.welcome')}
           </h1>
           <p className="text-muted-foreground">
-            Here's what's happening with your products today
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
@@ -143,32 +166,32 @@ export default function DashboardPage() {
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Package className="w-4 h-4" />
-              Products
-              <HelpTooltip content="Total products you're tracking" />
+              {t('dashboard.products')}
+              <HelpTooltip content={t('dashboard.totalProductsTracking')} />
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <IndianRupee className="w-4 h-4" />
-              Inventory
-              <HelpTooltip content="Total value of all your stock" />
+              {t('dashboard.inventory')}
+              <HelpTooltip content={t('dashboard.totalInventoryValue')} />
             </div>
             <p className="text-2xl font-bold">₹{(totalInventoryValue / 1000).toFixed(0)}K</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <TrendingUp className="w-4 h-4" />
-              Actions
-              <HelpTooltip content="AI recommendations waiting for you" />
+              {t('dashboard.actions')}
+              <HelpTooltip content={t('dashboard.aiRecommendations')} />
             </div>
             <p className="text-2xl font-bold">{recommendations.length}</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Bell className="w-4 h-4" />
-              Alerts
-              <HelpTooltip content="Products needing immediate attention" />
+              {t('dashboard.alerts')}
+              <HelpTooltip content={t('dashboard.needsAttention')} />
             </div>
             <p className="text-2xl font-bold text-warning">{lowStockCount}</p>
           </div>
@@ -183,7 +206,7 @@ export default function DashboardPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask me anything: What should I do today?"
+                placeholder={t('dashboard.askPlaceholder')}
                 className="flex-1 px-2 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
                 disabled={loading}
               />
@@ -223,92 +246,157 @@ export default function DashboardPage() {
           <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.15s" }}>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
               <Lightbulb className="w-4 h-4" />
-              <span>Try asking:</span>
+              <span>{t('dashboard.tryAsking')}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {suggestedPrompts.map((prompt) => (
                 <button
                   key={prompt}
-                  onClick={() => setQuery(prompt)}
+                  onClick={() => setQuery(t(prompt))}
                   className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 transition-colors"
                 >
-                  {prompt}
+                  {t(prompt)}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Today's Actions */}
-        <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-foreground">Today's Actions</h2>
-            {recommendations.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/actions")}
-                className="text-primary"
-              >
-                View All
-              </Button>
+        {/* Charts */}
+        {products.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            {/* Inventory by Category */}
+            {categoryData.length > 0 && (
+              <div className="premium-card rounded-2xl p-6">
+                <h3 className="font-medium text-foreground mb-4">{t('dashboard.inventoryByCategory')}</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {categoryData.map((item, index) => (
+                    <div key={item.name} className="flex items-center gap-2 text-xs">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span className="text-muted-foreground">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Stock Status */}
+            {stockData.length > 0 && (
+              <div className="premium-card rounded-2xl p-6">
+                <h3 className="font-medium text-foreground mb-4">{t('dashboard.stockStatus')}</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={stockData}>
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                      {stockData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={
+                            entry.name === 'In Stock' ? '#10b981' :
+                            entry.name === 'Low Stock' ? '#f59e0b' : '#ef4444'
+                          } 
+                        />
+                      ))}
+                    </Bar>
+                    <RechartsTooltip 
+                      formatter={(value: any) => `${value} ${t('dashboard.products_count')}`}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {stockData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 text-xs">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ 
+                          backgroundColor: 
+                            item.name === 'In Stock' ? '#10b981' :
+                            item.name === 'Low Stock' ? '#f59e0b' : '#ef4444'
+                        }}
+                      />
+                      <span className="text-muted-foreground">{item.name}: {item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-          
-          {recommendations.length === 0 ? (
-            <div className="premium-card rounded-2xl p-8 text-center">
-              <Sparkles className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground mb-2">No actions needed right now</p>
-              <p className="text-sm text-muted-foreground">
-                AI is monitoring your products. Check back soon!
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <div key={rec.id} className="animate-slide-in-right" style={{ animationDelay: `${0.1 * index}s` }}>
-                  <AIRecommendationCard
-                    title={rec.title}
-                    product={rec.product}
-                    reason={rec.reason}
-                    impact={rec.impact}
-                    confidence={rec.confidence}
-                    status={rec.status}
-                    onClick={() => navigate(`/decisions/${rec.id}`)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
 
-        {/* Recent Alerts */}
-        {alerts.length > 0 && (
-          <div className="animate-fade-in" style={{ animationDelay: "0.25s" }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-foreground">Recent Alerts</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/alerts")}
-                className="text-primary"
+        {/* Quick Actions */}
+        {(recommendations.length > 0 || alerts.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: "0.25s" }}>
+            {/* Actions Summary */}
+            {recommendations.length > 0 && (
+              <div 
+                className="premium-card rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => navigate("/actions")}
               >
-                View All
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {alerts.map((alert, index) => (
-                <div key={alert.id} className="animate-slide-in-right" style={{ animationDelay: `${0.05 * index}s` }}>
-                  <AlertCard
-                    type={alert.type}
-                    title={alert.title}
-                    description={alert.description}
-                    timestamp="Just now"
-                    suggestion={alert.suggestion}
-                  />
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-foreground">{t('dashboard.todaysActions')}</h3>
+                  <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
-              ))}
-            </div>
+                <p className="text-3xl font-bold mb-2">{recommendations.length}</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {t('dashboard.waitingRecommendations')}
+                </p>
+                <Button variant="outline" size="sm" className="w-full">
+                  {t('dashboard.viewActions')}
+                </Button>
+              </div>
+            )}
+
+            {/* Alerts Summary */}
+            {alerts.length > 0 && (
+              <div 
+                className="premium-card rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => navigate("/alerts")}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-foreground">{t('dashboard.recentAlerts')}</h3>
+                  <Bell className="w-5 h-5 text-warning" />
+                </div>
+                <p className="text-3xl font-bold mb-2">{alerts.length}</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {t('dashboard.itemsNeedAttention')}
+                </p>
+                <Button variant="outline" size="sm" className="w-full">
+                  {t('dashboard.viewAlerts')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

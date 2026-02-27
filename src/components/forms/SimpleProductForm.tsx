@@ -74,11 +74,11 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
       {/* Basic Fields */}
       <div>
         <label htmlFor="product-name" className="text-sm font-medium mb-2 block">
-          Product Name <span className="text-destructive" aria-label="required">*</span>
+          {t('products.productName')} <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
           id="product-name"
-          placeholder="e.g. Samsung Galaxy S24"
+          placeholder={t('products.productNamePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="h-12 text-base"
@@ -92,12 +92,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
       <div>
         <label htmlFor="product-price" className="text-sm font-medium mb-2 block">
-          Your Selling Price (₹) <span className="text-destructive" aria-label="required">*</span>
+          {t('products.sellingPrice')} <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
           id="product-price"
           type="number"
-          placeholder="e.g. 129999"
+          placeholder={t('products.sellingPricePlaceholder')}
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="h-12 text-base"
@@ -112,12 +112,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
       <div>
         <label htmlFor="product-stock" className="text-sm font-medium mb-2 block">
-          Stock Quantity <span className="text-destructive" aria-label="required">*</span>
+          {t('products.stock')} <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
           id="product-stock"
           type="number"
-          placeholder="e.g. 50"
+          placeholder={t('products.stockPlaceholder')}
           value={stock}
           onChange={(e) => setStock(e.target.value)}
           className="h-12 text-base"
@@ -140,12 +140,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
         {showAdvanced ? (
           <>
             <ChevronUp className="w-4 h-4" />
-            Hide Advanced Options
+            {t('products.hideAdvanced')}
           </>
         ) : (
           <>
             <ChevronDown className="w-4 h-4" />
-            Show Advanced Options (optional)
+            {t('products.showAdvanced')}
           </>
         )}
       </button>
@@ -155,13 +155,13 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
         <div id="advanced-options" className="space-y-4 pt-2 border-t border-border">
           <div>
             <label htmlFor="cost-price" className="text-sm font-medium mb-2 flex items-center gap-2">
-              Cost Price (₹)
+              {t('products.costPrice')}
               <HelpTooltip content="What you paid for this product. Helps calculate profit margins." />
             </label>
             <Input
               id="cost-price"
               type="number"
-              placeholder="What you paid for it"
+              placeholder={t('products.costPricePlaceholder')}
               value={costPrice}
               onChange={(e) => setCostPrice(e.target.value)}
               className="h-12 text-base"
@@ -174,7 +174,7 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
           <div>
             <label htmlFor="category" className="text-sm font-medium mb-2 block">
-              Category
+              {t('products.category')}
             </label>
             <select
               id="category"
@@ -194,12 +194,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
           <div>
             <label htmlFor="sku" className="text-sm font-medium mb-2 flex items-center gap-2">
-              Product Code / SKU
+              {t('products.sku')}
               <HelpTooltip content="Your internal product code. Auto-generated if left empty." />
             </label>
             <Input
               id="sku"
-              placeholder="Auto-generated if empty"
+              placeholder={t('products.skuPlaceholder')}
               value={sku}
               onChange={(e) => setSku(e.target.value)}
               className="h-12 text-base"
@@ -210,13 +210,13 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
           <div>
             <label htmlFor="amazon-url" className="text-sm font-medium mb-2 flex items-center gap-2">
-              Amazon Product URL
+              {t('products.amazonUrl')}
               <HelpTooltip content="Link to this product on Amazon. Helps AI find exact matches for price tracking." />
             </label>
             <Input
               id="amazon-url"
               type="url"
-              placeholder="https://www.amazon.in/dp/..."
+              placeholder={t('products.amazonUrlPlaceholder')}
               value={amazonUrl}
               onChange={(e) => setAmazonUrl(e.target.value)}
               className="h-12 text-base"
@@ -227,13 +227,13 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
           <div>
             <label htmlFor="flipkart-url" className="text-sm font-medium mb-2 flex items-center gap-2">
-              Flipkart Product URL
+              {t('products.flipkartUrl')}
               <HelpTooltip content="Link to this product on Flipkart for better price tracking." />
             </label>
             <Input
               id="flipkart-url"
               type="url"
-              placeholder="https://www.flipkart.com/..."
+              placeholder={t('products.flipkartUrlPlaceholder')}
               value={flipkartUrl}
               onChange={(e) => setFlipkartUrl(e.target.value)}
               className="h-12 text-base"
@@ -244,12 +244,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
           <div>
             <label htmlFor="keywords" className="text-sm font-medium mb-2 flex items-center gap-2">
-              Search Keywords
+              {t('products.keywords')}
               <HelpTooltip content="Specific terms to help AI find this exact product (e.g., brand, model, size)." />
             </label>
             <Input
               id="keywords"
-              placeholder="e.g. Samsung Galaxy S24 256GB Black"
+              placeholder={t('products.keywordsPlaceholder')}
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
               className="h-12 text-base"
@@ -269,7 +269,7 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           disabled={loading}
           className="flex-1 h-12"
         >
-          Cancel
+          {t('products.cancel')}
         </Button>
         <Button
           type="submit"
@@ -279,12 +279,12 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
+              {t('products.saving')}
             </>
           ) : isEditing ? (
-            "Update Product"
+            t('products.updateProduct')
           ) : (
-            "Add Product"
+            t('products.addProduct')
           )}
         </Button>
       </div>

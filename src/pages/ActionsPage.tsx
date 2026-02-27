@@ -8,10 +8,12 @@ import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function ActionsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "pending" | "implemented">("pending");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,10 +74,10 @@ export default function ActionsPage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <CheckSquare className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-2xl font-semibold text-foreground">To-Do List</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('actions.title')}</h1>
             </div>
             <p className="text-muted-foreground">
-              AI recommendations and their results
+              {t('actions.subtitle')}
             </p>
           </div>
         </div>
@@ -105,7 +107,7 @@ export default function ActionsPage() {
             onClick={() => setFilter("pending")}
           >
             <Clock className="w-4 h-4 mr-1.5" />
-            To Do ({pendingCount})
+            {t('actions.pending')} ({pendingCount})
           </Button>
           <Button
             variant={filter === "implemented" ? "default" : "outline"}
@@ -114,7 +116,7 @@ export default function ActionsPage() {
             onClick={() => setFilter("implemented")}
           >
             <CheckCircle className="w-4 h-4 mr-1.5" />
-            Done ({doneCount})
+            {t('actions.implemented')} ({doneCount})
           </Button>
           <Button
             variant={filter === "all" ? "default" : "outline"}
@@ -122,7 +124,7 @@ export default function ActionsPage() {
             className="rounded-lg"
             onClick={() => setFilter("all")}
           >
-            All ({recommendations.length})
+            {t('actions.all')} ({recommendations.length})
           </Button>
         </div>
 
@@ -132,12 +134,12 @@ export default function ActionsPage() {
             <div className="premium-card rounded-2xl p-12 text-center">
               <CheckCircle className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                {filter === "pending" ? "All caught up!" : "No actions yet"}
+                {filter === "pending" ? t('actions.noActions') : t('actions.noRecommendations')}
               </h3>
               <p className="text-muted-foreground">
                 {filter === "pending" 
-                  ? "Great job! Check back tomorrow for new recommendations."
-                  : "Actions will appear here as AI analyzes your products."}
+                  ? t('actions.noActionsDesc')
+                  : t('actions.noRecommendationsDesc')}
               </p>
             </div>
           ) : (

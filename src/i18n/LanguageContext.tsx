@@ -8,6 +8,10 @@ import enActions from './translations/en/actions.json';
 import enHelp from './translations/en/help.json';
 import enErrors from './translations/en/errors.json';
 import enLoading from './translations/en/loading.json';
+import enPriceComparison from './translations/en/priceComparison.json';
+import enAlerts from './translations/en/alerts.json';
+import enDecisions from './translations/en/decisions.json';
+import enNotFound from './translations/en/notFound.json';
 
 import hiCommon from './translations/hi/common.json';
 import hiNav from './translations/hi/nav.json';
@@ -18,6 +22,10 @@ import hiActions from './translations/hi/actions.json';
 import hiHelp from './translations/hi/help.json';
 import hiErrors from './translations/hi/errors.json';
 import hiLoading from './translations/hi/loading.json';
+import hiPriceComparison from './translations/hi/priceComparison.json';
+import hiAlerts from './translations/hi/alerts.json';
+import hiDecisions from './translations/hi/decisions.json';
+import hiNotFound from './translations/hi/notFound.json';
 
 type Language = 'en' | 'hi';
 
@@ -31,6 +39,10 @@ interface Translations {
   help: typeof enHelp;
   errors: typeof enErrors;
   loading: typeof enLoading;
+  priceComparison: typeof enPriceComparison;
+  alerts: typeof enAlerts;
+  decisions: typeof enDecisions;
+  notFound: typeof enNotFound;
 }
 
 interface LanguageContextType {
@@ -52,6 +64,10 @@ const translations: Record<Language, Translations> = {
     help: enHelp,
     errors: enErrors,
     loading: enLoading,
+    priceComparison: enPriceComparison,
+    alerts: enAlerts,
+    decisions: enDecisions,
+    notFound: enNotFound,
   },
   hi: {
     common: hiCommon,
@@ -63,6 +79,10 @@ const translations: Record<Language, Translations> = {
     help: hiHelp,
     errors: hiErrors,
     loading: hiLoading,
+    priceComparison: hiPriceComparison,
+    alerts: hiAlerts,
+    decisions: hiDecisions,
+    notFound: hiNotFound,
   },
 };
 
