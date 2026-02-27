@@ -20,6 +20,19 @@ export const handler = async (event) => {
     try {
         let response;
         
+        // Handle OPTIONS for CORS preflight
+        if (httpMethod === 'OPTIONS') {
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key'
+                },
+                body: ''
+            };
+        }
+        
         // Route based on HTTP method and path
         if (httpMethod === 'GET' && !pathParameters.id) {
             // GET /products - List all products

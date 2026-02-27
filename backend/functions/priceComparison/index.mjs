@@ -27,6 +27,19 @@ export const handler = async (event) => {
     try {
         let response;
 
+        // Handle OPTIONS for CORS preflight
+        if (httpMethod === 'OPTIONS') {
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key'
+                },
+                body: ''
+            };
+        }
+
         if (httpMethod === 'GET' && productId && !action) {
             // GET /products/{productId}/compare - Get stored comparisons
             response = await getStoredComparisons(productId);
