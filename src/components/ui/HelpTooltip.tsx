@@ -19,11 +19,13 @@ export function HelpTooltip({ content, className = "" }: HelpTooltipProps) {
           <button
             type="button"
             className={`inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors ${className}`}
+            aria-label="Help information"
           >
             <HelpCircle className="w-4 h-4" />
+            <span className="sr-only">Help: {content}</span>
           </button>
         </TooltipTrigger>
-        <TooltipContent className="max-w-xs">
+        <TooltipContent className="max-w-xs" role="tooltip">
           <p className="text-sm">{content}</p>
         </TooltipContent>
       </Tooltip>

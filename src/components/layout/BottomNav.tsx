@@ -27,7 +27,10 @@ const navItems = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 md:hidden">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 md:hidden"
+      aria-label="Mobile navigation"
+    >
       <div className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => (
           <NavLink
@@ -44,8 +47,12 @@ export function BottomNav() {
           >
             {({ isActive }) => (
               <>
-                <item.icon className={cn("w-5 h-5", isActive && "text-primary")} />
+                <item.icon 
+                  className={cn("w-5 h-5", isActive && "text-primary")} 
+                  aria-hidden="true"
+                />
                 <span className="text-xs font-medium">{item.title}</span>
+                {isActive && <span className="sr-only">(current page)</span>}
               </>
             )}
           </NavLink>

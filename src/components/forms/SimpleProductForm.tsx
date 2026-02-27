@@ -68,27 +68,32 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" aria-label={isEditing ? "Edit product form" : "Add product form"}>
       {/* Basic Fields */}
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          Product Name <span className="text-destructive">*</span>
+        <label htmlFor="product-name" className="text-sm font-medium mb-2 block">
+          Product Name <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
+          id="product-name"
           placeholder="e.g. Samsung Galaxy S24"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="h-12 text-base"
           required
           autoFocus
+          aria-required="true"
+          aria-describedby="product-name-hint"
         />
+        <span id="product-name-hint" className="sr-only">Enter the name of your product</span>
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          Your Selling Price (₹) <span className="text-destructive">*</span>
+        <label htmlFor="product-price" className="text-sm font-medium mb-2 block">
+          Your Selling Price (₹) <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
+          id="product-price"
           type="number"
           placeholder="e.g. 129999"
           value={price}
@@ -97,14 +102,18 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           required
           min="0"
           step="0.01"
+          aria-required="true"
+          aria-describedby="product-price-hint"
         />
+        <span id="product-price-hint" className="sr-only">Enter your selling price in rupees</span>
       </div>
 
       <div>
-        <label className="text-sm font-medium mb-2 block">
-          Stock Quantity <span className="text-destructive">*</span>
+        <label htmlFor="product-stock" className="text-sm font-medium mb-2 block">
+          Stock Quantity <span className="text-destructive" aria-label="required">*</span>
         </label>
         <Input
+          id="product-stock"
           type="number"
           placeholder="e.g. 50"
           value={stock}
@@ -112,7 +121,10 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
           className="h-12 text-base"
           required
           min="0"
+          aria-required="true"
+          aria-describedby="product-stock-hint"
         />
+        <span id="product-stock-hint" className="sr-only">Enter how many units you have in stock</span>
       </div>
 
       {/* Advanced Options Toggle */}
@@ -120,6 +132,8 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+        aria-expanded={showAdvanced}
+        aria-controls="advanced-options"
       >
         {showAdvanced ? (
           <>
@@ -136,13 +150,14 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
 
       {/* Advanced Fields (Collapsible) */}
       {showAdvanced && (
-        <div className="space-y-4 pt-2 border-t border-border">
+        <div id="advanced-options" className="space-y-4 pt-2 border-t border-border">
           <div>
-            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+            <label htmlFor="cost-price" className="text-sm font-medium mb-2 flex items-center gap-2">
               Cost Price (₹)
               <HelpTooltip content="What you paid for this product. Helps calculate profit margins." />
             </label>
             <Input
+              id="cost-price"
               type="number"
               placeholder="What you paid for it"
               value={costPrice}
@@ -150,17 +165,21 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               className="h-12 text-base"
               min="0"
               step="0.01"
+              aria-describedby="cost-price-hint"
             />
+            <span id="cost-price-hint" className="sr-only">Optional: Enter what you paid for this product</span>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label htmlFor="category" className="text-sm font-medium mb-2 block">
               Category
             </label>
             <select
+              id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full h-12 px-3 rounded-xl bg-background border border-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-describedby="category-hint"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -168,58 +187,73 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
                 </option>
               ))}
             </select>
+            <span id="category-hint" className="sr-only">Select the product category</span>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+            <label htmlFor="sku" className="text-sm font-medium mb-2 flex items-center gap-2">
               Product Code / SKU
               <HelpTooltip content="Your internal product code. Auto-generated if left empty." />
             </label>
             <Input
+              id="sku"
               placeholder="Auto-generated if empty"
               value={sku}
               onChange={(e) => setSku(e.target.value)}
               className="h-12 text-base"
+              aria-describedby="sku-hint"
             />
+            <span id="sku-hint" className="sr-only">Optional: Enter your product code or leave empty for auto-generation</span>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+            <label htmlFor="amazon-url" className="text-sm font-medium mb-2 flex items-center gap-2">
               Amazon Product URL
               <HelpTooltip content="Link to this product on Amazon. Helps AI find exact matches for price tracking." />
             </label>
             <Input
+              id="amazon-url"
+              type="url"
               placeholder="https://www.amazon.in/dp/..."
               value={amazonUrl}
               onChange={(e) => setAmazonUrl(e.target.value)}
               className="h-12 text-base"
+              aria-describedby="amazon-url-hint"
             />
+            <span id="amazon-url-hint" className="sr-only">Optional: Paste the Amazon product URL for price tracking</span>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+            <label htmlFor="flipkart-url" className="text-sm font-medium mb-2 flex items-center gap-2">
               Flipkart Product URL
               <HelpTooltip content="Link to this product on Flipkart for better price tracking." />
             </label>
             <Input
+              id="flipkart-url"
+              type="url"
               placeholder="https://www.flipkart.com/..."
               value={flipkartUrl}
               onChange={(e) => setFlipkartUrl(e.target.value)}
               className="h-12 text-base"
+              aria-describedby="flipkart-url-hint"
             />
+            <span id="flipkart-url-hint" className="sr-only">Optional: Paste the Flipkart product URL for price tracking</span>
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 flex items-center gap-2">
+            <label htmlFor="keywords" className="text-sm font-medium mb-2 flex items-center gap-2">
               Search Keywords
               <HelpTooltip content="Specific terms to help AI find this exact product (e.g., brand, model, size)." />
             </label>
             <Input
+              id="keywords"
               placeholder="e.g. Samsung Galaxy S24 256GB Black"
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
               className="h-12 text-base"
+              aria-describedby="keywords-hint"
             />
+            <span id="keywords-hint" className="sr-only">Optional: Enter specific search terms to help find this product</span>
           </div>
         </div>
       )}

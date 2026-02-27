@@ -60,9 +60,9 @@ export function LoadingSpinner({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 animate-fade-in">
+    <div className="flex flex-col items-center justify-center gap-4 animate-fade-in" role="status" aria-live="polite" aria-label={message}>
       <div className="relative">
-        <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} />
+        <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} aria-hidden="true" />
         <div className="absolute inset-0 rounded-full animate-pulse-soft">
           <div className="w-full h-full rounded-full bg-primary/10" />
         </div>
@@ -73,8 +73,8 @@ export function LoadingSpinner({
         
         {showQuote && quote && (
           <div className="flex items-center justify-center gap-2 animate-fade-in">
-            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-            <p className="text-sm text-primary/80 italic">
+            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+            <p className="text-sm text-primary/80 italic" aria-label={`Tip: ${quote}`}>
               {quote}
             </p>
           </div>

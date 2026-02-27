@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
+import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
 import Landing from "./pages/Landing";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import DashboardPage from "./pages/DashboardPage";
@@ -34,6 +35,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Analytics />
+      <KeyboardShortcuts />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />

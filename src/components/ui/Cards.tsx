@@ -21,11 +21,22 @@ export function AIRecommendationCard({
   status = "pending",
   onClick,
 }: AIRecommendationCardProps) {
+  const statusLabel = status === "implemented" ? "completed" : "pending";
+  
   return (
     <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} for ${product}. Status: ${statusLabel}. Confidence: ${confidence}%. ${reason}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={cn(
-        "premium-card rounded-2xl p-6 cursor-pointer group transition-all duration-200 hover:scale-[1.01]",
+        "premium-card rounded-2xl p-6 cursor-pointer group transition-all duration-200 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         status === "implemented" && "border-success/30 bg-success/5"
       )}
     >
@@ -110,7 +121,16 @@ export function AlertCard({
   return (
     <div
       onClick={onClick}
-      className="premium-card rounded-2xl p-5 cursor-pointer group transition-all duration-200 hover:scale-[1.01]"
+      role="button"
+      tabIndex={0}
+      aria-label={`${config.label}: ${title}. ${description}. ${timestamp}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="premium-card rounded-2xl p-5 cursor-pointer group transition-all duration-200 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <div className="flex gap-4">
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", config.bg)}>
