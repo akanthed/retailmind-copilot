@@ -67,6 +67,7 @@ export default function PriceComparisonPage() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchDebug, setSearchDebug] = useState<SearchDebugInfo | null>(null);
+  const [lastSearchTime, setLastSearchTime] = useState<number | null>(null);
 
   useEffect(() => {
     if (productId) {
@@ -93,7 +94,18 @@ export default function PriceComparisonPage() {
       // Load price comparison data
       const priceResult = await apiClient.getProductPriceComparison(productId!);
       if (priceResult.data) {
-        setCompetitorPrices(priceResult.data.comparisons || []);
+        const comparisons = priceResult.data.comparisons || [];
+        setCompetitorPrices(comparisons);
+        
+        // Auto-search if no prices found and not searched recently
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        if (comparisons.length === 0 && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
+          // Auto-search in background after 1 second
+          setTimeout(() => {
+            handleSearchPrices(true);
+          }, 1000);
+        }
       }
 
       // Load price history
@@ -112,75 +124,83 @@ export default function PriceComparisonPage() {
     }
   }
 
-  async function handleSearchPrices() {
-    if (!product || searching) return;
-    setSearching(true);
-    try {
-      const result = await apiClient.searchCompetitorPrices(productId!, {
-        keywords: (product as any).keywords || product.name,
-        amazonUrl: (product as any).amazonUrl,
-        flipkartUrl: (product as any).flipkartUrl,
-      });
+  async function handleSearchPrices(isAutoSearch = false) {
+      if (!product || searching) return;
+      setSearching(true);
 
-      setSearchDebug({
-        selectedQuery: (result.data as any)?.searchQuery,
-        searchQuery: (result.data as any)?.searchQuery,
-        attemptedQueries: (result.data as any)?.attemptedQueries || [],
-        debugAttempts: (result.data as any)?.debugAttempts || [],
-      });
-
-      if (result.error) {
+      if (!isAutoSearch) {
         toast({
-          title: "Search Error",
-          description: result.error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const results = result.data?.results || [];
-      setCompetitorPrices(results);
-
-      // Show data source notification
-      const liveCount = results.filter((r: any) => r.source === 'live').length;
-      const syntheticCount = results.filter((r: any) => r.source === 'synthetic').length;
-      
-      if (liveCount > 0) {
-        toast({
-          title: "Live Data Retrieved",
-          description: `Found ${liveCount} live prices from Google Shopping`,
-        });
-      } else if (syntheticCount > 0) {
-        toast({
-          title: "Using Demo Data",
-          description: "Showing synthetic prices for demonstration",
-          variant: "default",
+          title: "Searching...",
+          description: "Finding competitor prices",
         });
       }
 
-      if (results.length === 0) {
-        toast({
-          title: "No Prices Found",
-          description: "Try adding brand/model keywords in product details, then search again.",
+      try {
+        const result = await apiClient.searchCompetitorPrices(productId!, {
+          keywords: (product as any).keywords || product.name,
+          amazonUrl: (product as any).amazonUrl,
+          flipkartUrl: (product as any).flipkartUrl,
         });
-        return;
-      }
 
-      toast({
-        title: "Prices Updated",
-        description: `Found ${result.data?.results?.length || 0} competitor prices`,
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to search competitor prices",
-        variant: "destructive",
-      });
-    } finally {
-      setSearching(false);
+        setSearchDebug({
+          selectedQuery: (result.data as any)?.searchQuery,
+          searchQuery: (result.data as any)?.searchQuery,
+          attemptedQueries: (result.data as any)?.attemptedQueries || [],
+          debugAttempts: (result.data as any)?.debugAttempts || [],
+        });
+
+        if (result.error) {
+          toast({
+            title: "Search Error",
+            description: result.error,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const results = result.data?.results || [];
+        setCompetitorPrices(results);
+        setLastSearchTime(Date.now());
+
+        // Show data source notification only for manual search
+        if (!isAutoSearch) {
+          const liveCount = results.filter((r: any) => r.source === 'live').length;
+          const syntheticCount = results.filter((r: any) => r.source === 'synthetic').length;
+
+          if (liveCount > 0) {
+            toast({
+              title: "Live Data Retrieved",
+              description: `Found ${liveCount} live prices`,
+            });
+          } else if (syntheticCount > 0) {
+            toast({
+              title: "Using Demo Data",
+              description: "Showing sample prices",
+              variant: "default",
+            });
+          }
+
+          if (results.length === 0) {
+            toast({
+              title: "No Prices Found",
+              description: "Try adding keywords in product details",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        if (!isAutoSearch) {
+          toast({
+            title: "Error",
+            description: "Failed to search prices",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setSearching(false);
+      }
     }
-  }
+
 
   if (loading) {
     return (
@@ -247,92 +267,34 @@ export default function PriceComparisonPage() {
               </h1>
               <p className="text-muted-foreground">
                 SKU: {product.sku} · {product.category}
+                {lastSearchTime && (
+                  <span className="ml-2">
+                    · Updated {new Date(lastSearchTime).toLocaleTimeString()}
+                  </span>
+                )}
               </p>
             </div>
             <Button
-              onClick={handleSearchPrices}
+              onClick={() => handleSearchPrices(false)}
               disabled={searching}
+              variant="outline"
+              size="sm"
               className="gap-2"
             >
               {searching ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Searching...
+                  Updating...
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Search Prices Now
+                  Refresh Prices
                 </>
               )}
             </Button>
           </div>
         </div>
-
-        {/* Debug Details */}
-        {searchDebug &&
-          (searchDebug.attemptedQueries.length > 0 ||
-            searchDebug.debugAttempts.length > 0) && (
-            <div
-              className="premium-card rounded-2xl p-4 mb-6 animate-fade-in"
-              style={{ animationDelay: "0.08s" }}
-            >
-              <details>
-                <summary className="cursor-pointer font-medium text-sm text-foreground">
-                  Debug details (search queries & result mapping)
-                </summary>
-                <div className="mt-3 space-y-3 text-sm">
-                  {searchDebug.searchQuery && (
-                    <p className="text-muted-foreground">
-                      Selected query: <span className="text-foreground">{searchDebug.searchQuery}</span>
-                    </p>
-                  )}
-
-                  {searchDebug.attemptedQueries.length > 0 && (
-                    <div>
-                      <p className="text-muted-foreground mb-1">Attempted queries:</p>
-                      <ul className="space-y-1">
-                        {searchDebug.attemptedQueries.map((query, idx) => (
-                          <li key={`${query}-${idx}`} className="text-foreground">
-                            {idx + 1}. {query}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {searchDebug.debugAttempts.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Query</TableHead>
-                            <TableHead className="text-right">Raw</TableHead>
-                            <TableHead className="text-right">Mapped</TableHead>
-                            <TableHead className="text-right">No Price</TableHead>
-                            <TableHead className="text-right">No Link</TableHead>
-                            <TableHead className="text-right">Final</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchDebug.debugAttempts.map((attempt, idx) => (
-                            <TableRow key={`${attempt.query}-${idx}`}>
-                              <TableCell className="max-w-xs truncate">{attempt.query}</TableCell>
-                              <TableCell className="text-right">{attempt.rawShoppingResults}</TableCell>
-                              <TableCell className="text-right">{attempt.mappedResults}</TableCell>
-                              <TableCell className="text-right">{attempt.droppedNoPrice}</TableCell>
-                              <TableCell className="text-right">{attempt.droppedNoLink}</TableCell>
-                              <TableCell className="text-right">{attempt.finalResults}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </details>
-            </div>
-          )}
 
         {/* Price Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
@@ -425,20 +387,14 @@ export default function PriceComparisonPage() {
             <div className="p-12 text-center">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                No competitor prices yet
+                Finding competitor prices...
               </h3>
               <p className="text-muted-foreground mb-4">
-                Click "Search Prices Now" to find this product on Amazon,
-                Flipkart, and other platforms
+                AI is searching Amazon, Flipkart, and other platforms for this product
               </p>
-              <Button
-                onClick={handleSearchPrices}
-                disabled={searching}
-                className="gap-2"
-              >
-                <Search className="w-4 h-4" />
-                Search Prices
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                This happens automatically. Prices will appear here shortly.
+              </p>
             </div>
           ) : (
             <Table>

@@ -6,35 +6,31 @@ import { useState } from "react";
 const faqs = [
   {
     question: "How do I get started?",
-    answer: "Simply navigate to the Command Center and ask a question like 'What products need attention?' The AI will guide you from there. No technical knowledge needed!"
+    answer: "Just add a product with name, price, and stock. AI does the rest automatically - finds competitor prices and creates recommendations."
   },
   {
     question: "What should I ask the AI?",
-    answer: "Ask natural questions like: 'Should I lower my price?', 'Which products are selling fast?', 'What inventory should I reorder?'. The AI understands plain English."
+    answer: "Ask simple questions like: 'Should I lower my price?', 'Which products sell best?', 'What needs attention today?'. AI understands plain English."
   },
   {
     question: "How do I know if a recommendation is good?",
-    answer: "Each recommendation shows a confidence score (like 92%) and explains the reasoning. Higher scores mean more confident suggestions. You can always ask the AI 'Why?' for more details."
+    answer: "Each recommendation shows confidence (like 92%). Higher = more confident. AI also explains why it's suggesting this action."
   },
   {
     question: "What do the alerts mean?",
-    answer: "Alerts notify you of important changes: Red (urgent - act today), Yellow (important - review soon), Green (opportunity - consider this). Each alert includes what to do next."
+    answer: "Alerts notify you of important changes. Check your To-Do List daily - AI prioritizes what matters most."
   },
   {
-    question: "How often should I check the system?",
-    answer: "Check once daily in the morning. The AI monitors everything 24/7 and will alert you to urgent matters. Spend 10-15 minutes reviewing recommendations."
-  },
-  {
-    question: "Can I undo a decision?",
-    answer: "Yes! Go to Outcomes page to see all your decisions. While you can't undo in the system, you can manually adjust prices back in your store and the AI will track the new changes."
+    question: "How often should I check?",
+    answer: "Once daily (5 minutes). AI monitors 24/7 and shows you only what needs your attention."
   },
   {
     question: "Is my data safe?",
-    answer: "Yes. All data is encrypted and stored securely on AWS. We never share your business information with competitors or third parties."
+    answer: "Yes. All data is encrypted and stored securely on AWS. We never share your information."
   },
   {
     question: "How much does it cost?",
-    answer: "RetailMind AI costs less than ₹50/month - about the price of one cup of coffee per day. No hidden fees, cancel anytime."
+    answer: "Less than ₹50/month - about one cup of coffee. No hidden fees, cancel anytime."
   }
 ];
 
@@ -42,30 +38,28 @@ const quickGuides = [
   {
     title: "Your First Day",
     steps: [
-      "1. Go to Command Center",
-      "2. Ask: 'What products need attention?'",
-      "3. Review the AI's suggestions",
-      "4. Click 'Generate Recommendations'",
-      "5. Implement one recommendation to start"
+      "1. Add a product (just 3 fields!)",
+      "2. AI finds competitor prices automatically",
+      "3. Review your first recommendation",
+      "4. That's it - you're set up!"
     ]
   },
   {
-    title: "Daily Routine (10 minutes)",
+    title: "Daily Routine (5 minutes)",
     steps: [
-      "1. Check Alerts for urgent items",
-      "2. Review new Recommendations",
-      "3. Implement 1-2 actions",
-      "4. Ask AI any questions",
-      "5. Check Outcomes to see impact"
+      "1. Open Dashboard",
+      "2. Check To-Do List",
+      "3. Take 1-2 actions",
+      "4. Done for the day!"
     ]
   },
   {
     title: "Understanding Recommendations",
     steps: [
-      "Price Down = Lower price to match competitors",
-      "Price Up = Raise price (you have advantage)",
-      "Restock = Order more inventory soon",
-      "Promotion = Run sale to clear old stock"
+      "Lower Price = Match competitors",
+      "Raise Price = You have advantage",
+      "Restock = Order more soon",
+      "Confidence = How sure AI is"
     ]
   }
 ];

@@ -56,14 +56,14 @@ export default function DecisionDetailPage() {
     : "Just now";
 
   const chartData = useMemo(() => {
-    const your = currentPrice || 100;
-    const comp = suggestedPrice || your;
+    const yourPrice = currentPrice || 100;
+    const compPrice = suggestedPrice || yourPrice;
     return [
-      { date: "D1", you: your, competitor: your },
-      { date: "D2", you, competitor: (your + comp) / 2 },
-      { date: "D3", you, competitor: comp },
-      { date: "D4", you, competitor: comp },
-      { date: "D5", you, competitor: comp },
+      { date: "D1", you: yourPrice, competitor: yourPrice },
+      { date: "D2", you: yourPrice, competitor: (yourPrice + compPrice) / 2 },
+      { date: "D3", you: yourPrice, competitor: compPrice },
+      { date: "D4", you: yourPrice, competitor: compPrice },
+      { date: "D5", you: yourPrice, competitor: compPrice },
     ];
   }, [currentPrice, suggestedPrice]);
 
