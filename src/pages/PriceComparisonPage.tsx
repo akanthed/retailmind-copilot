@@ -78,6 +78,11 @@ export default function PriceComparisonPage() {
       const priceResult = await apiClient.getProductPriceComparison(productId!);
       if (priceResult.data) {
         setCompetitorPrices(priceResult.data.comparisons || []);
+        // Auto-search if no data exists
+        if (!priceResult.data.comparisons || priceResult.data.comparisons.length === 0) {
+          console.log("No price data found, triggering automatic search...");
+          setTimeout(() => handleSearchPrices(), 500);
+        }
       }
 
       // Load price history
