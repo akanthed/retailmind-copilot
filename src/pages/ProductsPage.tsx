@@ -71,6 +71,16 @@ const categories = [
   "Health & Beauty",
   "Sports",
   "Books",
+  "Toys & Games",
+  "Kitchen & Dining",
+  "Furniture",
+  "Stationery",
+  "Automotive",
+  "Tools & Hardware",
+  "Baby Products",
+  "Pet Supplies",
+  "Musical Instruments",
+  "Jewellery & Watches",
   "Other",
 ];
 
@@ -78,11 +88,13 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(defaultForm);
+  const [formStep, setFormStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -224,12 +236,14 @@ export default function ProductsPage() {
       keywords: (product as any).keywords || "",
     });
     setShowAddDialog(true);
+    setFormStep(1);
   }
 
   function openAddDialog() {
     setEditingProduct(null);
     setFormData(defaultForm);
     setShowAddDialog(true);
+    setFormStep(1);
   }
 
   const filteredProducts = products.filter(
@@ -339,7 +353,116 @@ export default function ProductsPage() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 mb-6 animate-fade-in" style={{ animationDelay: "0.12s" }}>
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="gap-1"
+          >
+            <Package className="w-4 h-4" />
+            Cards
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="gap-1"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Table
+          </Button>
+        </div>
+
+        {viewMode === "grid" && filteredProducts.length > 0 && (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6 animate-fade-in"
+            style={{ animationDelay: "0.14s" }}
+          >
+            {filteredProducts.map((product) => {
+              const margin =
+                product.costPrice > 0
+                  ? (
+                      ((product.currentPrice - product.costPrice) /
+                        product.currentPrice) *
+                      100
+                    ).toFixed(1)
+                  : "—";
+              return (
+                <div key={product.id} className="premium-card rounded-2xl p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="font-medium text-foreground">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground">{product.category}</p>
+                    </div>
+                    <Badge variant={product.stock > 10 ? "default" : "destructive"}>
+                      {product.stock > 10 ? "In Stock" : "Low Stock"}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-primary/10 rounded-xl p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Your Price</p>
+                      <p className="text-lg font-semibold text-primary">
+                        ₹{product.currentPrice.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div className="bg-secondary rounded-xl p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Margin</p>
+                      <p className="text-lg font-semibold">{margin}%</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => navigate(`/products/${product.id}/compare`)}
+                    >
+                      Compare
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(product)}>
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDeletingProduct(product);
+                        setShowDeleteDialog(true);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {viewMode === "grid" && filteredProducts.length === 0 && (
+          <div className="premium-card rounded-2xl p-12 text-center animate-fade-in" style={{ animationDelay: "0.14s" }}>
+            <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {products.length === 0 ? "No products yet" : "No matching products"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {products.length === 0
+                ? "Add your first product to start tracking competitor prices"
+                : "Try a different search term"}
+            </p>
+            {products.length === 0 && (
+              <Button onClick={openAddDialog} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Add Your First Product
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Products Table */}
+        {viewMode === "table" && (
         <div className="premium-card rounded-2xl overflow-hidden animate-fade-in" style={{ animationDelay: "0.15s" }}>
           {filteredProducts.length === 0 ? (
             <div className="p-12 text-center">
@@ -469,6 +592,7 @@ export default function ProductsPage() {
             </Table>
           )}
         </div>
+        )}
       </div>
 
       {/* Add/Edit Product Dialog */}
@@ -479,58 +603,53 @@ export default function ProductsPage() {
           if (!open) {
             setEditingProduct(null);
             setFormData(defaultForm);
+            setFormStep(1);
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProduct ? "Edit Product" : "Add New Product"}
             </DialogTitle>
+            <p className="text-sm text-muted-foreground">Step {formStep} of 3</p>
+            <div className="flex gap-1 mt-1">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`h-1.5 flex-1 rounded-full ${step <= formStep ? "bg-primary" : "bg-muted"}`}
+                />
+              ))}
+            </div>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Basic Info */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Product Details
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="text-sm font-medium mb-1 block">
-                    Product Name *
-                  </label>
+            {formStep === 1 && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Product Name *</label>
                   <Input
                     placeholder="e.g. Samsung Galaxy S24 Ultra"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    autoFocus
                   />
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium mb-1 block">SKU</label>
+                  <label className="text-sm font-medium mb-1 block">Your Selling Price (₹) *</label>
                   <Input
-                    placeholder="Auto-generated if empty"
-                    value={formData.sku}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sku: e.target.value })
-                    }
+                    type="number"
+                    placeholder="e.g. 129999"
+                    value={formData.currentPrice}
+                    onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
                   />
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Category
-                  </label>
+                  <label className="text-sm font-medium mb-1 block">Category</label>
                   <select
                     className="w-full px-3 py-2 rounded-md bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
                     {categories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -540,151 +659,111 @@ export default function ProductsPage() {
                   </select>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Pricing */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Pricing & Stock
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3">
+            {formStep === 2 && (
+              <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Your Selling Price (₹) *
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 129999"
-                    value={formData.currentPrice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        currentPrice: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Cost Price (₹)
-                  </label>
+                  <label className="text-sm font-medium mb-1 block">Cost Price (₹)</label>
                   <Input
                     type="number"
                     placeholder="e.g. 95000"
                     value={formData.costPrice}
-                    onChange={(e) =>
-                      setFormData({ ...formData, costPrice: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
                   />
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Current Stock
-                  </label>
+                  <label className="text-sm font-medium mb-1 block">Current Stock</label>
                   <Input
                     type="number"
                     placeholder="e.g. 50"
                     value={formData.stock}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stock: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                   />
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Days of Stock
-                  </label>
+                  <label className="text-sm font-medium mb-1 block">Days of Stock</label>
                   <Input
                     type="number"
                     placeholder="e.g. 30"
                     value={formData.stockDays}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stockDays: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, stockDays: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">SKU / Model Number</label>
+                  <Input
+                    placeholder="Auto-generated if empty"
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                   />
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Competitor Tracking */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Competitor Tracking (Optional)
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Add product URLs or search keywords to find and compare prices
-                on other e-commerce platforms automatically.
-              </p>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Amazon Product URL
-                </label>
-                <Input
-                  placeholder="https://www.amazon.in/dp/B0XXXXX..."
-                  value={formData.amazonUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amazonUrl: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Flipkart Product URL
-                </label>
-                <Input
-                  placeholder="https://www.flipkart.com/..."
-                  value={formData.flipkartUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, flipkartUrl: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Search Keywords
-                </label>
-                <Input
-                  placeholder="e.g. Samsung Galaxy S24 Ultra 256GB"
-                  value={formData.keywords}
-                  onChange={(e) =>
-                    setFormData({ ...formData, keywords: e.target.value })
-                  }
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  We'll search for this on Amazon, Flipkart, and other platforms
-                  to find matching prices
+            {formStep === 3 && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Optional: Add competitor URLs or keywords for better matching.
                 </p>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Amazon Product URL</label>
+                  <Input
+                    placeholder="https://www.amazon.in/dp/B0XXXXX..."
+                    value={formData.amazonUrl}
+                    onChange={(e) => setFormData({ ...formData, amazonUrl: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Flipkart Product URL</label>
+                  <Input
+                    placeholder="https://www.flipkart.com/..."
+                    value={formData.flipkartUrl}
+                    onChange={(e) => setFormData({ ...formData, flipkartUrl: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Search Keywords</label>
+                  <Input
+                    placeholder="e.g. Samsung Galaxy S24 Ultra 256GB"
+                    value={formData.keywords}
+                    onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowAddDialog(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSaveProduct} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : editingProduct ? (
-                "Update Product"
-              ) : (
-                "Add Product"
-              )}
-            </Button>
+            {formStep > 1 && (
+              <Button variant="outline" onClick={() => setFormStep((step) => step - 1)} disabled={saving}>
+                Back
+              </Button>
+            )}
+            {formStep < 3 ? (
+              <Button
+                onClick={() => setFormStep((step) => step + 1)}
+                disabled={saving || (formStep === 1 && (!formData.name || !formData.currentPrice))}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button onClick={handleSaveProduct} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : editingProduct ? (
+                  "Update Product"
+                ) : (
+                  "Add Product"
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -43,9 +43,10 @@ export default function InsightsPage() {
 
       // Calculate competitor stats from products
       const competitors = [
-        { id: "comp-1", name: "TechStore Pro" },
-        { id: "comp-2", name: "GadgetWorld" },
-        { id: "comp-3", name: "ElectroMart" }
+        { id: "amazon", name: "Amazon.in" },
+        { id: "flipkart", name: "Flipkart" },
+        { id: "jiomart", name: "JioMart" },
+        { id: "croma", name: "Croma" }
       ];
 
       const stats = competitors.map(comp => ({

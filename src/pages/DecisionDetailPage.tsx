@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
+import { apiClient, Recommendation } from "@/api/client";
 import {
   ArrowLeft,
   Sparkles,
@@ -8,38 +9,86 @@ import {
   CheckCircle,
   Clock,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const decisionData = {
-  id: 1,
-  title: "Lower price on Wireless Earbuds Pro",
-  product: "Wireless Earbuds Pro",
-  sku: "SKU-2847",
-  category: "Electronics",
-  currentPrice: "₹79.99",
-  recommendedPrice: "₹69.99",
-  priceChange: "-12.5%",
-  status: "pending" as const,
-  confidence: 87,
-  createdAt: "2 hours ago",
-  reasoning: {
-    what: "Reduce price from ₹79.99 to ₹69.99 (12.5% decrease)",
-    why: "Your main competitor (TechStore Pro) dropped their price to ₹67.99 yesterday. At current pricing, you're 15% above market average, which correlates with a 23% decrease in conversion rate over the past 3 days.",
-    impact: "Based on historical data and current demand patterns, this adjustment is projected to recover approximately ₹2,400/week in sales that are currently going to competitors.",
-  },
-  chartData: [
-    { date: "Jan 15", you: 79.99, competitor: 79.99 },
-    { date: "Jan 16", you: 79.99, competitor: 75.99 },
-    { date: "Jan 17", you: 79.99, competitor: 72.99 },
-    { date: "Jan 18", you: 79.99, competitor: 69.99 },
-    { date: "Jan 19", you: 79.99, competitor: 67.99 },
-  ],
-};
+import { useEffect, useMemo, useState } from "react";
 
 export default function DecisionDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadRecommendation() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const result = await apiClient.getRecommendation(id);
+        if (result.data) {
+          setRecommendation(result.data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRecommendation();
+  }, [id]);
+
+  const currentPrice = recommendation?.currentPrice || 0;
+  const suggestedPrice = recommendation?.suggestedPrice || currentPrice;
+  const percentageChange = currentPrice
+    ? (((suggestedPrice - currentPrice) / currentPrice) * 100).toFixed(1)
+    : "0.0";
+
+  const createdAtLabel = recommendation?.createdAt
+    ? new Date(recommendation.createdAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Just now";
+
+  const chartData = useMemo(() => {
+    const your = currentPrice || 100;
+    const comp = suggestedPrice || your;
+    return [
+      { date: "D1", you: your, competitor: your },
+      { date: "D2", you, competitor: (your + comp) / 2 },
+      { date: "D3", you, competitor: comp },
+      { date: "D4", you, competitor: comp },
+      { date: "D5", you, competitor: comp },
+    ];
+  }, [currentPrice, suggestedPrice]);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!recommendation) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Recommendation not found</p>
+            <Button onClick={() => navigate("/decisions")}>Back to Decisions</Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -62,16 +111,16 @@ export default function DecisionDetailPage() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-foreground mb-1">
-                  {decisionData.title}
+                  {recommendation.title}
                 </h1>
                 <p className="text-muted-foreground">
-                  {decisionData.sku} • {decisionData.category}
+                  {recommendation.product}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="w-4 h-4" />
-              {decisionData.createdAt}
+              {createdAtLabel}
             </div>
           </div>
 
@@ -79,19 +128,26 @@ export default function DecisionDetailPage() {
           <div className="flex items-center gap-6 p-5 bg-secondary/50 rounded-xl mb-6">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-1">Current</p>
-              <p className="text-2xl font-semibold text-foreground">{decisionData.currentPrice}</p>
+              <p className="text-2xl font-semibold text-foreground">₹{currentPrice.toLocaleString("en-IN")}</p>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-success" />
-              <span className="text-success font-medium">{decisionData.priceChange}</span>
+              {Number(percentageChange) > 0 ? (
+                <TrendingUp className="w-5 h-5 text-destructive" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-success" />
+              )}
+              <span className={Number(percentageChange) > 0 ? "text-destructive font-medium" : "text-success font-medium"}>
+                {Number(percentageChange) > 0 ? "+" : ""}
+                {percentageChange}%
+              </span>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-1">Recommended</p>
-              <p className="text-2xl font-semibold text-primary">{decisionData.recommendedPrice}</p>
+              <p className="text-2xl font-semibold text-primary">₹{suggestedPrice.toLocaleString("en-IN")}</p>
             </div>
             <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-success/10 text-success rounded-full text-sm font-medium">
               <div className="w-2 h-2 rounded-full bg-success" />
-              {decisionData.confidence}% confidence
+              {recommendation.confidence}% confidence
             </div>
           </div>
 
@@ -115,7 +171,7 @@ export default function DecisionDetailPage() {
             <h2 className="text-sm font-medium text-primary uppercase tracking-wide mb-3">
               What to do
             </h2>
-            <p className="text-foreground leading-relaxed">{decisionData.reasoning.what}</p>
+            <p className="text-foreground leading-relaxed">{recommendation.suggestedAction || recommendation.title}</p>
           </div>
 
           {/* Why */}
@@ -123,7 +179,7 @@ export default function DecisionDetailPage() {
             <h2 className="text-sm font-medium text-primary uppercase tracking-wide mb-3">
               Why this matters
             </h2>
-            <p className="text-foreground leading-relaxed">{decisionData.reasoning.why}</p>
+            <p className="text-foreground leading-relaxed">{recommendation.reason}</p>
           </div>
 
           {/* Impact */}
@@ -133,7 +189,7 @@ export default function DecisionDetailPage() {
             </h2>
             <div className="flex items-center gap-3">
               <TrendingUp className="w-6 h-6 text-success" />
-              <p className="text-lg font-medium text-foreground">{decisionData.reasoning.impact}</p>
+              <p className="text-lg font-medium text-foreground">{recommendation.impact}</p>
             </div>
           </div>
         </div>
@@ -144,19 +200,19 @@ export default function DecisionDetailPage() {
             Price Comparison (Last 5 Days)
           </h2>
           <div className="h-48 flex items-end gap-2">
-            {decisionData.chartData.map((point, i) => (
+            {chartData.map((point) => (
               <div key={point.date} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full flex gap-1 items-end justify-center" style={{ height: "120px" }}>
                   <div
                     className="w-4 bg-primary/30 rounded-t"
-                    style={{ height: `${((point.you - 60) / 25) * 100}%` }}
+                    style={{ height: `${Math.max(10, (point.you / Math.max(point.you, point.competitor, 1)) * 100)}%` }}
                   />
                   <div
                     className="w-4 bg-destructive/30 rounded-t"
-                    style={{ height: `${((point.competitor - 60) / 25) * 100}%` }}
+                    style={{ height: `${Math.max(10, (point.competitor / Math.max(point.you, point.competitor, 1)) * 100)}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">{point.date.split(" ")[1]}</span>
+                <span className="text-xs text-muted-foreground">{point.date}</span>
               </div>
             ))}
           </div>

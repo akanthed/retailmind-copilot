@@ -140,6 +140,14 @@ export default function PriceComparisonPage() {
 
       setCompetitorPrices(result.data?.results || []);
 
+      if ((result.data?.results || []).length === 0) {
+        toast({
+          title: "No Prices Found",
+          description: "Try adding brand/model keywords in product details, then search again.",
+        });
+        return;
+      }
+
       toast({
         title: "Prices Updated",
         description: `Found ${result.data?.results?.length || 0} competitor prices`,
@@ -630,5 +638,15 @@ function getPlatformColor(platform: string): string {
     return "bg-green-500/10 text-green-500 border-green-500/20";
   if (lower.includes("reliance"))
     return "bg-indigo-500/10 text-indigo-500 border-indigo-500/20";
+  if (lower.includes("snapdeal"))
+    return "bg-red-500/10 text-red-500 border-red-500/20";
+  if (lower.includes("tata") || lower.includes("tatacliq"))
+    return "bg-violet-500/10 text-violet-500 border-violet-500/20";
+  if (lower.includes("paytm"))
+    return "bg-cyan-500/10 text-cyan-500 border-cyan-500/20";
+  if (lower.includes("myntra"))
+    return "bg-rose-500/10 text-rose-500 border-rose-500/20";
+  if (lower.includes("nykaa"))
+    return "bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20";
   return "bg-muted text-muted-foreground";
 }
