@@ -138,9 +138,27 @@ export default function PriceComparisonPage() {
         return;
       }
 
-      setCompetitorPrices(result.data?.results || []);
+      const results = result.data?.results || [];
+      setCompetitorPrices(results);
 
-      if ((result.data?.results || []).length === 0) {
+      // Show data source notification
+      const liveCount = results.filter((r: any) => r.source === 'live').length;
+      const syntheticCount = results.filter((r: any) => r.source === 'synthetic').length;
+      
+      if (liveCount > 0) {
+        toast({
+          title: "Live Data Retrieved",
+          description: `Found ${liveCount} live prices from Google Shopping`,
+        });
+      } else if (syntheticCount > 0) {
+        toast({
+          title: "Using Demo Data",
+          description: "Showing synthetic prices for demonstration",
+          variant: "default",
+        });
+      }
+
+      if (results.length === 0) {
         toast({
           title: "No Prices Found",
           description: "Try adding brand/model keywords in product details, then search again.",
@@ -177,7 +195,19 @@ export default function PriceComparisonPage() {
     );
   }
 
-  if (!product) return null;
+  if (loading || !product) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Ensure prices are numbers
+  const currentPrice = Number(product.currentPrice) || 0;
+  const costPrice = Number(product.costPrice) || 0;
 
   const lowestCompetitor = competitorPrices.length
     ? competitorPrices.reduce((min, p) => (p.price < min.price ? p : min), competitorPrices[0])
@@ -190,10 +220,10 @@ export default function PriceComparisonPage() {
     : 0;
 
   const isYourPriceLowest = lowestCompetitor
-    ? product.currentPrice <= lowestCompetitor.price
+    ? currentPrice <= lowestCompetitor.price
     : true;
   const pricePosition = lowestCompetitor
-    ? ((product.currentPrice - lowestCompetitor.price) / lowestCompetitor.price) * 100
+    ? ((currentPrice - lowestCompetitor.price) / lowestCompetitor.price) * 100
     : 0;
 
   return (
@@ -309,10 +339,10 @@ export default function PriceComparisonPage() {
           <div className="premium-card rounded-2xl p-4">
             <p className="text-muted-foreground text-sm mb-1">Your Price</p>
             <p className="text-2xl font-bold text-primary">
-              ₹{product.currentPrice.toLocaleString("en-IN")}
+              ₹{currentPrice.toLocaleString("en-IN")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Cost: ₹{product.costPrice.toLocaleString("en-IN")}
+              Cost: ₹{costPrice.toLocaleString("en-IN")}
             </p>
           </div>
 
@@ -431,7 +461,7 @@ export default function PriceComparisonPage() {
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-right font-bold text-primary">
-                    ₹{product.currentPrice.toLocaleString("en-IN")}
+                    ₹{currentPrice.toLocaleString("en-IN")}
                   </TableCell>
                   <TableCell className="text-right">
                     <Minus className="w-4 h-4 mx-auto text-muted-foreground" />
@@ -459,6 +489,16 @@ export default function PriceComparisonPage() {
                       >
                         {comp.platform}
                       </Badge>
+                      {comp.source === 'live' && (
+                        <Badge variant="default" className="ml-2 bg-green-500 text-white text-xs">
+                          Live
+                        </Badge>
+                      )}
+                      {comp.source === 'synthetic' && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          Demo
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <p className="max-w-xs truncate">{comp.title}</p>
@@ -587,12 +627,12 @@ export default function PriceComparisonPage() {
                   You have the lowest price in the market!
                 </p>
                 <p className="text-muted-foreground text-sm mt-1">
-                  Your price of ₹{product.currentPrice.toLocaleString("en-IN")}{" "}
+                  Your price of ₹{currentPrice.toLocaleString("en-IN")}{" "}
                   is lower than all {competitorPrices.length} competitors. You
                   could potentially increase your price by up to ₹
                   {lowestCompetitor
                     ? Math.round(
-                        (lowestCompetitor.price - product.currentPrice) * 0.5
+                        (lowestCompetitor.price - currentPrice) * 0.5
                       ).toLocaleString("en-IN")
                     : "—"}{" "}
                   and still remain competitive.
@@ -607,11 +647,11 @@ export default function PriceComparisonPage() {
                   {lowestCompetitor?.platform} is selling at ₹
                   {lowestCompetitor?.price.toLocaleString("en-IN")} — that's ₹
                   {Math.abs(
-                    product.currentPrice - (lowestCompetitor?.price || 0)
+                    currentPrice - (lowestCompetitor?.price || 0)
                   ).toLocaleString("en-IN")}{" "}
                   less than your price. Consider adjusting to ₹
                   {Math.round(
-                    (lowestCompetitor?.price || product.currentPrice) * 0.99
+                    (lowestCompetitor?.price || currentPrice) * 0.99
                   ).toLocaleString("en-IN")}{" "}
                   to win the price-conscious buyer.
                 </p>

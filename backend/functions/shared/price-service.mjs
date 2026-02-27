@@ -220,83 +220,95 @@ async function searchSerpApi(query, apiKey, retries, logger) {
 
 async function scrapeFallbackPrices(query, logger) {
   let playwright;
+  let browser;
+  let page;
+  
   try {
     playwright = await import("playwright");
-  } catch {
-    logger.warn("[SCRAPER] Playwright not installed; skipping scraping fallback");
+  } catch (error) {
+    logger.warn("[SCRAPER] Playwright not installed; skipping scraping fallback", { error: error.message });
     return [];
   }
 
-  const browser = await playwright.chromium.launch({ headless: true });
-  const page = await browser.newPage({ locale: "en-IN" });
-  const sites = [
-    {
-      platform: "Amazon.in",
-      domain: "amazon.in",
-      selector: ".a-price-whole"
-    },
-    {
-      platform: "Flipkart",
-      domain: "flipkart.com",
-      selector: "._30jeq3"
-    }
-  ];
-
-  const results = [];
-
   try {
+    browser = await playwright.chromium.launch({ headless: true });
+    page = await browser.newPage({ locale: "en-IN" });
+    const sites = [
+      {
+        platform: "Amazon.in",
+        domain: "amazon.in",
+        selector: ".a-price-whole"
+      },
+      {
+        platform: "Flipkart",
+        domain: "flipkart.com",
+        selector: "._30jeq3"
+      }
+    ];
+
+    const results = [];
+
     for (const site of sites) {
-      const googleSearch = `https://www.google.com/search?q=${encodeURIComponent(`site:${site.domain} ${query}`)}&hl=en&gl=in`;
-      await page.goto(googleSearch, { waitUntil: "domcontentloaded", timeout: 20000 });
+      try {
+        const googleSearch = `https://www.google.com/search?q=${encodeURIComponent(`site:${site.domain} ${query}`)}&hl=en&gl=in`;
+        await page.goto(googleSearch, { waitUntil: "domcontentloaded", timeout: 20000 });
 
-      const firstLink = await page.evaluate((domain) => {
-        const anchors = Array.from(document.querySelectorAll("a[href]"));
-        const match = anchors.find((anchor) => {
-          const href = anchor.getAttribute("href") || "";
-          return href.startsWith("http") && href.includes(domain) && !href.includes("google.com");
+        const firstLink = await page.evaluate((domain) => {
+          const anchors = Array.from(document.querySelectorAll("a[href]"));
+          const match = anchors.find((anchor) => {
+            const href = anchor.getAttribute("href") || "";
+            return href.startsWith("http") && href.includes(domain) && !href.includes("google.com");
+          });
+          return match ? match.getAttribute("href") : "";
+        }, site.domain);
+
+        if (!firstLink) {
+          logger.warn("[SCRAPER] No search result link found", { query, site: site.platform });
+          continue;
+        }
+
+        await page.goto(firstLink, { waitUntil: "domcontentloaded", timeout: 20000 });
+        await page.waitForTimeout(1500);
+
+        const priceText = await page.evaluate((selector) => {
+          const element = document.querySelector(selector);
+          return element ? (element.textContent || "") : "";
+        }, site.selector);
+
+        const price = parseCurrencyFromText(priceText);
+        if (!price) {
+          logger.warn("[SCRAPER] Price element missing", { query, site: site.platform, selector: site.selector });
+          continue;
+        }
+
+        results.push({
+          platform: site.platform,
+          title: query,
+          price,
+          url: page.url(),
+          inStock: true,
+          source: "playwright_fallback",
+          rating: null,
+          reviews: null,
+          thumbnail: null
         });
-        return match ? match.getAttribute("href") : "";
-      }, site.domain);
-
-      if (!firstLink) {
-        logger.warn("[SCRAPER] No search result link found", { query, site: site.platform });
-        continue;
+      } catch (siteError) {
+        logger.warn("[SCRAPER] Failed to scrape site", { query, site: site.platform, error: siteError.message });
       }
-
-      await page.goto(firstLink, { waitUntil: "domcontentloaded", timeout: 20000 });
-      await page.waitForTimeout(1500);
-
-      const priceText = await page.evaluate((selector) => {
-        const element = document.querySelector(selector);
-        return element ? (element.textContent || "") : "";
-      }, site.selector);
-
-      const price = parseCurrencyFromText(priceText);
-      if (!price) {
-        logger.warn("[SCRAPER] Price element missing", { query, site: site.platform, selector: site.selector });
-        continue;
-      }
-
-      results.push({
-        platform: site.platform,
-        title: query,
-        price,
-        url: page.url(),
-        inStock: true,
-        source: "playwright_fallback",
-        rating: null,
-        reviews: null,
-        thumbnail: null
-      });
     }
+
+    return dedupePrices(results);
   } catch (error) {
     logger.warn("[SCRAPER] Fallback scraping failed", { query, message: error.message });
+    return [];
   } finally {
-    await page.close();
-    await browser.close();
+    try {
+      if (page) await page.close();
+      if (browser) await browser.close();
+    } catch (cleanupError) {
+      logger.warn("[SCRAPER] Cleanup failed", { error: cleanupError.message });
+    }
   }
-
-  return dedupePrices(results);
 }
 
 function toComparisonResult(item, source, query) {

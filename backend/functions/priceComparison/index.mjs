@@ -5,7 +5,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
-import { createPriceService, normalizePriceSummary } from "../shared/price-service.mjs";
+import { createPriceService, normalizePriceSummary } from "./shared/price-service.mjs";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -29,6 +29,15 @@ export const handler = async (event) => {
     const action = pathParameters.action;
     const isSearchRequest = requestPath.includes('/compare/search');
     const isCompareAllRequest = requestPath === '/compare' || requestPath.endsWith('/compare');
+
+    console.log('[ROUTING]', {
+        httpMethod,
+        requestPath,
+        productId,
+        action,
+        isSearchRequest,
+        pathParameters
+    });
 
     try {
         let response;
@@ -65,6 +74,7 @@ export const handler = async (event) => {
             // POST /compare - Search all products
             response = await searchAllProducts();
         } else {
+            console.log('[ROUTING] No route matched, returning 404');
             response = { statusCode: 404, body: { error: 'Not found' } };
         }
 
