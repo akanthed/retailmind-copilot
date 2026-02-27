@@ -1,0 +1,16 @@
+{
+  "welcome": "Welcome to RetailMind AI",
+  "subtitle": "Your AI-powered business assistant",
+  "step1Title": "Tell us about your business",
+  "step1Desc": "Help us personalize your experience",
+  "step2Title": "What do you sell?",
+  "step2Desc": "Select your product categories",
+  "step3Title": "Connect your store",
+  "step3Desc": "Optional: Link your online store",
+  "step4Title": "You're all set!",
+  "step4Desc": "Let's start growing your business",
+  "businessName": "Business Name",
+  "businessNamePlaceholder": "e.g. My Electronics Store",
+  "getStarted": "Get Started",
+  "finish": "Go to Dashboard"
+}

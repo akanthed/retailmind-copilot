@@ -132,10 +132,10 @@ class ApiClient {
   }
 
   // AI Copilot
-  async queryCopilot(query: string): Promise<ApiResponse<CopilotResponse>> {
+  async queryCopilot(query: string, language: 'en' | 'hi' = 'en'): Promise<ApiResponse<CopilotResponse>> {
     return this.request<CopilotResponse>('/copilot', {
       method: 'POST',
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, language }),
     });
   }
 

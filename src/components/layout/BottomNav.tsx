@@ -1,31 +1,33 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Home, Package, CheckSquare, HelpCircle } from "lucide-react";
 
-const navItems = [
-  {
-    title: "Dashboard",
-    icon: Home,
-    href: "/dashboard",
-  },
-  {
-    title: "Products",
-    icon: Package,
-    href: "/products",
-  },
-  {
-    title: "To-Do",
-    icon: CheckSquare,
-    href: "/actions",
-  },
-  {
-    title: "Help",
-    icon: HelpCircle,
-    href: "/help",
-  },
-];
-
 export function BottomNav() {
+  const { t } = useLanguage();
+  
+  const navItems = [
+    {
+      title: t('nav.dashboard'),
+      icon: Home,
+      href: "/dashboard",
+    },
+    {
+      title: t('nav.products'),
+      icon: Package,
+      href: "/products",
+    },
+    {
+      title: t('nav.actions'),
+      icon: CheckSquare,
+      href: "/actions",
+    },
+    {
+      title: t('nav.help'),
+      icon: HelpCircle,
+      href: "/help",
+    },
+  ];
   return (
     <nav 
       className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 md:hidden"

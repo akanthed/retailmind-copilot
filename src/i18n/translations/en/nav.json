@@ -1,0 +1,10 @@
+{
+  "dashboard": "Dashboard",
+  "products": "My Products",
+  "actions": "To-Do List",
+  "help": "Help",
+  "dashboardDesc": "Your daily overview",
+  "productsDesc": "Manage inventory",
+  "actionsDesc": "AI recommendations",
+  "helpDesc": "Get support"
+}

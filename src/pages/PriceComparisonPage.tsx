@@ -98,12 +98,17 @@ export default function PriceComparisonPage() {
       const priceResult = await apiClient.getProductPriceComparison(productId!);
       if (priceResult.data) {
         const comparisons = priceResult.data.comparisons || [];
-        setCompetitorPrices(comparisons);
+        // Filter to only show Amazon and Flipkart
+        const filteredComparisons = comparisons.filter((comp: CompetitorPrice) => {
+          const platform = comp.platform.toLowerCase();
+          return platform.includes('amazon') || platform.includes('flipkart');
+        });
+        setCompetitorPrices(filteredComparisons);
         
         // Auto-search if no prices found and not searched recently
         const now = Date.now();
         const fiveMinutes = 5 * 60 * 1000;
-        if (comparisons.length === 0 && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
+        if (filteredComparisons.length === 0 && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
           // Auto-search in background after 1 second
           setTimeout(() => {
             handleSearchPrices(true);
@@ -162,13 +167,18 @@ export default function PriceComparisonPage() {
         }
 
         const results = result.data?.results || [];
-        setCompetitorPrices(results);
+        // Filter to only show Amazon and Flipkart
+        const filteredResults = results.filter((r: any) => {
+          const platform = r.platform.toLowerCase();
+          return platform.includes('amazon') || platform.includes('flipkart');
+        });
+        setCompetitorPrices(filteredResults);
         setLastSearchTime(Date.now());
 
         // Show data source notification only for manual search
         if (!isAutoSearch) {
-          const liveCount = results.filter((r: any) => r.source === 'live').length;
-          const syntheticCount = results.filter((r: any) => r.source === 'synthetic').length;
+          const liveCount = filteredResults.filter((r: any) => r.source === 'live').length;
+          const syntheticCount = filteredResults.filter((r: any) => r.source === 'synthetic').length;
 
           if (liveCount > 0) {
             toast({
@@ -183,7 +193,7 @@ export default function PriceComparisonPage() {
             });
           }
 
-          if (results.length === 0) {
+          if (filteredResults.length === 0) {
             toast({
               title: errorMessages.noPricesFound.title,
               description: errorMessages.noPricesFound.description,

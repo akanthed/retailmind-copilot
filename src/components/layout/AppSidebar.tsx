@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   Home,
   Package,
@@ -10,38 +12,39 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-const navItems = [
-  {
-    title: "Dashboard",
-    icon: Home,
-    href: "/dashboard",
-    description: "Your daily overview",
-  },
-  {
-    title: "My Products",
-    icon: Package,
-    href: "/products",
-    description: "Manage inventory",
-  },
-  {
-    title: "To-Do List",
-    icon: CheckSquare,
-    href: "/actions",
-    description: "AI recommendations",
-  },
-  {
-    title: "Help",
-    icon: HelpCircle,
-    href: "/help",
-    description: "Get support",
-  },
-];
-
 const bottomItems: any[] = [];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const navItems = [
+    {
+      title: t('nav.dashboard'),
+      icon: Home,
+      href: "/dashboard",
+      description: t('nav.dashboardDesc'),
+    },
+    {
+      title: t('nav.products'),
+      icon: Package,
+      href: "/products",
+      description: t('nav.productsDesc'),
+    },
+    {
+      title: t('nav.actions'),
+      icon: CheckSquare,
+      href: "/actions",
+      description: t('nav.actionsDesc'),
+    },
+    {
+      title: t('nav.help'),
+      icon: HelpCircle,
+      href: "/help",
+      description: t('nav.helpDesc'),
+    },
+  ];
 
   return (
     <aside
@@ -134,6 +137,17 @@ export function AppSidebar() {
           })}
         </div>
       )}
+      
+      {/* Language Switcher */}
+      <div className="py-3 px-3 border-t border-sidebar-border">
+        {!collapsed ? (
+          <LanguageSwitcher />
+        ) : (
+          <div className="flex justify-center">
+            <LanguageSwitcher />
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

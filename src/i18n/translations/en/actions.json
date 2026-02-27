@@ -1,0 +1,12 @@
+{
+  "title": "To-Do List",
+  "noActions": "All caught up!",
+  "noActionsDesc": "No pending actions right now",
+  "markComplete": "Mark Complete",
+  "viewDetails": "View Details",
+  "priority": "Priority",
+  "dueDate": "Due Date",
+  "high": "High",
+  "medium": "Medium",
+  "low": "Low"
+}

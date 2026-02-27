@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface SimpleProductFormProps {
   initialData?: {
@@ -30,6 +31,7 @@ const categories = [
 export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }: SimpleProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const { t } = useLanguage();
   
   // Basic fields (always visible)
   const [name, setName] = useState(initialData?.name || "");

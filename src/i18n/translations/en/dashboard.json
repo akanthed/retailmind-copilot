@@ -1,0 +1,11 @@
+{
+  "title": "Dashboard",
+  "totalProducts": "Total Products",
+  "lowStock": "Low Stock Items",
+  "priceAlerts": "Price Alerts",
+  "revenue": "Potential Revenue",
+  "recentActivity": "Recent Activity",
+  "quickActions": "Quick Actions",
+  "welcome": "Welcome back",
+  "noData": "No data available yet"
+}

@@ -18,6 +18,7 @@ export const handler = async (event) => {
         // Parse request body
         const body = JSON.parse(event.body || '{}');
         const userQuery = body.query || body.message;
+        const language = body.language || 'en'; // Get language preference
         
         if (!userQuery) {
             return {
@@ -46,6 +47,10 @@ export const handler = async (event) => {
             : '\n\nNo products in inventory yet.';
         
         // System prompt for RetailMind AI
+        const languageInstruction = language === 'hi' 
+            ? '\n\nIMPORTANT: Respond in Hindi (हिंदी). Use Devanagari script for your entire response.'
+            : '\n\nIMPORTANT: Respond in English.';
+            
         const systemPrompt = `You are RetailMind AI, an intelligent pricing and inventory assistant for small and mid-sized retailers.
 
 Your role:
@@ -60,7 +65,7 @@ Guidelines:
 - Use Indian Rupees (₹) for prices
 - Provide specific recommendations when possible
 - Always explain your reasoning
-- Reference actual product data when answering questions
+- Reference actual product data when answering questions${languageInstruction}
 
 Current context:
 - Retailer has ${products.length} products in inventory

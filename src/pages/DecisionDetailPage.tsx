@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { apiClient, Recommendation } from "@/api/client";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Sparkles,
@@ -9,17 +10,17 @@ import {
   TrendingDown,
   CheckCircle,
   Clock,
-  BarChart3,
   Loader2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DecisionDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [implementing, setImplementing] = useState(false);
 
   useEffect(() => {
     async function loadRecommendation() {
@@ -41,6 +42,40 @@ export default function DecisionDetailPage() {
     loadRecommendation();
   }, [id]);
 
+  async function handleMarkAsDone() {
+    if (!id || implementing) return;
+    
+    setImplementing(true);
+    try {
+      const result = await apiClient.implementRecommendation(id);
+      if (result.data) {
+        setRecommendation(result.data);
+        toast({
+          title: "Marked as Done",
+          description: "Recommendation has been implemented",
+        });
+        // Navigate back to actions page after a short delay
+        setTimeout(() => navigate("/actions"), 1500);
+      } else if (result.error) {
+        toast({
+          title: "Failed to update",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark as done",
+        variant: "destructive",
+      });
+    } finally {
+      setImplementing(false);
+    }
+  }
+
+  const { toast } = useToast();
+
   const currentPrice = recommendation?.currentPrice || 0;
   const suggestedPrice = recommendation?.suggestedPrice || currentPrice;
   const percentageChange = currentPrice
@@ -55,18 +90,6 @@ export default function DecisionDetailPage() {
         minute: "2-digit",
       })
     : "Just now";
-
-  const chartData = useMemo(() => {
-    const yourPrice = currentPrice || 100;
-    const compPrice = suggestedPrice || yourPrice;
-    return [
-      { date: "D1", you: yourPrice, competitor: yourPrice },
-      { date: "D2", you: yourPrice, competitor: (yourPrice + compPrice) / 2 },
-      { date: "D3", you: yourPrice, competitor: compPrice },
-      { date: "D4", you: yourPrice, competitor: compPrice },
-      { date: "D5", you: yourPrice, competitor: compPrice },
-    ];
-  }, [currentPrice, suggestedPrice]);
 
   if (loading) {
     return (
@@ -94,11 +117,11 @@ export default function DecisionDetailPage() {
       <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => navigate("/command-center")}
+          onClick={() => navigate("/actions")}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to AI Assistant
+          Back to To-Do List
         </button>
 
         {/* Header Card */}
@@ -152,13 +175,27 @@ export default function DecisionDetailPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
-            <Button className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex-1">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Mark as Done
-            </Button>
-            <Button variant="outline" className="rounded-xl flex-1">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Track Impact
+            <Button 
+              className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+              onClick={handleMarkAsDone}
+              disabled={implementing || recommendation.status === 'implemented'}
+            >
+              {implementing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : recommendation.status === 'implemented' ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Completed
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Done
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -189,40 +226,6 @@ export default function DecisionDetailPage() {
             <div className="flex items-center gap-3">
               <TrendingUp className="w-6 h-6 text-success" />
               <p className="text-lg font-medium text-foreground">{recommendation.impact}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Simple Chart Placeholder */}
-        <div className="premium-card rounded-2xl p-6 mt-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <h2 className="text-sm font-medium text-primary uppercase tracking-wide mb-4">
-            Price Comparison (Last 5 Days)
-          </h2>
-          <div className="h-48 flex items-end gap-2">
-            {chartData.map((point) => (
-              <div key={point.date} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex gap-1 items-end justify-center" style={{ height: "120px" }}>
-                  <div
-                    className="w-4 bg-primary/30 rounded-t"
-                    style={{ height: `${Math.max(10, (point.you / Math.max(point.you, point.competitor, 1)) * 100)}%` }}
-                  />
-                  <div
-                    className="w-4 bg-destructive/30 rounded-t"
-                    style={{ height: `${Math.max(10, (point.competitor / Math.max(point.you, point.competitor, 1)) * 100)}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">{point.date}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-6 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-primary/30" />
-              <span className="text-muted-foreground">Your price</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-destructive/30" />
-              <span className="text-muted-foreground">Competitor</span>
             </div>
           </div>
         </div>

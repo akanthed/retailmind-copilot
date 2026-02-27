@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 import Landing from "./pages/Landing";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import DashboardPage from "./pages/DashboardPage";
@@ -31,32 +32,34 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Analytics />
-      <KeyboardShortcuts />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/onboarding" element={<OnboardingWizard />} />
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
-          <Route path="/products/:productId/compare" element={<ProtectedRoute><PriceComparisonPage /></ProtectedRoute>} />
-          <Route path="/actions" element={<ProtectedRoute><ActionsPage /></ProtectedRoute>} />
-          <Route path="/decisions/:id" element={<ProtectedRoute><DecisionDetailPage /></ProtectedRoute>} />
-          <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
-          <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
-          
-          {/* Legacy routes - redirect to new names */}
-          <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/decisions" element={<Navigate to="/actions" replace />} />
-          
-          {/* Catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Analytics />
+        <BrowserRouter>
+          <KeyboardShortcuts />
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/onboarding" element={<OnboardingWizard />} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+            <Route path="/products/:productId/compare" element={<ProtectedRoute><PriceComparisonPage /></ProtectedRoute>} />
+            <Route path="/actions" element={<ProtectedRoute><ActionsPage /></ProtectedRoute>} />
+            <Route path="/decisions/:id" element={<ProtectedRoute><DecisionDetailPage /></ProtectedRoute>} />
+            <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
+            <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+            
+            {/* Legacy routes - redirect to new names */}
+            <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/decisions" element={<Navigate to="/actions" replace />} />
+            
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
