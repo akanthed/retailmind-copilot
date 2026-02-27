@@ -2,76 +2,42 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
 import {
-  Sparkles,
-  FileText,
-  BarChart3,
-  Bell,
-  Target,
-  FileDown,
-  Settings,
+  Home,
+  Package,
+  CheckSquare,
   HelpCircle,
   ChevronLeft,
-  Package,
 } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
   {
-    title: "AI Assistant",
-    icon: Sparkles,
-    href: "/command-center",
-    description: "RetailMind AI recommendations",
+    title: "Dashboard",
+    icon: Home,
+    href: "/dashboard",
+    description: "Your daily overview",
   },
   {
     title: "My Products",
     icon: Package,
     href: "/products",
-    description: "Add & manage products",
+    description: "Manage inventory",
   },
   {
-    title: "Decisions",
-    icon: FileText,
-    href: "/decisions",
-    description: "Review actions",
-  },
-  {
-    title: "Insights",
-    icon: BarChart3,
-    href: "/insights",
-    description: "Market evidence",
-  },
-  {
-    title: "Alerts",
-    icon: Bell,
-    href: "/alerts",
-    description: "Signals & risks",
-  },
-  {
-    title: "Outcomes",
-    icon: Target,
-    href: "/outcomes",
-    description: "Track results",
-  },
-  {
-    title: "Reports",
-    icon: FileDown,
-    href: "/reports",
-    description: "Export & share",
-  },
-];
-
-const bottomItems = [
-  {
-    title: "Setup",
-    icon: Settings,
-    href: "/setup",
+    title: "To-Do List",
+    icon: CheckSquare,
+    href: "/actions",
+    description: "AI recommendations",
   },
   {
     title: "Help",
     icon: HelpCircle,
     href: "/help",
+    description: "Get support",
   },
 ];
+
+const bottomItems: any[] = [];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -80,7 +46,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+        "h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out hidden md:flex",
         collapsed ? "w-20" : "w-64"
       )}
     >
