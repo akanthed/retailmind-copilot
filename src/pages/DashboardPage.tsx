@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard, AlertCard } from "@/components/ui/Cards";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import { Sparkles, Send, Lightbulb, Loader2, Package, TrendingUp, Bell, IndianRupee } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation, Alert } from "@/api/client";
@@ -119,12 +120,7 @@ export default function DashboardPage() {
   if (loadingData) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-5xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading your dashboard...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading your dashboard..." />
       </AppLayout>
     );
   }

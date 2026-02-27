@@ -25,7 +25,7 @@ export function AIRecommendationCard({
     <div
       onClick={onClick}
       className={cn(
-        "premium-card rounded-2xl p-6 cursor-pointer group",
+        "premium-card rounded-2xl p-6 cursor-pointer group transition-all duration-200 hover:scale-[1.01]",
         status === "implemented" && "border-success/30 bg-success/5"
       )}
     >
@@ -110,7 +110,7 @@ export function AlertCard({
   return (
     <div
       onClick={onClick}
-      className="premium-card rounded-2xl p-5 cursor-pointer group"
+      className="premium-card rounded-2xl p-5 cursor-pointer group transition-all duration-200 hover:scale-[1.01]"
     >
       <div className="flex gap-4">
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", config.bg)}>

@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard } from "@/components/ui/Cards";
 import { CheckSquare, Clock, CheckCircle, Loader2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -56,12 +57,7 @@ export default function ActionsPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading your to-do list...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading your to-do list..." />
       </AppLayout>
     );
   }

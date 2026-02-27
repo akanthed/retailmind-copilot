@@ -29,6 +29,7 @@ import { apiClient, Product, PriceHistory } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { DataFreshness } from "@/components/ui/DataFreshness";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 
 interface CompetitorPrice {
   platform: string;
@@ -208,22 +209,15 @@ export default function PriceComparisonPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading price comparison...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading price comparison..." />
       </AppLayout>
     );
   }
 
-  if (loading || !product) {
+  if (!product) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <LoadingPage message="Loading product details..." />
       </AppLayout>
     );
   }

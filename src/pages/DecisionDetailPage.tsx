@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { apiClient, Recommendation } from "@/api/client";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import {
   ArrowLeft,
   Sparkles,
@@ -70,9 +71,7 @@ export default function DecisionDetailPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
+        <LoadingPage message="Loading recommendation..." />
       </AppLayout>
     );
   }

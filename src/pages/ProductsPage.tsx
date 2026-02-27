@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import {
   Dialog,
   DialogContent,
@@ -177,12 +178,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading products...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading products..." />
       </AppLayout>
     );
   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/ui/Cards";
 import { BarChart3, TrendingUp, Package, AlertTriangle, Loader2 } from "lucide-react";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import { apiClient, Product, PriceHistory } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,12 +73,7 @@ export default function InsightsPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading insights...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading insights..." />
       </AppLayout>
     );
   }
