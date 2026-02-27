@@ -10,9 +10,14 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "aws:setup:core": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\setup-core.ps1",
+    "aws:setup:scheduler": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\setup-scheduler.ps1",
+    "aws:deploy:lambdas": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\deploy-lambdas.ps1",
+    "aws:wire:api": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\wire-api.ps1"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.888.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

@@ -2,8 +2,14 @@
 // This function uses Amazon Bedrock to answer business questions
 
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
-const client = new BedrockRuntimeClient({ region: "us-east-1" });
+const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
+const dynamoClient = new DynamoDBClient({ region: "us-east-1" });
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+const PRODUCTS_TABLE = "RetailMind-Products";
 
 export const handler = async (event) => {
     console.log('AI Copilot invoked:', JSON.stringify(event, null, 2));
@@ -26,6 +32,19 @@ export const handler = async (event) => {
             };
         }
         
+        // Fetch real product data from DynamoDB
+        const productsResult = await docClient.send(new ScanCommand({
+            TableName: PRODUCTS_TABLE,
+            Limit: 50
+        }));
+        
+        const products = productsResult.Items || [];
+        const productContext = products.length > 0 
+            ? `\n\nCurrent Products in Inventory:\n${products.map(p => 
+                `- ${p.name} (SKU: ${p.sku}): ₹${p.currentPrice}, Stock: ${p.stock} units, Category: ${p.category}`
+              ).join('\n')}`
+            : '\n\nNo products in inventory yet.';
+        
         // System prompt for RetailMind AI
         const systemPrompt = `You are RetailMind AI, an intelligent pricing and inventory assistant for small and mid-sized retailers.
 
@@ -40,13 +59,12 @@ Guidelines:
 - Be concise and professional
 - Use Indian Rupees (₹) for prices
 - Provide specific recommendations when possible
-- If you don't have data, say so clearly
 - Always explain your reasoning
+- Reference actual product data when answering questions
 
 Current context:
-- Retailer has ~100 products in electronics category
-- Monitoring 3 main competitors
-- Focus on pricing optimization and inventory management`;
+- Retailer has ${products.length} products in inventory
+- Focus on pricing optimization and inventory management${productContext}`;
 
         // Call Amazon Nova Pro (Latest AWS AI Model - Dec 2024)
         const input = {
@@ -72,9 +90,9 @@ Current context:
             })
         };
         
-        console.log('Calling Amazon Nova Pro...');
+        console.log('Calling Amazon Nova Pro with product context...');
         const command = new InvokeModelCommand(input);
-        const response = await client.send(command);
+        const response = await bedrockClient.send(command);
         
         // Parse Nova response
         const responseBody = JSON.parse(new TextDecoder().decode(response.body));

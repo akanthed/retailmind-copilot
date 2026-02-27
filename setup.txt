@@ -1,0 +1,72 @@
+Step 1: Set region
+
+In AWS Console (top-right), set region to N. Virginia (us-east-1).
+Step 2: Create DynamoDB tables
+
+Create table RetailMind-Products
+Partition key: id (String)
+Create table RetailMind-PriceHistory
+Partition key: id (String)
+Sort key: timestamp (Number)
+Add GSI:
+Index name: productId-timestamp-index
+Partition key: productId (String)
+Sort key: timestamp (Number)
+Create table RetailMind-PriceComparison
+Partition key: productId (String)
+Sort key: comparisonId (String)
+Create table RetailMind-Recommendations
+Partition key: id (String)
+Create table RetailMind-Alerts
+Partition key: id (String)
+Sort key: createdAt (Number)
+Keep all in On-demand capacity mode.
+Step 3: Create 3 Lambda functions
+
+Create:
+retailmind-products
+retailmind-price-monitor
+retailmind-price-comparison
+Runtime: Node.js 20.x
+Architecture: x86_64
+Timeout: set to 30 sec.
+Step 4: Upload code to each Lambda
+
+From local folders:
+products
+priceMonitor
+priceComparison
+In each folder:
+run npm install (local machine)
+zip contents (index.mjs, package.json, node_modules) not parent folder
+Lambda Console → Function → Code → Upload from .zip → Save.
+Step 5: Add env var for price comparison
+
+Lambda retailmind-price-comparison → Configuration → Environment variables:
+SERPAPI_KEY=your_key (optional but needed for real prices; without this it uses synthetic prices).
+Step 6: Wire API Gateway routes
+
+Open API Gateway REST API: RetailMind-API.
+Create resources/methods with Lambda proxy integration:
+/products → GET, POST → retailmind-products
+/products/{id} → GET, PUT, DELETE → retailmind-products
+/products/{id}/prices → GET → retailmind-price-monitor
+/products/{id}/compare → GET → retailmind-price-comparison
+/products/{id}/compare/search → POST → retailmind-price-comparison
+/compare → POST → retailmind-price-comparison
+Enable CORS for these resources (or add OPTIONS).
+Step 7: Deploy API
+
+API Gateway → Actions / Deploy API → stage dev.
+Copy Invoke URL (https://...execute-api.us-east-1.amazonaws.com/dev).
+Step 8: Connect frontend
+
+Put URL in .env.local:
+VITE_API_URL=YOUR_INVOKE_URL
+Template is in .env.example.
+Restart app (npm run dev).
+Step 9: Quick test flow
+
+Open app → My Products → Add product.
+Click Compare Prices → Search Prices Now.
+If SERPAPI_KEY is set: live shopping results; otherwise synthetic comparison appears.

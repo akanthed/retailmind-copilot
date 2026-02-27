@@ -27,8 +27,23 @@ export interface Product {
   stock: number;
   stockDays: number;
   competitors?: string[];
+  amazonUrl?: string;
+  flipkartUrl?: string;
+  keywords?: string;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface PriceComparison {
+  platform: string;
+  title: string;
+  price: number;
+  url: string;
+  inStock: boolean;
+  lastChecked: string;
+  priceDiff: number;
+  priceDiffPercent: number;
+  source: string;
 }
 
 export interface PriceHistory {
@@ -99,7 +114,11 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(
+          errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -136,8 +155,52 @@ class ApiClient {
     });
   }
 
+  async updateProduct(productId: string, data: Partial<Product>): Promise<ApiResponse<Product>> {
+    return this.request(`/products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProduct(productId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/products/${productId}`, { method: 'DELETE' });
+  }
+
   async getProductPrices(productId: string): Promise<ApiResponse<PriceHistory[]>> {
     return this.request(`/products/${productId}/prices`, { method: 'GET' });
+  }
+
+  // Price Comparison
+  async getProductPriceComparison(productId: string): Promise<ApiResponse<{ comparisons: PriceComparison[]; count: number }>> {
+    return this.request(`/products/${productId}/compare`, { method: 'GET' });
+  }
+
+  async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[] }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/products/${productId}/compare/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          data,
+          error: data?.message || data?.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      return { data };
+    } catch (error) {
+      console.error('API Error:', error);
+      return {
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+      };
+    }
   }
 
   // Recommendations

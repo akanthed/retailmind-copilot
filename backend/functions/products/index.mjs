@@ -16,28 +16,42 @@ export const handler = async (event) => {
     const httpMethod = event.httpMethod;
     const path = event.path;
     const pathParameters = event.pathParameters || {};
+    const userId = getUserIdFromEvent(event);
     
     try {
         let response;
         
+        // Handle OPTIONS for CORS preflight
+        if (httpMethod === 'OPTIONS') {
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key'
+                },
+                body: ''
+            };
+        }
+        
         // Route based on HTTP method and path
         if (httpMethod === 'GET' && !pathParameters.id) {
             // GET /products - List all products
-            response = await listProducts();
+            response = await listProducts(userId);
         } else if (httpMethod === 'GET' && pathParameters.id) {
             // GET /products/{id} - Get single product
-            response = await getProduct(pathParameters.id);
+            response = await getProduct(pathParameters.id, userId);
         } else if (httpMethod === 'POST') {
             // POST /products - Create product
             const body = JSON.parse(event.body || '{}');
-            response = await createProduct(body);
+            response = await createProduct(body, userId);
         } else if (httpMethod === 'PUT' && pathParameters.id) {
             // PUT /products/{id} - Update product
             const body = JSON.parse(event.body || '{}');
-            response = await updateProduct(pathParameters.id, body);
+            response = await updateProduct(pathParameters.id, body, userId);
         } else if (httpMethod === 'DELETE' && pathParameters.id) {
             // DELETE /products/{id} - Delete product
-            response = await deleteProduct(pathParameters.id);
+            response = await deleteProduct(pathParameters.id, userId);
         } else {
             response = {
                 statusCode: 404,
@@ -70,10 +84,19 @@ export const handler = async (event) => {
     }
 };
 
+function getUserIdFromEvent(event) {
+    const claims = event?.requestContext?.authorizer?.claims || event?.requestContext?.authorizer?.jwt?.claims || {};
+    return claims.sub || claims['cognito:username'] || 'anonymous';
+}
+
 // List all products
-async function listProducts() {
+async function listProducts(userId) {
     const command = new ScanCommand({
         TableName: PRODUCTS_TABLE,
+        FilterExpression: 'attribute_not_exists(userId) OR userId = :uid',
+        ExpressionAttributeValues: {
+            ':uid': userId
+        },
         Limit: 100
     });
     
@@ -89,7 +112,7 @@ async function listProducts() {
 }
 
 // Get single product
-async function getProduct(id) {
+async function getProduct(id, userId) {
     const command = new GetCommand({
         TableName: PRODUCTS_TABLE,
         Key: { id }
@@ -97,7 +120,7 @@ async function getProduct(id) {
     
     const result = await docClient.send(command);
     
-    if (!result.Item) {
+    if (!result.Item || (result.Item.userId && result.Item.userId !== userId)) {
         return {
             statusCode: 404,
             body: { error: 'Product not found' }
@@ -111,9 +134,10 @@ async function getProduct(id) {
 }
 
 // Create new product
-async function createProduct(data) {
+async function createProduct(data, userId) {
     const product = {
         id: randomUUID(),
+        userId,
         name: data.name,
         sku: data.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
         category: data.category || 'Electronics',
@@ -122,6 +146,9 @@ async function createProduct(data) {
         stock: parseInt(data.stock || 0),
         stockDays: parseInt(data.stockDays || 0),
         competitors: data.competitors || [],
+        amazonUrl: data.amazonUrl || '',
+        flipkartUrl: data.flipkartUrl || '',
+        keywords: data.keywords || data.name,
         createdAt: Date.now(),
         updatedAt: Date.now()
     };
@@ -140,13 +167,18 @@ async function createProduct(data) {
 }
 
 // Update product
-async function updateProduct(id, data) {
+async function updateProduct(id, data, userId) {
+    const existing = await getProduct(id, userId);
+    if (existing.statusCode !== 200) {
+        return existing;
+    }
+
     const updateExpression = [];
     const expressionAttributeNames = {};
     const expressionAttributeValues = {};
     
     // Build update expression dynamically
-    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category'];
+    const allowedFields = ['name', 'currentPrice', 'costPrice', 'stock', 'stockDays', 'category', 'amazonUrl', 'flipkartUrl', 'keywords'];
     
     allowedFields.forEach(field => {
         if (data[field] !== undefined) {
@@ -186,7 +218,12 @@ async function updateProduct(id, data) {
 }
 
 // Delete product
-async function deleteProduct(id) {
+async function deleteProduct(id, userId) {
+    const existing = await getProduct(id, userId);
+    if (existing.statusCode !== 200) {
+        return existing;
+    }
+
     const command = new DeleteCommand({
         TableName: PRODUCTS_TABLE,
         Key: { id }

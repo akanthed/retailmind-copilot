@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import Landing from "./pages/Landing";
 import CommandCenterPage from "./pages/CommandCenterPage";
+import ProductsPage from "./pages/ProductsPage";
+import PriceComparisonPage from "./pages/PriceComparisonPage";
 import DecisionsPage from "./pages/DecisionsPage";
 import DecisionDetailPage from "./pages/DecisionDetailPage";
 import InsightsPage from "./pages/InsightsPage";
@@ -28,6 +30,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/command-center" element={<CommandCenterPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/:productId/compare" element={<PriceComparisonPage />} />
           <Route path="/decisions" element={<DecisionsPage />} />
           <Route path="/decisions/:id" element={<DecisionDetailPage />} />
           <Route path="/insights" element={<InsightsPage />} />

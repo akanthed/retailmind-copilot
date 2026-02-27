@@ -13,6 +13,7 @@ export default function DecisionsPage() {
   const [filter, setFilter] = useState<"all" | "pending" | "implemented">("all");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadRecommendations();
@@ -40,6 +41,35 @@ export default function DecisionsPage() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGenerateRecommendations() {
+    setGenerating(true);
+    try {
+      const result = await apiClient.generateRecommendations();
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Generated ${result.data?.generated || 0} new recommendations`,
+        });
+        await loadRecommendations();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate recommendations",
+        variant: "destructive"
+      });
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -83,6 +113,20 @@ export default function DecisionsPage() {
               Review and manage AI recommendations.
             </p>
           </div>
+          <Button
+            onClick={handleGenerateRecommendations}
+            disabled={generating}
+            className="gap-2"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              "Generate Recommendations"
+            )}
+          </Button>
         </div>
 
         {/* Filter Tabs */}

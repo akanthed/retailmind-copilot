@@ -11,6 +11,7 @@ import {
   Settings,
   HelpCircle,
   ChevronLeft,
+  Package,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -20,6 +21,12 @@ const navItems = [
     icon: Sparkles,
     href: "/command-center",
     description: "RetailMind AI recommendations",
+  },
+  {
+    title: "My Products",
+    icon: Package,
+    href: "/products",
+    description: "Add & manage products",
   },
   {
     title: "Decisions",

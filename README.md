@@ -103,52 +103,70 @@ Frontend (React + TypeScript)
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- AWS Account with CLI configured
-- AWS credentials with Bedrock, Lambda, DynamoDB access
+- Node.js 20+
+- AWS Account with admin access
+- AWS CLI installed and configured (`aws configure`)
+- PowerShell (Windows)
 
-### 1. Clone & Install
-```bash
-git clone https://github.com/yourusername/retailmind-copilot.git
-cd retailmind-copilot
-npm install
-```
+### One-Command Deployment
 
-### 2. Setup Environment
-```bash
-cp .env.example .env.local
-# Edit .env.local with your API Gateway URL
-```
+```powershell
+# Check prerequisites
+.\check-prerequisites.ps1
 
-### 3. Deploy Backend (AWS)
-```bash
-# Create DynamoDB tables
-cd scripts
-./create-dynamodb-tables.sh
+# Deploy everything to AWS
+.\quick-deploy.ps1
 
-# Deploy Lambda functions
-cd ../backend
-./deploy-copilot-windows.ps1
-./deploy-products-windows.ps1
-./deploy-price-monitor-windows.ps1
-./deploy-recommendations-windows.ps1
-./deploy-alerts-windows.ps1
-./deploy-analytics-windows.ps1
-
-# Configure API Gateway endpoints (see setup guides)
-```
-
-### 4. Seed Data
-```bash
-cd scripts
-./seed-products-simple.sh
-```
-
-### 5. Run Frontend
-```bash
+# Start the app
 npm run dev
-# Open http://localhost:5173
 ```
+
+Open http://localhost:5173 in your browser!
+
+### What Gets Deployed
+- ✅ 5 DynamoDB tables (Products, PriceHistory, PriceComparison, Recommendations, Alerts)
+- ✅ 3 Lambda functions (Products API, Price Monitor, Price Comparison)
+- ✅ 1 API Gateway (REST API with routes)
+- ✅ 1 IAM role (Lambda execution)
+
+### Manual Deployment (Step-by-Step)
+
+If you prefer more control:
+
+```powershell
+# Step 1: Deploy infrastructure
+.\setup-aws.ps1
+
+# Step 2: Configure API Gateway
+.\configure-api-gateway.ps1
+
+# Step 3: Test deployment
+.\test-deployment.ps1
+
+# Step 4: Update .env.local with your API URL
+# (URL will be saved in api-url.txt)
+
+# Step 5: Start the app
+npm install
+npm run dev
+```
+
+### Optional: Real Price Data
+
+By default, the system uses synthetic prices. For real competitor prices:
+
+1. Get a free API key at https://serpapi.com (100 searches/month)
+2. Add to `.env.local`: `SERPAPI_KEY=your_key`
+3. Update Lambda: 
+   ```powershell
+   aws lambda update-function-configuration --function-name retailmind-price-comparison --environment "Variables={SERPAPI_KEY=your_key}" --region us-east-1
+   ```
+
+### Detailed Setup Guide
+
+For troubleshooting and advanced configuration, see:
+- **[DEPLOY-README.md](DEPLOY-README.md)** - Deployment overview
+- **[SETUP-GUIDE.md](SETUP-GUIDE.md)** - Detailed setup instructions
 
 ---
 
