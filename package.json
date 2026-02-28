@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:backend": "vitest run --config vitest.config.backend.mjs",
     "aws:setup:core": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\setup-core.ps1",
     "aws:setup:scheduler": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\setup-scheduler.ps1",
     "aws:deploy:lambdas": "powershell -ExecutionPolicy Bypass -File .\\scripts\\aws\\deploy-lambdas.ps1",

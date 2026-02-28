@@ -4,13 +4,15 @@ import { AIRecommendationCard, AlertCard } from "@/components/ui/Cards";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
-import { Sparkles, Send, Lightbulb, Loader2, Package, TrendingUp, Bell, IndianRupee } from "lucide-react";
+import { Sparkles, Send, Lightbulb, Loader2, Package, TrendingUp, Bell, IndianRupee, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { apiClient, Recommendation, Alert } from "@/api/client";
+import { apiClient, Recommendation, Alert, RevenueSummary, RevenueHistoryItem } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { RevenueKPICards } from "@/components/revenue/RevenueKPICards";
+import { RevenueTrendChart } from "@/components/revenue/RevenueTrendChart";
 
 const suggestedPrompts = [
   "dashboard.prompt1",
@@ -27,12 +29,17 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [revenueSummary, setRevenueSummary] = useState<RevenueSummary | null>(null);
+  const [revenueHistory, setRevenueHistory] = useState<RevenueHistoryItem[]>([]);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
+  const [revenueError, setRevenueError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
 
   useEffect(() => {
     loadDashboardData();
+    loadRevenueData();
   }, []);
 
   async function loadDashboardData() {
@@ -76,6 +83,30 @@ export default function DashboardPage() {
     const result = await apiClient.getRecommendations();
     if (result.data) {
       setRecommendations(result.data.recommendations.filter(r => r.status === 'pending').slice(0, 3));
+    }
+  }
+
+  async function loadRevenueData() {
+    setLoadingRevenue(true);
+    setRevenueError(null);
+    try {
+      const [summaryResult, historyResult] = await Promise.all([
+        apiClient.getRevenueSummary(),
+        apiClient.getRevenueHistory(30),
+      ]);
+
+      if (summaryResult.data) {
+        setRevenueSummary(summaryResult.data);
+      }
+
+      if (historyResult.data) {
+        setRevenueHistory(historyResult.data.history);
+      }
+    } catch (error) {
+      console.error("Error loading revenue data:", error);
+      setRevenueError("Failed to load revenue data");
+    } finally {
+      setLoadingRevenue(false);
     }
   }
 
@@ -261,6 +292,43 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Revenue Impact Section */}
+        <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Revenue Impact</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadRevenueData}
+              disabled={loadingRevenue}
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingRevenue ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+          
+          {revenueSummary && (
+            <RevenueKPICards
+              revenueProtected={revenueSummary.revenue_protected}
+              responseRate={revenueSummary.alert_response_rate}
+              alertsResponded={revenueSummary.alerts_responded}
+              alertsTotal={revenueSummary.alerts_total}
+              competitiveScore={revenueSummary.competitive_score}
+              loading={loadingRevenue}
+              error={revenueError || undefined}
+              onRetry={loadRevenueData}
+            />
+          )}
+          
+          <div className="mt-4 premium-card rounded-2xl p-6">
+            <h3 className="font-medium mb-4">30-Day Trend</h3>
+            <RevenueTrendChart
+              data={revenueHistory}
+              loading={loadingRevenue}
+              error={revenueError || undefined}
+            />
+          </div>
+        </div>
 
         {/* Charts */}
         {products.length > 0 && (

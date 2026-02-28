@@ -1,0 +1,21 @@
+{
+  "title": "Reports & Exports",
+  "subtitle": "Generate executive-ready reports and data exports.",
+  "reportPeriod": "Report Period",
+  "last7Days": "Last 7 days",
+  "last30Days": "Last 30 days",
+  "last90Days": "Last 90 days",
+  "custom": "Custom",
+  "generateReport": "Generate Report",
+  "pricingPerformance": "Pricing Performance",
+  "pricingPerformanceDesc": "Revenue impact from pricing decisions",
+  "competitorAnalysis": "Competitor Analysis",
+  "competitorAnalysisDesc": "Price positioning vs. competitors",
+  "demandForecast": "Demand Forecast",
+  "demandForecastDesc": "Projected demand for next 30 days",
+  "inventoryRisk": "Inventory Risk",
+  "inventoryRiskDesc": "Stock-out and overstock risks",
+  "recentReports": "Recent Reports",
+  "weeklySummary": "Weekly Summary",
+  "productPerformanceExport": "Product Performance Export"
+}

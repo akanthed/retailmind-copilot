@@ -6,10 +6,12 @@ import { Logo } from "@/components/ui/Logo";
 import { Sparkles, Package, TrendingUp, CheckCircle, Loader2 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -22,8 +24,8 @@ export default function OnboardingWizard() {
   async function handleAddProduct() {
     if (!productName || !price || !stock) {
       toast({
-        title: "Please fill all fields",
-        description: "We need these basics to get started",
+        title: t('onboarding.fillAllFields'),
+        description: t('onboarding.needBasics'),
         variant: "destructive"
       });
       return;
@@ -43,7 +45,7 @@ export default function OnboardingWizard() {
 
       if (result.error) {
         toast({
-          title: "Error",
+          title: t('onboarding.errorAddingProduct'),
           description: result.error,
           variant: "destructive"
         });
@@ -58,8 +60,8 @@ export default function OnboardingWizard() {
       setTimeout(() => searchPrices(result.data?.product?.id || ""), 1000);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add product",
+        title: t('onboarding.errorAddingProduct'),
+        description: t('onboarding.failedToAddProduct'),
         variant: "destructive"
       });
       setLoading(false);
@@ -104,10 +106,10 @@ export default function OnboardingWizard() {
         <div className="text-center mb-8">
           <Logo size="lg" className="mx-auto mb-4" />
           <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Welcome to RetailMind AI
+            {t('onboarding.welcome')}
           </h1>
           <p className="text-muted-foreground">
-            Let's get you set up in 2 minutes
+            {t('onboarding.setupTime')}
           </p>
         </div>
 
@@ -130,19 +132,19 @@ export default function OnboardingWizard() {
               <Package className="w-6 h-6 text-primary" />
             </div>
             <h2 className="text-xl font-semibold text-center mb-2">
-              Add Your First Product
+              {t('onboarding.step1Title')}
             </h2>
             <p className="text-sm text-muted-foreground text-center mb-6">
-              Just the basics - we'll find competitor prices automatically
+              {t('onboarding.step1Subtitle')}
             </p>
 
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Product Name
+                  {t('products.productName')}
                 </label>
                 <Input
-                  placeholder="e.g. Samsung Galaxy S24"
+                  placeholder={t('products.productNamePlaceholder')}
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   className="h-12 text-base"
@@ -152,11 +154,11 @@ export default function OnboardingWizard() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Your Selling Price (₹)
+                  {t('products.sellingPrice')}
                 </label>
                 <Input
                   type="number"
-                  placeholder="e.g. 129999"
+                  placeholder={t('products.sellingPricePlaceholder')}
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   className="h-12 text-base"
@@ -165,11 +167,11 @@ export default function OnboardingWizard() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Stock Quantity
+                  {t('products.stock')}
                 </label>
                 <Input
                   type="number"
-                  placeholder="e.g. 50"
+                  placeholder={t('products.stockPlaceholder')}
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   className="h-12 text-base"
@@ -185,10 +187,10 @@ export default function OnboardingWizard() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Adding Product...
+                    {t('onboarding.addingProduct')}
                   </>
                 ) : (
-                  "Continue"
+                  t('onboarding.continue')
                 )}
               </Button>
             </div>
@@ -202,10 +204,10 @@ export default function OnboardingWizard() {
               <TrendingUp className="w-6 h-6 text-primary animate-pulse" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              Finding Competitor Prices
+              {t('onboarding.step2Title')}
             </h2>
             <p className="text-muted-foreground mb-6">
-              Our AI is searching Amazon, Flipkart, and other platforms...
+              {t('onboarding.step2Subtitle')}
             </p>
             <div className="flex justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -220,10 +222,10 @@ export default function OnboardingWizard() {
               <Sparkles className="w-6 h-6 text-primary animate-pulse" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              Creating Your First Recommendation
+              {t('onboarding.step3Title')}
             </h2>
             <p className="text-muted-foreground mb-6">
-              AI is analyzing the market and preparing your action plan...
+              {t('onboarding.step3Subtitle')}
             </p>
             <div className="flex justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -238,18 +240,18 @@ export default function OnboardingWizard() {
               <CheckCircle className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
-              You're All Set! 🎉
+              {t('onboarding.step4Title')}
             </h2>
             <p className="text-muted-foreground mb-6">
-              Your dashboard is ready with AI recommendations for {productName}
+              {t('onboarding.step4Subtitle').replace('{product}', productName)}
             </p>
 
             <div className="bg-accent/50 rounded-xl p-4 mb-6 text-left">
-              <p className="text-sm font-medium mb-2">What happens next:</p>
+              <p className="text-sm font-medium mb-2">{t('onboarding.whatHappensNext')}</p>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>✓ AI monitors prices 24/7</li>
-                <li>✓ Get alerts when competitors change prices</li>
-                <li>✓ Daily recommendations in your dashboard</li>
+                <li>{t('onboarding.nextStep1')}</li>
+                <li>{t('onboarding.nextStep2')}</li>
+                <li>{t('onboarding.nextStep3')}</li>
               </ul>
             </div>
 
@@ -258,14 +260,14 @@ export default function OnboardingWizard() {
               className="w-full h-12 text-base"
               size="lg"
             >
-              Go to Dashboard
+              {t('onboarding.goToDashboard')}
             </Button>
           </div>
         )}
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Takes less than 2 minutes • No credit card required
+          {t('onboarding.takesLessThan')}
         </p>
       </div>
     </div>

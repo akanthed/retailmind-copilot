@@ -2,16 +2,18 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, TrendingUp, Bell, BarChart3, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const benefits = [
-  "Know when to change prices",
-  "Never run out of stock",
-  "See what competitors are doing",
-  "Get clear action steps daily"
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const benefits = [
+    t('landing.benefit1'),
+    t('landing.benefit2'),
+    t('landing.benefit3'),
+    t('landing.benefit4')
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-accent/20">
@@ -22,7 +24,7 @@ export default function Landing() {
           onClick={() => navigate("/onboarding")}
           className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          Get Started
+          {t('landing.getStarted')}
         </Button>
       </header>
 
@@ -32,21 +34,21 @@ export default function Landing() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
-            Powered by AI
+            {t('landing.poweredByAI')}
           </div>
 
           {/* Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 leading-tight">
-            Your AI Assistant for
+            {t('landing.headline')}
             <br />
-            <span className="gradient-text">Smarter Pricing</span>
+            <span className="gradient-text">{t('landing.smarterPricing')}</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            RetailMind AI watches your competitors and tells you exactly what to do.
+            {t('landing.subheadline1')}
             <br />
-            Simple. Clear. No tech knowledge needed.
+            {t('landing.subheadline2')}
           </p>
 
           {/* Benefits */}
@@ -68,7 +70,7 @@ export default function Landing() {
               size="lg"
               className="rounded-xl px-8 py-6 text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg group"
             >
-              Get Started Free
+              {t('landing.getStartedFree')}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
@@ -77,12 +79,12 @@ export default function Landing() {
               size="lg"
               className="rounded-xl px-8 py-6 text-lg"
             >
-              See How It Works
+              {t('landing.seeHowItWorks')}
             </Button>
           </div>
 
           <p className="text-sm text-muted-foreground mt-6">
-            No credit card required • 14-day free trial • Cancel anytime
+            {t('landing.noCreditCard')}
           </p>
         </div>
 
@@ -92,9 +94,9 @@ export default function Landing() {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-7 h-7 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Smart Recommendations</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t('landing.smartRecommendations')}</h3>
             <p className="text-sm text-muted-foreground">
-              AI tells you exactly what price to set and why
+              {t('landing.smartRecommendationsDesc')}
             </p>
           </div>
 
@@ -102,9 +104,9 @@ export default function Landing() {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Bell className="w-7 h-7 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Instant Alerts</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t('landing.instantAlerts')}</h3>
             <p className="text-sm text-muted-foreground">
-              Get notified when competitors change prices
+              {t('landing.instantAlertsDesc')}
             </p>
           </div>
 
@@ -112,9 +114,9 @@ export default function Landing() {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <BarChart3 className="w-7 h-7 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Track Results</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t('landing.trackResults')}</h3>
             <p className="text-sm text-muted-foreground">
-              See how much money your decisions make
+              {t('landing.trackResultsDesc')}
             </p>
           </div>
         </div>
@@ -123,7 +125,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-6 px-6 text-center border-t border-border/50 bg-background/80">
         <p className="text-sm text-muted-foreground">
-          © 2026 RetailMind AI • Built for small retailers who want to grow
+          {t('landing.footerText')}
         </p>
       </footer>
     </div>

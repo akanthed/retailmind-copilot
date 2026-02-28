@@ -144,6 +144,24 @@ export interface DemandForecast {
   methodology: string;
 }
 
+export interface RevenueSummary {
+  revenue_protected: number;
+  alert_response_rate: number;
+  competitive_score: number;
+  period: {
+    start: string;
+    end: string;
+  };
+  alerts_responded: number;
+  alerts_total: number;
+}
+
+export interface RevenueHistoryItem {
+  date: string;
+  revenue_protected: number;
+  competitive_score: number;
+}
+
 export interface GSTBreakdown {
   priceIncludingGST: number;
   priceExcludingGST: number;
@@ -334,6 +352,20 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ productId }),
     });
+  }
+
+  // Revenue Impact
+  async getRevenueSummary(startDate?: string, endDate?: string): Promise<ApiResponse<RevenueSummary>> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<RevenueSummary>(`/revenue/summary${query}`, { method: 'GET' });
+  }
+
+  async getRevenueHistory(days: number = 30): Promise<ApiResponse<{ history: RevenueHistoryItem[]; count: number }>> {
+    return this.request(`/revenue/history?days=${days}`, { method: 'GET' });
   }
 }
 

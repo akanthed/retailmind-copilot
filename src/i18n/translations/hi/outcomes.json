@@ -1,0 +1,17 @@
+{
+  "title": "परिणाम ट्रैकिंग",
+  "subtitle": "अपने मूल्य निर्धारण निर्णयों के प्रभाव को ट्रैक करें।",
+  "totalRevenueImpact": "कुल राजस्व प्रभाव",
+  "thisMonth": "इस महीने",
+  "actionsImplemented": "कार्यान्वित कार्य",
+  "of": "में से",
+  "recommendations": "सिफारिशें",
+  "risksPrevented": "रोके गए जोखिम",
+  "stockoutsAvoided": "स्टॉकआउट से बचा गया",
+  "decisionHistory": "निर्णय इतिहास",
+  "loadingOutcomes": "परिणाम लोड हो रहे हैं...",
+  "noOutcomesYet": "अभी तक कोई परिणाम नहीं। प्रभाव को ट्रैक करने के लिए सिफारिशों को लागू करें।",
+  "implemented": "कार्यान्वित",
+  "before": "पहले",
+  "after": "बाद में"
+}

@@ -6,13 +6,7 @@ import { Sparkles, Send, Lightbulb, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
-
-const suggestedPrompts = [
-  "Why are my sales down?",
-  "Should I discount this product?",
-  "What's my biggest risk right now?",
-  "Which products need repricing?",
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function CommandCenterPage() {
   const [query, setQuery] = useState("");
@@ -22,6 +16,14 @@ export default function CommandCenterPage() {
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
+
+  const suggestedPrompts = [
+    t('commandCenter.prompt1'),
+    t('commandCenter.prompt2'),
+    t('commandCenter.prompt3'),
+    t('commandCenter.prompt4'),
+  ];
 
   useEffect(() => {
     loadRecommendations();
@@ -35,10 +37,9 @@ export default function CommandCenterPage() {
       if (result.error) {
         console.error("Error loading recommendations:", result.error);
       } else if (result.data) {
-        // Filter to show only pending recommendations
         const pending = result.data.recommendations
           .filter(r => r.status === 'pending')
-          .slice(0, 3); // Show top 3
+          .slice(0, 3);
         setRecommendations(pending);
       }
     } catch (error) {
@@ -55,20 +56,20 @@ export default function CommandCenterPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
+          title: t('commandCenter.errorTitle'),
           description: result.error,
           variant: "destructive"
         });
       } else if (result.data) {
         toast({
-          title: "Recommendations Generated",
-          description: `Generated ${result.data.recommendationsGenerated} new recommendations`,
+          title: t('commandCenter.recommendationsGenerated'),
+          description: t('commandCenter.generatedCount').replace('{count}', String(result.data.recommendationsGenerated)),
         });
         await loadRecommendations();
       }
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('commandCenter.errorTitle'),
         description: "Failed to generate recommendations",
         variant: "destructive"
       });
@@ -82,8 +83,8 @@ export default function CommandCenterPage() {
     
     if (!query.trim()) {
       toast({
-        title: "Empty query",
-        description: "Please enter a question",
+        title: t('commandCenter.emptyQuery'),
+        description: t('commandCenter.pleaseEnterQuestion'),
         variant: "destructive"
       });
       return;
@@ -97,20 +98,20 @@ export default function CommandCenterPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
+          title: t('commandCenter.errorTitle'),
           description: result.error,
           variant: "destructive"
         });
       } else if (result.data) {
         setAiResponse(result.data.response);
         toast({
-          title: "AI Response Ready",
-          description: `Powered by ${result.data.model}`,
+          title: t('commandCenter.aiResponseReady'),
+          description: `${t('commandCenter.poweredBy')} ${result.data.model}`,
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
+        title: t('commandCenter.errorTitle'),
         description: "Failed to get AI response",
         variant: "destructive"
       });
@@ -128,10 +129,10 @@ export default function CommandCenterPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">RetailMind AI Assistant</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('commandCenter.title')}</h1>
           </div>
           <p className="text-muted-foreground">
-            Ask anything about your products, pricing, or market conditions.
+            {t('commandCenter.subtitle')}
           </p>
         </div>
 
@@ -143,7 +144,7 @@ export default function CommandCenterPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask RetailMind: What should I do about Product X today?"
+                placeholder={t('commandCenter.inputPlaceholder')}
                 className="flex-1 px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-lg"
                 disabled={loading}
               />
@@ -171,7 +172,7 @@ export default function CommandCenterPage() {
                 <Sparkles className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-foreground mb-2">AI Response</h3>
+                <h3 className="font-medium text-foreground mb-2">{t('commandCenter.aiResponse')}</h3>
                 <div className="text-muted-foreground whitespace-pre-wrap">{aiResponse}</div>
               </div>
             </div>
@@ -182,7 +183,7 @@ export default function CommandCenterPage() {
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Lightbulb className="w-4 h-4" />
-            <span>Try asking:</span>
+            <span>{t('commandCenter.tryAsking')}</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {suggestedPrompts.map((prompt) => (
@@ -200,10 +201,10 @@ export default function CommandCenterPage() {
         {/* Recommendations */}
         <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-foreground">Today's Recommendations</h2>
+            <h2 className="text-lg font-medium text-foreground">{t('commandCenter.todaysRecommendations')}</h2>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                {recommendations.length} pending actions
+                {recommendations.length} {t('commandCenter.pendingActions')}
               </span>
               <Button
                 variant="outline"
@@ -224,14 +225,14 @@ export default function CommandCenterPage() {
           {loadingRecommendations ? (
             <div className="premium-card rounded-2xl p-8 text-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-              <p className="text-muted-foreground">Loading recommendations...</p>
+              <p className="text-muted-foreground">{t('commandCenter.loadingRecommendations')}</p>
             </div>
           ) : recommendations.length === 0 ? (
             <div className="premium-card rounded-2xl p-8 text-center">
-              <p className="text-muted-foreground mb-4">No recommendations yet</p>
+              <p className="text-muted-foreground mb-4">{t('commandCenter.noRecommendationsYet')}</p>
               <Button onClick={handleGenerateRecommendations} className="rounded-xl">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Generate Recommendations
+                {t('commandCenter.generateRecommendations')}
               </Button>
             </div>
           ) : (

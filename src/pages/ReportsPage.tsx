@@ -1,37 +1,40 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileText, Download, Calendar } from "lucide-react";
-
-const reportTypes = [
-  {
-    title: "Pricing Performance",
-    description: "Revenue impact from pricing decisions",
-    formats: ["PDF", "CSV"],
-  },
-  {
-    title: "Competitor Analysis",
-    description: "Price positioning vs. competitors",
-    formats: ["PDF", "CSV"],
-  },
-  {
-    title: "Demand Forecast",
-    description: "Projected demand for next 30 days",
-    formats: ["PDF", "CSV"],
-  },
-  {
-    title: "Inventory Risk",
-    description: "Stock-out and overstock risks",
-    formats: ["PDF"],
-  },
-];
-
-const recentReports = [
-  { name: "Weekly Summary - Jan 15-21", date: "Jan 22, 2024", type: "PDF" },
-  { name: "Competitor Analysis - Q4", date: "Jan 15, 2024", type: "PDF" },
-  { name: "Product Performance Export", date: "Jan 10, 2024", type: "CSV" },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function ReportsPage() {
+  const { t } = useLanguage();
+
+  const reportTypes = [
+    {
+      title: t('reports.pricingPerformance'),
+      description: t('reports.pricingPerformanceDesc'),
+      formats: ["PDF", "CSV"],
+    },
+    {
+      title: t('reports.competitorAnalysis'),
+      description: t('reports.competitorAnalysisDesc'),
+      formats: ["PDF", "CSV"],
+    },
+    {
+      title: t('reports.demandForecast'),
+      description: t('reports.demandForecastDesc'),
+      formats: ["PDF", "CSV"],
+    },
+    {
+      title: t('reports.inventoryRisk'),
+      description: t('reports.inventoryRiskDesc'),
+      formats: ["PDF"],
+    },
+  ];
+
+  const recentReports = [
+    { name: `${t('reports.weeklySummary')} - Jan 15-21`, date: "Jan 22, 2024", type: "PDF" },
+    { name: `${t('reports.competitorAnalysis')} - Q4`, date: "Jan 15, 2024", type: "PDF" },
+    { name: t('reports.productPerformanceExport'), date: "Jan 10, 2024", type: "CSV" },
+  ];
+
   return (
     <AppLayout>
       <div className="min-h-screen p-6 md:p-10 max-w-5xl mx-auto">
@@ -41,10 +44,10 @@ export default function ReportsPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <FileDown className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Reports & Exports</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('reports.title')}</h1>
           </div>
           <p className="text-muted-foreground">
-            Generate executive-ready reports and data exports.
+            {t('reports.subtitle')}
           </p>
         </div>
 
@@ -52,21 +55,21 @@ export default function ReportsPage() {
         <div className="premium-card rounded-2xl p-4 mb-8 flex items-center justify-between animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-muted-foreground" />
-            <span className="text-foreground font-medium">Report Period</span>
+            <span className="text-foreground font-medium">{t('reports.reportPeriod')}</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-lg">Last 7 days</Button>
-            <Button size="sm" className="rounded-lg bg-primary text-primary-foreground">Last 30 days</Button>
-            <Button variant="outline" size="sm" className="rounded-lg">Last 90 days</Button>
-            <Button variant="outline" size="sm" className="rounded-lg">Custom</Button>
+            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.last7Days')}</Button>
+            <Button size="sm" className="rounded-lg bg-primary text-primary-foreground">{t('reports.last30Days')}</Button>
+            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.last90Days')}</Button>
+            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.custom')}</Button>
           </div>
         </div>
 
         {/* Report Types */}
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-          <h2 className="text-lg font-medium text-foreground mb-4">Generate Report</h2>
+          <h2 className="text-lg font-medium text-foreground mb-4">{t('reports.generateReport')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {reportTypes.map((report, index) => (
+            {reportTypes.map((report) => (
               <div key={report.title} className="premium-card rounded-2xl p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -95,9 +98,9 @@ export default function ReportsPage() {
 
         {/* Recent Reports */}
         <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <h2 className="text-lg font-medium text-foreground mb-4">Recent Reports</h2>
+          <h2 className="text-lg font-medium text-foreground mb-4">{t('reports.recentReports')}</h2>
           <div className="premium-card rounded-2xl overflow-hidden">
-            {recentReports.map((report, index) => (
+            {recentReports.map((report) => (
               <div
                 key={report.name}
                 className="flex items-center justify-between p-4 border-b border-border last:border-0 hover:bg-accent/30 transition-colors"

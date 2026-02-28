@@ -12,6 +12,12 @@ import enPriceComparison from './translations/en/priceComparison.json';
 import enAlerts from './translations/en/alerts.json';
 import enDecisions from './translations/en/decisions.json';
 import enNotFound from './translations/en/notFound.json';
+import enLanding from './translations/en/landing.json';
+import enCommandCenter from './translations/en/commandCenter.json';
+import enSetup from './translations/en/setup.json';
+import enReports from './translations/en/reports.json';
+import enOutcomes from './translations/en/outcomes.json';
+import enInsights from './translations/en/insights.json';
 
 import hiCommon from './translations/hi/common.json';
 import hiNav from './translations/hi/nav.json';
@@ -26,6 +32,12 @@ import hiPriceComparison from './translations/hi/priceComparison.json';
 import hiAlerts from './translations/hi/alerts.json';
 import hiDecisions from './translations/hi/decisions.json';
 import hiNotFound from './translations/hi/notFound.json';
+import hiLanding from './translations/hi/landing.json';
+import hiCommandCenter from './translations/hi/commandCenter.json';
+import hiSetup from './translations/hi/setup.json';
+import hiReports from './translations/hi/reports.json';
+import hiOutcomes from './translations/hi/outcomes.json';
+import hiInsights from './translations/hi/insights.json';
 
 type Language = 'en' | 'hi';
 
@@ -43,6 +55,12 @@ interface Translations {
   alerts: typeof enAlerts;
   decisions: typeof enDecisions;
   notFound: typeof enNotFound;
+  landing: typeof enLanding;
+  commandCenter: typeof enCommandCenter;
+  setup: typeof enSetup;
+  reports: typeof enReports;
+  outcomes: typeof enOutcomes;
+  insights: typeof enInsights;
 }
 
 interface LanguageContextType {
@@ -68,6 +86,12 @@ const translations: Record<Language, Translations> = {
     alerts: enAlerts,
     decisions: enDecisions,
     notFound: enNotFound,
+    landing: enLanding,
+    commandCenter: enCommandCenter,
+    setup: enSetup,
+    reports: enReports,
+    outcomes: enOutcomes,
+    insights: enInsights,
   },
   hi: {
     common: hiCommon,
@@ -83,6 +107,12 @@ const translations: Record<Language, Translations> = {
     alerts: hiAlerts,
     decisions: hiDecisions,
     notFound: hiNotFound,
+    landing: hiLanding,
+    commandCenter: hiCommandCenter,
+    setup: hiSetup,
+    reports: hiReports,
+    outcomes: hiOutcomes,
+    insights: hiInsights,
   },
 };
 

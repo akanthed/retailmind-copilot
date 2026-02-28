@@ -5,9 +5,37 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
-import { createPriceService, normalizePriceSummary } from "../shared/price-service.mjs";
-import { parseUserQuery } from "../shared/query-parser.mjs";
-import { rerankWithAI, rerankSimple } from "../shared/ai-reranker.mjs";
+
+// Import shared modules from local shared folder
+let createPriceService, normalizePriceSummary, parseUserQuery, rerankWithAI, rerankSimple;
+try {
+    const priceServiceModule = await import("./shared/price-service.mjs");
+    createPriceService = priceServiceModule.createPriceService;
+    normalizePriceSummary = priceServiceModule.normalizePriceSummary;
+    
+    const queryParserModule = await import("./shared/query-parser.mjs");
+    parseUserQuery = queryParserModule.parseUserQuery;
+    
+    const rerankerModule = await import("./shared/ai-reranker.mjs");
+    rerankWithAI = rerankerModule.rerankWithAI;
+    rerankSimple = rerankerModule.rerankSimple;
+    
+    console.log('[INIT] Shared modules loaded successfully');
+} catch (error) {
+    console.warn('[INIT] Shared modules not found, using fallback implementations', error.message);
+    // Fallback implementations
+    createPriceService = () => ({ fetchCompetitorPrices: async () => ({ results: [], source: 'fallback', parsedQuery: {}, attemptedQueries: [], selectedQuery: '' }) });
+    normalizePriceSummary = (name, results) => ({
+        product: name,
+        min_price: results.length ? Math.min(...results.map(r => r.price)) : 0,
+        avg_price: results.length ? results.reduce((sum, r) => sum + r.price, 0) / results.length : 0,
+        sources: results.length,
+        last_updated: new Date().toISOString()
+    });
+    parseUserQuery = (query) => ({ original: query });
+    rerankWithAI = async (q, p, results) => results;
+    rerankSimple = (p, results) => results;
+}
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);

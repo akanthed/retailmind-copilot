@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function DecisionsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "pending" | "implemented">("all");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function DecisionsPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
+          title: t('errors.error'),
           description: result.error,
           variant: "destructive"
         });
@@ -35,8 +37,8 @@ export default function DecisionsPage() {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load recommendations",
+        title: t('errors.error'),
+        description: t('decisions.failedToLoad'),
         variant: "destructive"
       });
     } finally {
@@ -51,21 +53,21 @@ export default function DecisionsPage() {
       
       if (result.error) {
         toast({
-          title: "Error",
+          title: t('errors.error'),
           description: result.error,
           variant: "destructive"
         });
       } else {
         toast({
-          title: "Success",
-          description: `Generated ${result.data?.generated || 0} new recommendations`,
+          title: t('common.success'),
+          description: t('decisions.generatedCount').replace('{count}', String(result.data?.generated || 0)),
         });
         await loadRecommendations();
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate recommendations",
+        title: t('errors.error'),
+        description: t('decisions.failedToGenerate'),
         variant: "destructive"
       });
     } finally {
@@ -81,7 +83,7 @@ export default function DecisionsPage() {
   // Group by date (simplified - just show "Today" for recent ones)
   const groupedRecommendations = filteredRecommendations.map(rec => ({
     ...rec,
-    date: new Date(rec.createdAt).toDateString() === new Date().toDateString() ? "Today" : "Earlier"
+    date: new Date(rec.createdAt).toDateString() === new Date().toDateString() ? t('decisions.today') : t('decisions.earlier')
   }));
 
   if (loading) {
@@ -90,7 +92,7 @@ export default function DecisionsPage() {
         <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading decisions...</p>
+            <p className="text-muted-foreground">{t('decisions.loadingDecisions')}</p>
           </div>
         </div>
       </AppLayout>
@@ -107,10 +109,10 @@ export default function DecisionsPage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-2xl font-semibold text-foreground">Decisions</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('decisions.title')}</h1>
             </div>
             <p className="text-muted-foreground">
-              Review and manage AI recommendations.
+              {t('decisions.subtitle')}
             </p>
           </div>
           <Button
@@ -121,10 +123,10 @@ export default function DecisionsPage() {
             {generating ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
+                {t('decisions.generating')}
               </>
             ) : (
-              "Generate Recommendations"
+              t('decisions.generateRecommendations')
             )}
           </Button>
         </div>
@@ -137,7 +139,7 @@ export default function DecisionsPage() {
             className="rounded-lg"
             onClick={() => setFilter("all")}
           >
-            All ({recommendations.length})
+            {t('decisions.all')} ({recommendations.length})
           </Button>
           <Button
             variant={filter === "pending" ? "default" : "outline"}
@@ -146,7 +148,7 @@ export default function DecisionsPage() {
             onClick={() => setFilter("pending")}
           >
             <Clock className="w-4 h-4 mr-1.5" />
-            Pending ({recommendations.filter((d) => d.status === "pending").length})
+            {t('decisions.pending')} ({recommendations.filter((d) => d.status === "pending").length})
           </Button>
           <Button
             variant={filter === "implemented" ? "default" : "outline"}
@@ -155,7 +157,7 @@ export default function DecisionsPage() {
             onClick={() => setFilter("implemented")}
           >
             <CheckCircle className="w-4 h-4 mr-1.5" />
-            Done ({recommendations.filter((d) => d.status === "implemented").length})
+            {t('decisions.done')} ({recommendations.filter((d) => d.status === "implemented").length})
           </Button>
         </div>
 
@@ -184,7 +186,7 @@ export default function DecisionsPage() {
 
         {filteredRecommendations.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No decisions match this filter.</p>
+            <p className="text-muted-foreground">{t('decisions.noMatches')}</p>
           </div>
         )}
       </div>
