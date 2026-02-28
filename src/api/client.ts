@@ -44,6 +44,13 @@ export interface PriceComparison {
   priceDiff: number;
   priceDiffPercent: number;
   source: string;
+  matchScore?: number;
+  matchType?: 'exact' | 'approximate' | 'mismatch' | 'missing';
+  extractedCapacity?: string;
+  capacityMatch?: boolean;
+  aiScore?: number;
+  aiRank?: number;
+  aiReason?: string;
 }
 
 export interface PriceHistory {

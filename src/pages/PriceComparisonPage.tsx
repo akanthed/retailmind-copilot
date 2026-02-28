@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { DataFreshness } from "@/components/ui/DataFreshness";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { MatchQualityBadge } from "@/components/ui/MatchQualityBadge";
 
 interface CompetitorPrice {
   platform: string;
@@ -42,6 +42,13 @@ interface CompetitorPrice {
   priceDiff: number;
   priceDiffPercent: number;
   source: string;
+  matchScore?: number;
+  matchType?: 'exact' | 'approximate' | 'mismatch' | 'missing';
+  extractedCapacity?: string;
+  capacityMatch?: boolean;
+  aiScore?: number;
+  aiRank?: number;
+  aiReason?: string;
 }
 
 interface SearchDebugAttempt {
@@ -58,6 +65,14 @@ interface SearchDebugInfo {
   searchQuery?: string;
   attemptedQueries: string[];
   debugAttempts: SearchDebugAttempt[];
+  parsedQuery?: {
+    brand?: string;
+    category?: string;
+    capacity?: string;
+    model?: string;
+  };
+  rerankingApplied?: boolean;
+  strictFilteringEnabled?: boolean;
 }
 
 export default function PriceComparisonPage() {
@@ -411,6 +426,7 @@ export default function PriceComparisonPage() {
                 <TableRow>
                   <TableHead className="w-[100px]">{t('priceComparison.platform')}</TableHead>
                   <TableHead className="min-w-[200px]">{t('priceComparison.productTitle')}</TableHead>
+                  <TableHead className="w-[140px]">Match Quality</TableHead>
                   <TableHead className="text-right w-[90px]">{t('priceComparison.price')}</TableHead>
                   <TableHead className="text-right w-[110px]">{t('priceComparison.vsYourPrice')}</TableHead>
                   <TableHead className="text-center w-[100px]">{t('priceComparison.stock')}</TableHead>
@@ -425,6 +441,9 @@ export default function PriceComparisonPage() {
                     <Badge variant="default" className="h-6 whitespace-nowrap text-xs">{t('priceComparison.yourStore')}</Badge>
                   </TableCell>
                   <TableCell className="font-medium min-w-[200px] text-sm">{product.name}</TableCell>
+                  <TableCell className="w-[140px]">
+                    <Badge variant="default" className="h-6 whitespace-nowrap text-xs">Your Product</Badge>
+                  </TableCell>
                   <TableCell className="text-right font-bold text-primary w-[90px] text-sm">
                     ₹{currentPrice.toLocaleString("en-IN")}
                   </TableCell>
@@ -462,6 +481,15 @@ export default function PriceComparisonPage() {
                     </TableCell>
                     <TableCell className="min-w-[200px]">
                       <p className="max-w-[250px] truncate text-sm" title={comp.title}>{comp.title}</p>
+                    </TableCell>
+                    <TableCell className="w-[140px]">
+                      <MatchQualityBadge
+                        matchType={comp.matchType}
+                        matchScore={comp.matchScore}
+                        aiScore={comp.aiScore}
+                        extractedCapacity={comp.extractedCapacity}
+                        queryCapacity={searchDebug?.parsedQuery?.capacity}
+                      />
                     </TableCell>
                     <TableCell className="text-right font-medium w-[90px] text-sm">
                       ₹{comp.price.toLocaleString("en-IN")}

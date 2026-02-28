@@ -5,7 +5,9 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
-import { createPriceService, normalizePriceSummary } from "./shared/price-service.mjs";
+import { createPriceService, normalizePriceSummary } from "../shared/price-service.mjs";
+import { parseUserQuery } from "../shared/query-parser.mjs";
+import { rerankWithAI, rerankSimple } from "../shared/ai-reranker.mjs";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -16,8 +18,15 @@ const PRICE_COMPARISON_TABLE = "RetailMind-PriceComparison";
 // SerpAPI key from environment variable
 const SERPAPI_KEY = process.env.SERP_API_KEY || process.env.SERPAPI_KEY || "";
 const BEDROCK_QUERY_MODEL = process.env.BEDROCK_QUERY_MODEL || "";
+const ENABLE_AI_RERANKING = process.env.ENABLE_AI_RERANKING !== 'false'; // Default: enabled
+const ENABLE_STRICT_FILTERING = process.env.ENABLE_STRICT_FILTERING !== 'false'; // Default: enabled
 const bedrockClient = BEDROCK_QUERY_MODEL ? new BedrockRuntimeClient({ region: "us-east-1" }) : null;
-const priceService = createPriceService({ serpApiKey: SERPAPI_KEY, logger: console, retries: 2 });
+const priceService = createPriceService({ 
+  serpApiKey: SERPAPI_KEY, 
+  logger: console, 
+  retries: 2,
+  enableStrictFiltering: ENABLE_STRICT_FILTERING
+});
 
 export const handler = async (event) => {
     console.log('Price Comparison API invoked:', JSON.stringify(event, null, 2));
@@ -169,7 +178,9 @@ async function searchCompetitorPrices(productId, searchParams) {
         incomingKeywords: searchParams?.keywords || null,
         hasStoredKeywords: Boolean(product.keywords),
         hasSerpApiKey: Boolean(SERPAPI_KEY),
-        aiQueryExpansionEnabled: Boolean(BEDROCK_QUERY_MODEL)
+        aiQueryExpansionEnabled: Boolean(BEDROCK_QUERY_MODEL),
+        strictFilteringEnabled: ENABLE_STRICT_FILTERING,
+        aiRerankingEnabled: ENABLE_AI_RERANKING
     });
 
     const queryCandidates = await buildSearchQueryCandidates(product, searchParams);
@@ -185,6 +196,7 @@ async function searchCompetitorPrices(productId, searchParams) {
 
     let results = [];
     let selectedQuery = '';
+    let parsedQuery = null;
     const queryAttempts = [];
 
     try {
@@ -194,14 +206,25 @@ async function searchCompetitorPrices(productId, searchParams) {
                 query: candidateQuery
             });
 
-            const searchResult = await priceService.fetchCompetitorPrices(candidateQuery);
+            // Configure filtering options
+            const filterOptions = {
+                strictCapacity: searchParams?.strictCapacity !== false,
+                allowTolerance: searchParams?.allowTolerance || false,
+                minScore: searchParams?.minScore || 60
+            };
+
+            const searchResult = await priceService.fetchCompetitorPrices(candidateQuery, filterOptions);
+            parsedQuery = searchResult.parsedQuery;
+            
             queryAttempts.push({
                 query: candidateQuery,
                 source: searchResult.source,
                 selectedQuery: searchResult.selectedQuery,
                 checklist: searchResult.checklist,
                 attempts: searchResult.attemptedQueries,
-                finalResults: searchResult.results.length
+                finalResults: searchResult.results.length,
+                filteringApplied: searchResult.filteringApplied,
+                parsedQuery: searchResult.parsedQuery
             });
 
             if (searchResult.results.length > 0) {
@@ -216,7 +239,8 @@ async function searchCompetitorPrices(productId, searchParams) {
         console.log('[PRICE-COMPARE] SerpAPI attempt summary', {
             productId,
             selectedQuery: selectedQuery || null,
-            attempts: queryAttempts
+            attempts: queryAttempts,
+            parsedQuery
         });
     } catch (error) {
         console.error('[PRICE-COMPARE] SerpAPI search failed', {
@@ -239,6 +263,45 @@ async function searchCompetitorPrices(productId, searchParams) {
             attempts: queryAttempts
         });
         results = generateSyntheticPrices(product);
+    }
+
+    // Apply AI re-ranking if enabled and we have results
+    let rerankingApplied = false;
+    if (ENABLE_AI_RERANKING && results.length > 1 && parsedQuery) {
+        try {
+            console.log('[PRICE-COMPARE] Applying AI re-ranking', {
+                productId,
+                resultCount: results.length
+            });
+            
+            if (BEDROCK_QUERY_MODEL) {
+                results = await rerankWithAI(
+                    selectedQuery || queryCandidates[0],
+                    parsedQuery,
+                    results,
+                    {
+                        modelId: BEDROCK_QUERY_MODEL,
+                        logger: console
+                    }
+                );
+            } else {
+                // Fallback to simple re-ranking
+                results = rerankSimple(parsedQuery, results);
+            }
+            
+            rerankingApplied = true;
+            
+            console.log('[PRICE-COMPARE] AI re-ranking complete', {
+                productId,
+                finalCount: results.length,
+                topScore: results[0]?.aiScore || 0
+            });
+        } catch (error) {
+            console.error('[PRICE-COMPARE] AI re-ranking failed, using original order', {
+                productId,
+                message: error.message
+            });
+        }
     }
 
     const summary = normalizePriceSummary(product.name, results);
@@ -281,7 +344,9 @@ async function searchCompetitorPrices(productId, searchParams) {
         productId,
         selectedQuery,
         resultsCount: results.length,
-        storedCount
+        storedCount,
+        rerankingApplied,
+        parsedQuery
     });
 
     return {
@@ -299,7 +364,10 @@ async function searchCompetitorPrices(productId, searchParams) {
             results,
             resultsCount: results.length,
             source: results.some((item) => item.source === 'playwright_fallback') ? 'mixed' : 'google_shopping',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            parsedQuery,
+            rerankingApplied,
+            strictFilteringEnabled: ENABLE_STRICT_FILTERING
         }
     };
 }
