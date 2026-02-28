@@ -7,6 +7,8 @@ import {
   Home,
   Package,
   CheckSquare,
+  TrendingUp,
+  Bell,
   HelpCircle,
   ChevronLeft,
 } from "lucide-react";
@@ -37,6 +39,18 @@ export function AppSidebar() {
       icon: CheckSquare,
       href: "/actions",
       description: t('nav.actionsDesc'),
+    },
+    {
+      title: 'Alerts',
+      icon: Bell,
+      href: "/alerts",
+      description: 'Critical notifications',
+    },
+    {
+      title: 'Forecast',
+      icon: TrendingUp,
+      href: "/forecast",
+      description: 'Demand predictions',
     },
     {
       title: t('nav.help'),

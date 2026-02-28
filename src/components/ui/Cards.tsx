@@ -9,6 +9,22 @@ interface AIRecommendationCardProps {
   impact: string;
   confidence: number;
   status?: "pending" | "implemented" | "dismissed";
+  gst?: {
+    current: {
+      priceIncludingGST: number;
+      priceExcludingGST: number;
+      gstAmount: number;
+      gstRate: number;
+      gstPercentage: string;
+    };
+    suggested: {
+      priceIncludingGST: number;
+      priceExcludingGST: number;
+      gstAmount: number;
+      gstRate: number;
+      gstPercentage: string;
+    };
+  };
   onClick?: () => void;
 }
 
@@ -19,6 +35,7 @@ export function AIRecommendationCard({
   impact,
   confidence,
   status = "pending",
+  gst,
   onClick,
 }: AIRecommendationCardProps) {
   const statusLabel = status === "implemented" ? "completed" : "pending";
@@ -65,6 +82,24 @@ export function AIRecommendationCard({
       <p className="text-muted-foreground text-sm leading-relaxed mb-4">
         {reason}
       </p>
+
+      {/* GST Breakdown (if available) */}
+      {gst && (
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg text-xs space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Current (incl. GST {gst.current.gstPercentage}):</span>
+            <span className="font-medium">₹{gst.current.priceIncludingGST.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Suggested (incl. GST {gst.suggested.gstPercentage}):</span>
+            <span className="font-medium text-primary">₹{gst.suggested.priceIncludingGST.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>GST Amount:</span>
+            <span>₹{gst.suggested.gstAmount.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      )}
 
       {/* Impact & Confidence */}
       <div className="flex items-center justify-between pt-4 border-t border-border">

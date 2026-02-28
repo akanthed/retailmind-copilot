@@ -69,6 +69,10 @@ export interface Recommendation {
   currentPrice?: number;
   suggestedAction?: string;
   currentStock?: number;
+  gst?: {
+    current: GSTBreakdown;
+    suggested: GSTBreakdown;
+  };
   impact: string;
   confidence: number;
   status: 'pending' | 'implemented' | 'dismissed';
@@ -90,6 +94,55 @@ export interface Alert {
   acknowledged: boolean;
   createdAt: number;
   acknowledgedAt?: number;
+}
+
+export interface DemandForecast {
+  productId: string;
+  productName: string;
+  sku: string;
+  category: string;
+  currentStock: number;
+  forecastPeriod: string;
+  generatedAt: number;
+  summary: {
+    totalPredictedDemand: number;
+    avgDailyDemand: number;
+    maxDemand: number;
+    minDemand: number;
+    daysUntilStockout: number;
+    stockoutRisk: 'low' | 'medium' | 'high' | 'critical';
+    confidence: number;
+  };
+  dailyForecasts: Array<{
+    date: string;
+    predictedDemand: number;
+    confidence: number;
+    festival: string | null;
+    festivalImpact: number;
+    dayOfWeek: string;
+  }>;
+  peakPeriods: Array<{
+    date: string;
+    festival: string;
+    expectedDemand: number;
+    impact: number;
+  }>;
+  recommendations: Array<{
+    type: string;
+    priority: string;
+    message: string;
+    action: string;
+    impact: string;
+  }>;
+  methodology: string;
+}
+
+export interface GSTBreakdown {
+  priceIncludingGST: number;
+  priceExcludingGST: number;
+  gstAmount: number;
+  gstRate: number;
+  gstPercentage: string;
 }
 
 class ApiClient {
@@ -258,6 +311,22 @@ class ApiClient {
 
   async getOutcomes(): Promise<ApiResponse<any>> {
     return this.request('/analytics/outcomes', { method: 'GET' });
+  }
+
+  // Demand Forecasting
+  async getForecasts(): Promise<ApiResponse<{ forecasts: DemandForecast[]; count: number }>> {
+    return this.request('/forecast', { method: 'GET' });
+  }
+
+  async getForecast(productId: string): Promise<ApiResponse<{ forecast: DemandForecast }>> {
+    return this.request(`/forecast/${productId}`, { method: 'GET' });
+  }
+
+  async generateForecasts(productId?: string): Promise<ApiResponse<{ message: string; forecasts: DemandForecast[] }>> {
+    return this.request('/forecast/generate', {
+      method: 'POST',
+      body: JSON.stringify({ productId }),
+    });
   }
 }
 

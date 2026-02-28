@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard } from "@/components/ui/Cards";
-import { CheckSquare, Clock, CheckCircle, Loader2, TrendingUp } from "lucide-react";
+import { CheckSquare, Clock, CheckCircle, Loader2, TrendingUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { exportRecommendationsToCSV } from "@/lib/reportExport";
 
 export default function ActionsPage() {
   const navigate = useNavigate();
@@ -80,6 +81,17 @@ export default function ActionsPage() {
               {t('actions.subtitle')}
             </p>
           </div>
+          {recommendations.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportRecommendationsToCSV(recommendations)}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -152,6 +164,7 @@ export default function ActionsPage() {
                   impact={action.impact}
                   confidence={action.confidence}
                   status={action.status}
+                  gst={action.gst}
                   onClick={() => navigate(`/decisions/${action.id}`)}
                 />
               </div>

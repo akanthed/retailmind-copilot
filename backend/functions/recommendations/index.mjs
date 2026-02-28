@@ -14,6 +14,54 @@ const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 const RECOMMENDATIONS_TABLE = "RetailMind-Recommendations";
 
+// GST rates by category (India)
+const GST_RATES = {
+    'Electronics': 18,
+    'Fashion': 12,
+    'Clothing': 12,
+    'Food': 5,
+    'Groceries': 5,
+    'Home': 18,
+    'Furniture': 18,
+    'Beauty': 18,
+    'Cosmetics': 18,
+    'Sports': 18,
+    'Books': 0,
+    'Toys': 12,
+    'Jewelry': 3,
+    'default': 18
+};
+
+// Helper: Calculate GST
+function calculateGST(price, category) {
+    const gstRate = GST_RATES[category] || GST_RATES['default'];
+    const gstAmount = Math.round((price * gstRate) / (100 + gstRate));
+    const priceBeforeGST = price - gstAmount;
+    
+    return {
+        priceIncludingGST: price,
+        priceExcludingGST: priceBeforeGST,
+        gstAmount,
+        gstRate,
+        gstPercentage: `${gstRate}%`
+    };
+}
+
+// Helper: Calculate price with GST
+function addGST(priceExcludingGST, category) {
+    const gstRate = GST_RATES[category] || GST_RATES['default'];
+    const gstAmount = Math.round((priceExcludingGST * gstRate) / 100);
+    const priceIncludingGST = priceExcludingGST + gstAmount;
+    
+    return {
+        priceIncludingGST,
+        priceExcludingGST,
+        gstAmount,
+        gstRate,
+        gstPercentage: `${gstRate}%`
+    };
+}
+
 export const handler = async (event) => {
     console.log('Recommendation Engine invoked:', JSON.stringify(event, null, 2));
     
@@ -177,6 +225,10 @@ async function analyzeProduct(product, priceHistory) {
         const priceDiff = product.currentPrice - suggestedPrice;
         const estimatedImpact = Math.round(priceDiff * 0.5 * 4); // Rough estimate: ₹X diff * 0.5 units/week * 4 weeks
         
+        // Calculate GST breakdown
+        const currentGST = calculateGST(product.currentPrice, product.category);
+        const suggestedGST = calculateGST(suggestedPrice, product.category);
+        
         recommendations.push({
             id: randomUUID(),
             productId: product.id,
@@ -186,6 +238,10 @@ async function analyzeProduct(product, priceHistory) {
             reason: `You're ${Math.round((product.currentPrice / avgCompetitorPrice - 1) * 100)}% above market average (₹${Math.round(avgCompetitorPrice)}). Competitor prices range from ₹${minCompetitorPrice} to ₹${maxCompetitorPrice}.`,
             suggestedPrice: suggestedPrice,
             currentPrice: product.currentPrice,
+            gst: {
+                current: currentGST,
+                suggested: suggestedGST
+            },
             impact: `+₹${estimatedImpact}/month estimated`,
             confidence: 87,
             status: 'pending',
@@ -200,6 +256,10 @@ async function analyzeProduct(product, priceHistory) {
         const suggestedPrice = Math.round(product.currentPrice * 1.08 / 10) * 10;
         const estimatedImpact = Math.round((suggestedPrice - product.currentPrice) * 3 * 4);
         
+        // Calculate GST breakdown
+        const currentGST = calculateGST(product.currentPrice, product.category);
+        const suggestedGST = calculateGST(suggestedPrice, product.category);
+        
         recommendations.push({
             id: randomUUID(),
             productId: product.id,
@@ -209,6 +269,10 @@ async function analyzeProduct(product, priceHistory) {
             reason: `All competitors are out of stock. You have a temporary monopoly. Demand is likely high.`,
             suggestedPrice: suggestedPrice,
             currentPrice: product.currentPrice,
+            gst: {
+                current: currentGST,
+                suggested: suggestedGST
+            },
             impact: `+₹${estimatedImpact}/month estimated`,
             confidence: 81,
             status: 'pending',

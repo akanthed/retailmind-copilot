@@ -14,6 +14,7 @@ import PriceComparisonPage from "./pages/PriceComparisonPage";
 import ActionsPage from "./pages/ActionsPage";
 import DecisionDetailPage from "./pages/DecisionDetailPage";
 import AlertsPage from "./pages/AlertsPage";
+import ForecastPage from "./pages/ForecastPage";
 import HelpPage from "./pages/HelpPage";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/actions" element={<ProtectedRoute><ActionsPage /></ProtectedRoute>} />
             <Route path="/decisions/:id" element={<ProtectedRoute><DecisionDetailPage /></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
+            <Route path="/forecast" element={<ProtectedRoute><ForecastPage /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
             
             {/* Legacy routes - redirect to new names */}
