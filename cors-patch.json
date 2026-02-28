@@ -1,7 +1,0 @@
-[
-  {
-    "op": "add",
-    "path": "/responseParameters/method.response.header.Access-Control-Allow-Origin",
-    "value": "'*'"
-  }
-]
