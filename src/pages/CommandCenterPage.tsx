@@ -240,7 +240,6 @@ export default function CommandCenterPage() {
               {recommendations.map((rec, index) => (
                 <div key={rec.id} className="animate-slide-in-right" style={{ animationDelay: `${0.1 * index}s` }}>
                   <AIRecommendationCard
-                    id={rec.id}
                     title={rec.title}
                     product={rec.product}
                     reason={rec.reason}

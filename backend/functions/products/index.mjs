@@ -90,36 +90,27 @@ function validateProductData(data, isUpdate = false) {
     }
   }
   
-  if (!isUpdate || data.cost !== undefined) {
-    const cost = parseFloat(data.cost);
+  if (!isUpdate || data.costPrice !== undefined) {
+    const cost = parseFloat(data.costPrice);
     if (isNaN(cost) || cost < 0) {
-      errors.push('cost must be greater than or equal to 0');
+      errors.push('costPrice must be greater than or equal to 0');
     } else if (!Number.isInteger(cost * 100)) {
-      errors.push('cost must have at most 2 decimal places');
+      errors.push('costPrice must have at most 2 decimal places');
     }
   }
   
-  if (!isUpdate || data.stockQuantity !== undefined) {
-    const stock = parseInt(data.stockQuantity);
+  if (!isUpdate || data.stock !== undefined) {
+    const stock = parseInt(data.stock);
     if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
-      errors.push('stockQuantity must be a non-negative integer');
+      errors.push('stock must be a non-negative integer');
     }
   }
   
   // Validate price >= cost
   const price = parseFloat(data.currentPrice);
-  const cost = parseFloat(data.cost);
+  const cost = parseFloat(data.costPrice);
   if (!isNaN(price) && !isNaN(cost) && price < cost) {
-    errors.push('currentPrice must be greater than or equal to cost');
-  }
-  
-  // Validate competitor URLs
-  if (data.competitorUrls && Array.isArray(data.competitorUrls)) {
-    data.competitorUrls.forEach((comp, idx) => {
-      if (comp.url && !isValidUrl(comp.url)) {
-        errors.push(`competitorUrls[${idx}].url must be a valid HTTP or HTTPS URL`);
-      }
-    });
+    errors.push('currentPrice must be greater than or equal to costPrice');
   }
   
   return { valid: errors.length === 0, errors };
@@ -166,19 +157,23 @@ async function createProduct(data, requestId) {
     return buildResponse(400, { error: 'SKU already exists' });
   }
   
-  const timestamp = new Date().toISOString();
+  const timestamp = Date.now();
   const product = {
     id: randomUUID(),
     name: data.name.trim(),
     sku: data.sku.trim(),
     category: data.category.trim(),
     currentPrice: parseFloat(data.currentPrice),
-    cost: parseFloat(data.cost),
-    stockQuantity: parseInt(data.stockQuantity),
-    competitorUrls: data.competitorUrls || [],
+    costPrice: parseFloat(data.costPrice),
+    stock: parseInt(data.stock),
+    stockDays: Math.floor(parseInt(data.stock) / 10) || 0, // Estimate stock days
+    competitors: data.competitors || [],
+    amazonUrl: data.amazonUrl || '',
+    flipkartUrl: data.flipkartUrl || '',
+    keywords: data.keywords || data.name,
     isActive: true,
     createdAt: timestamp,
-    lastModified: timestamp
+    updatedAt: timestamp
   };
   
   try {
@@ -321,25 +316,45 @@ async function updateProduct(productId, data, requestId) {
       names['#currentPrice'] = 'currentPrice';
       values[':currentPrice'] = parseFloat(data.currentPrice);
     }
-    if (data.cost !== undefined) {
-      updates.push('#cost = :cost');
-      names['#cost'] = 'cost';
-      values[':cost'] = parseFloat(data.cost);
+    if (data.costPrice !== undefined) {
+      updates.push('#costPrice = :costPrice');
+      names['#costPrice'] = 'costPrice';
+      values[':costPrice'] = parseFloat(data.costPrice);
     }
-    if (data.stockQuantity !== undefined) {
-      updates.push('#stockQuantity = :stockQuantity');
-      names['#stockQuantity'] = 'stockQuantity';
-      values[':stockQuantity'] = parseInt(data.stockQuantity);
+    if (data.stock !== undefined) {
+      updates.push('#stock = :stock');
+      names['#stock'] = 'stock';
+      values[':stock'] = parseInt(data.stock);
+      
+      // Update stockDays estimate
+      updates.push('#stockDays = :stockDays');
+      names['#stockDays'] = 'stockDays';
+      values[':stockDays'] = Math.floor(parseInt(data.stock) / 10) || 0;
     }
-    if (data.competitorUrls !== undefined) {
-      updates.push('#competitorUrls = :competitorUrls');
-      names['#competitorUrls'] = 'competitorUrls';
-      values[':competitorUrls'] = data.competitorUrls;
+    if (data.competitors !== undefined) {
+      updates.push('#competitors = :competitors');
+      names['#competitors'] = 'competitors';
+      values[':competitors'] = data.competitors;
+    }
+    if (data.amazonUrl !== undefined) {
+      updates.push('#amazonUrl = :amazonUrl');
+      names['#amazonUrl'] = 'amazonUrl';
+      values[':amazonUrl'] = data.amazonUrl;
+    }
+    if (data.flipkartUrl !== undefined) {
+      updates.push('#flipkartUrl = :flipkartUrl');
+      names['#flipkartUrl'] = 'flipkartUrl';
+      values[':flipkartUrl'] = data.flipkartUrl;
+    }
+    if (data.keywords !== undefined) {
+      updates.push('#keywords = :keywords');
+      names['#keywords'] = 'keywords';
+      values[':keywords'] = data.keywords;
     }
     
-    updates.push('#lastModified = :lastModified');
-    names['#lastModified'] = 'lastModified';
-    values[':lastModified'] = new Date().toISOString();
+    updates.push('#updatedAt = :updatedAt');
+    names['#updatedAt'] = 'updatedAt';
+    values[':updatedAt'] = Date.now();
     
     const result = await dynamodb.send(new UpdateCommand({
       TableName: PRODUCTS_TABLE,
@@ -376,10 +391,10 @@ async function deleteProduct(productId, requestId) {
     await dynamodb.send(new UpdateCommand({
       TableName: PRODUCTS_TABLE,
       Key: { id: productId },
-      UpdateExpression: 'SET isActive = :inactive, lastModified = :lastModified',
+      UpdateExpression: 'SET isActive = :inactive, updatedAt = :updatedAt',
       ExpressionAttributeValues: {
         ':inactive': false,
-        ':lastModified': new Date().toISOString()
+        ':updatedAt': Date.now()
       }
     }));
     

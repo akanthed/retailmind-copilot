@@ -136,12 +136,8 @@ export default function PriceComparisonPage() {
 
       // Load price history
       const historyResult = await apiClient.getProductPrices(productId!);
-      if (historyResult.data) {
-        setPriceHistory(
-          Array.isArray(historyResult.data)
-            ? historyResult.data
-            : (historyResult.data as any).priceHistory || []
-        );
+      if (!historyResult.error && historyResult.data) {
+        setPriceHistory(Array.isArray(historyResult.data) ? historyResult.data : []);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -163,16 +159,16 @@ export default function PriceComparisonPage() {
 
       try {
         const result = await apiClient.searchCompetitorPrices(productId!, {
-          keywords: (product as any).keywords || product.name,
-          amazonUrl: (product as any).amazonUrl,
-          flipkartUrl: (product as any).flipkartUrl,
+          keywords: product.keywords || product.name,
+          amazonUrl: product.amazonUrl,
+          flipkartUrl: product.flipkartUrl,
         });
 
         setSearchDebug({
-          selectedQuery: (result.data as any)?.searchQuery,
-          searchQuery: (result.data as any)?.searchQuery,
-          attemptedQueries: (result.data as any)?.attemptedQueries || [],
-          debugAttempts: (result.data as any)?.debugAttempts || [],
+          selectedQuery: result.data?.searchQuery,
+          searchQuery: result.data?.searchQuery,
+          attemptedQueries: result.data?.attemptedQueries || [],
+          debugAttempts: result.data?.debugAttempts || [],
         });
 
         if (result.error) {

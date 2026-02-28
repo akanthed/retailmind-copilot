@@ -9,6 +9,37 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+    
+    // Retry on 5xx errors or network issues
+    if (response.status >= 500 && retries > 0) {
+      console.warn(`Request failed with ${response.status}, retrying... (${retries} attempts left)`);
+      await sleep(RETRY_DELAY);
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    
+    return response;
+  } catch (error) {
+    // Network error - retry if attempts remaining
+    if (retries > 0) {
+      console.warn(`Network error, retrying... (${retries} attempts left)`, error);
+      await sleep(RETRY_DELAY);
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw error;
+  }
+}
+
 export interface CopilotResponse {
   query: string;
   response: string;
@@ -182,7 +213,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -203,9 +234,20 @@ class ApiClient {
       return { data };
     } catch (error) {
       console.error('API Error:', error);
-      return {
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
-      };
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'An unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { error: errorMessage };
     }
   }
 
@@ -255,7 +297,7 @@ class ApiClient {
 
   async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[] }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/products/${productId}/compare/search`, {
+      const response = await fetchWithRetry(`${this.baseUrl}/products/${productId}/compare/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

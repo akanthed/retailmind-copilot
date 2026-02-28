@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import enCommon from './translations/en/common.json';
 import enNav from './translations/en/nav.json';
-import enOnboarding from './translations/en/onboarding.json';
 import enProducts from './translations/en/products.json';
 import enDashboard from './translations/en/dashboard.json';
 import enActions from './translations/en/actions.json';
@@ -21,7 +20,6 @@ import enInsights from './translations/en/insights.json';
 
 import hiCommon from './translations/hi/common.json';
 import hiNav from './translations/hi/nav.json';
-import hiOnboarding from './translations/hi/onboarding.json';
 import hiProducts from './translations/hi/products.json';
 import hiDashboard from './translations/hi/dashboard.json';
 import hiActions from './translations/hi/actions.json';
@@ -44,7 +42,6 @@ type Language = 'en' | 'hi';
 interface Translations {
   common: typeof enCommon;
   nav: typeof enNav;
-  onboarding: typeof enOnboarding;
   products: typeof enProducts;
   dashboard: typeof enDashboard;
   actions: typeof enActions;
@@ -75,7 +72,6 @@ const translations: Record<Language, Translations> = {
   en: {
     common: enCommon,
     nav: enNav,
-    onboarding: enOnboarding,
     products: enProducts,
     dashboard: enDashboard,
     actions: enActions,
@@ -96,7 +92,6 @@ const translations: Record<Language, Translations> = {
   hi: {
     common: hiCommon,
     nav: hiNav,
-    onboarding: hiOnboarding,
     products: hiProducts,
     dashboard: hiDashboard,
     actions: hiActions,
@@ -119,7 +114,7 @@ const translations: Record<Language, Translations> = {
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('language');
-    return (saved === 'hi' ? 'hi' : 'en') as Language;
+    return (saved === 'en' ? 'en' : 'hi') as Language;
   });
 
   useEffect(() => {

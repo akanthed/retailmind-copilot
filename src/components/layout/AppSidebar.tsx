@@ -10,11 +10,18 @@ import {
   TrendingUp,
   Bell,
   HelpCircle,
+  Settings,
   ChevronLeft,
 } from "lucide-react";
 import { useState } from "react";
 
-const bottomItems: any[] = [];
+const bottomItems = [
+  {
+    title: "settings",
+    icon: Settings,
+    href: "/settings",
+  },
+];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -41,16 +48,16 @@ export function AppSidebar() {
       description: t('nav.actionsDesc'),
     },
     {
-      title: 'Alerts',
+      title: t('nav.alerts'),
       icon: Bell,
       href: "/alerts",
-      description: 'Critical notifications',
+      description: t('nav.alertsDesc'),
     },
     {
-      title: 'Forecast',
+      title: t('nav.forecast'),
       icon: TrendingUp,
       href: "/forecast",
-      description: 'Demand predictions',
+      description: t('nav.forecastDesc'),
     },
     {
       title: t('nav.help'),
@@ -144,8 +151,8 @@ export function AppSidebar() {
                 aria-current={isActive ? "page" : undefined}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {!collapsed && <span>{item.title}</span>}
-                {collapsed && <span className="sr-only">{item.title}</span>}
+                {!collapsed && <span>{t(`nav.${item.title}`)}</span>}
+                {collapsed && <span className="sr-only">{t(`nav.${item.title}`)}</span>}
               </NavLink>
             );
           })}

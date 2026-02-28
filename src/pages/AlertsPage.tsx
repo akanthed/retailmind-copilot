@@ -1,14 +1,15 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AlertCard } from "@/components/ui/Cards";
-import { Bell, Filter, Sparkles } from "lucide-react";
+import { Bell, Filter, Sparkles, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/api/client";
 import { useState, useEffect } from "react";
 import type { Alert } from "@/api/client";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { exportAlertsToCSV, exportAlertsToPDF } from "@/lib/exportUtils";
 
 export default function AlertsPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState({ price_drop: 0, stock_risk: 0, opportunity: 0 });
   const [loading, setLoading] = useState(true);
@@ -55,9 +56,17 @@ export default function AlertsPage() {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
     
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    return 'Just now';
+    if (days > 0) {
+      return language === 'hi' 
+        ? `${days} दिन पहले` 
+        : `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+    if (hours > 0) {
+      return language === 'hi'
+        ? `${hours} घंटे पहले`
+        : `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    }
+    return language === 'hi' ? 'अभी' : 'Just now';
   };
 
   return (
@@ -76,14 +85,36 @@ export default function AlertsPage() {
               {t('alerts.subtitle')}
             </p>
           </div>
-          <Button 
-            onClick={handleGenerateAlerts}
-            disabled={generating}
-            className="rounded-xl bg-gradient-to-r from-primary to-primary/80"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {generating ? t('alerts.generating') : t('alerts.generateAlerts')}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportAlertsToCSV(alerts)}
+              disabled={alerts.length === 0}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportAlertsToPDF(alerts)}
+              disabled={alerts.length === 0}
+              className="gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              PDF
+            </Button>
+            <Button 
+              onClick={handleGenerateAlerts}
+              disabled={generating}
+              className="rounded-xl bg-gradient-to-r from-primary to-primary/80"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {generating ? t('alerts.generating') : t('alerts.generateAlerts')}
+            </Button>
+          </div>
         </div>
 
         {/* Alert Stats */}

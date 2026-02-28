@@ -536,9 +536,9 @@ export default function ProductsPage() {
               costPrice: String(editingProduct.costPrice),
               category: editingProduct.category,
               sku: editingProduct.sku,
-              amazonUrl: (editingProduct as any).amazonUrl,
-              flipkartUrl: (editingProduct as any).flipkartUrl,
-              keywords: (editingProduct as any).keywords,
+              amazonUrl: editingProduct.amazonUrl,
+              flipkartUrl: editingProduct.flipkartUrl,
+              keywords: editingProduct.keywords,
             } : undefined}
             onSubmit={handleSaveProduct}
             onCancel={() => setShowAddDialog(false)}

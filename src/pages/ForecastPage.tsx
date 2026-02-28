@@ -281,10 +281,10 @@ export default function ForecastPage() {
                         stroke="hsl(var(--primary))" 
                         strokeWidth={3}
                         dot={(props: any) => {
-                          const { cx, cy, payload } = props;
+                          const { cx, cy, payload, index } = props;
                           if (payload.festival) {
                             return (
-                              <g>
+                              <g key={`festival-dot-${index}`}>
                                 <circle cx={cx} cy={cy} r={6} fill="hsl(var(--destructive))" stroke="#fff" strokeWidth={2} />
                                 <text x={cx} y={cy - 12} textAnchor="middle" fontSize="10" fill="hsl(var(--destructive))" fontWeight="600">
                                   🎉
@@ -292,7 +292,7 @@ export default function ForecastPage() {
                               </g>
                             );
                           }
-                          return <circle cx={cx} cy={cy} r={3} fill="hsl(var(--primary))" />;
+                          return <circle key={`normal-dot-${index}`} cx={cx} cy={cy} r={3} fill="hsl(var(--primary))" />;
                         }}
                         activeDot={{ r: 6 }}
                       />

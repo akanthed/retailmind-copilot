@@ -9,7 +9,7 @@ import { apiClient, Recommendation } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { exportRecommendationsToCSV } from "@/lib/reportExport";
+import { exportRecommendationsToCSV, exportRecommendationsToPDF } from "@/lib/exportUtils";
 
 export default function ActionsPage() {
   const navigate = useNavigate();

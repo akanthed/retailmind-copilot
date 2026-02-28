@@ -6,8 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import Landing from "./pages/Landing";
-import OnboardingWizard from "./pages/OnboardingWizard";
+import OnboardingPage from "./pages/OnboardingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProductsPage from "./pages/ProductsPage";
 import PriceComparisonPage from "./pages/PriceComparisonPage";
@@ -16,25 +17,16 @@ import DecisionDetailPage from "./pages/DecisionDetailPage";
 import AlertsPage from "./pages/AlertsPage";
 import ForecastPage from "./pages/ForecastPage";
 import HelpPage from "./pages/HelpPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-// Protected route wrapper
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding");
-  
-  if (!hasCompletedOnboarding) {
-    return <Navigate to="/onboarding" replace />;
-  }
-  
-  return <>{children}</>;
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <TooltipProvider>
+        <OfflineBanner />
         <Toaster />
         <Sonner />
         <Analytics />
@@ -42,15 +34,16 @@ const App = () => (
           <KeyboardShortcuts />
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/onboarding" element={<OnboardingWizard />} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
-            <Route path="/products/:productId/compare" element={<ProtectedRoute><PriceComparisonPage /></ProtectedRoute>} />
-            <Route path="/actions" element={<ProtectedRoute><ActionsPage /></ProtectedRoute>} />
-            <Route path="/decisions/:id" element={<ProtectedRoute><DecisionDetailPage /></ProtectedRoute>} />
-            <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
-            <Route path="/forecast" element={<ProtectedRoute><ForecastPage /></ProtectedRoute>} />
-            <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:productId/compare" element={<PriceComparisonPage />} />
+            <Route path="/actions" element={<ActionsPage />} />
+            <Route path="/decisions/:id" element={<DecisionDetailPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/forecast" element={<ForecastPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
             
             {/* Legacy routes - redirect to new names */}
             <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />

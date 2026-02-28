@@ -2,9 +2,15 @@
   "dashboard": "Dashboard",
   "products": "My Products",
   "actions": "To-Do List",
+  "alerts": "Alerts",
+  "forecast": "Forecast",
+  "settings": "Settings",
   "help": "Help",
   "dashboardDesc": "Your daily overview",
   "productsDesc": "Manage inventory",
   "actionsDesc": "AI recommendations",
+  "alertsDesc": "Critical notifications",
+  "forecastDesc": "Demand predictions",
+  "settingsDesc": "Settings",
   "helpDesc": "Get support"
 }

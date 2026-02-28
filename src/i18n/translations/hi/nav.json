@@ -2,9 +2,15 @@
   "dashboard": "डैशबोर्ड",
   "products": "मेरे उत्पाद",
   "actions": "कार्य सूची",
+  "alerts": "अलर्ट",
+  "forecast": "पूर्वानुमान",
+  "settings": "सेटिंग्स",
   "help": "सहायता",
   "dashboardDesc": "आपका दैनिक अवलोकन",
   "productsDesc": "इन्वेंटरी प्रबंधित करें",
   "actionsDesc": "AI सुझाव",
+  "alertsDesc": "महत्वपूर्ण सूचनाएं",
+  "forecastDesc": "मांग पूर्वानुमान",
+  "settingsDesc": "सेटिंग्स",
   "helpDesc": "सहायता प्राप्त करें"
 }

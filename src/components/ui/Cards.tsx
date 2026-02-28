@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Sparkles, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
 import { ConfidenceIndicator } from "./ConfidenceIndicator";
 
@@ -130,24 +131,26 @@ export function AlertCard({
   suggestion,
   onClick,
 }: AlertCardProps) {
+  const { t } = useLanguage();
+  
   const typeConfig = {
     price_drop: {
       icon: TrendingUp,
       color: "text-destructive",
       bg: "bg-destructive/10",
-      label: "Price Change",
+      label: t('alerts.priceChanges'),
     },
     stock_risk: {
       icon: AlertTriangle,
       color: "text-warning",
       bg: "bg-warning/10",
-      label: "Stock Risk",
+      label: t('alerts.stockRisks'),
     },
     opportunity: {
       icon: Sparkles,
       color: "text-success",
       bg: "bg-success/10",
-      label: "Opportunity",
+      label: t('alerts.opportunities'),
     },
   };
 

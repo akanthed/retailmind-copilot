@@ -30,5 +30,7 @@
   "outOfStock": "Out of Stock",
   "products_count": "products",
   "totalInventoryValue": "Total value of all your stock",
-  "totalProductsTracking": "Total products you're tracking"
+  "totalProductsTracking": "Total products you're tracking",
+  "revenueImpact": "Revenue Impact",
+  "thirtyDayTrend": "30-Day Trend"
 }

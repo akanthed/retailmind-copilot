@@ -186,10 +186,10 @@ async function analyzeProduct(product, priceHistory) {
     
     // Alert 1: Competitor price drop (>10%)
     Object.values(latestPrices).forEach(competitorPrice => {
-        if (competitorPrice.inStock) {
+        if (competitorPrice.inStock && competitorPrice.price > 0) {
             const priceDiff = ((product.currentPrice - competitorPrice.price) / competitorPrice.price) * 100;
             
-            if (priceDiff > 10) {
+            if (priceDiff > 10 && isFinite(priceDiff)) {
                 alerts.push({
                     id: randomUUID(),
                     type: 'price_drop',
@@ -213,7 +213,7 @@ async function analyzeProduct(product, priceHistory) {
     });
     
     // Alert 2: Stock risk (< 5 days)
-    if (product.stockDays < 5) {
+    if (product.stockDays > 0 && product.stockDays < 5) {
         alerts.push({
             id: randomUUID(),
             type: 'stock_risk',
@@ -256,9 +256,9 @@ async function analyzeProduct(product, priceHistory) {
     }
     
     // Alert 4: Demand spike (based on stock velocity)
-    if (product.stockDays < 10 && product.stock > 20) {
+    if (product.stockDays > 0 && product.stockDays < 10 && product.stock > 20) {
         const dailySales = product.stock / product.stockDays;
-        if (dailySales > 5) {
+        if (dailySales > 5 && isFinite(dailySales)) {
             alerts.push({
                 id: randomUUID(),
                 type: 'opportunity',

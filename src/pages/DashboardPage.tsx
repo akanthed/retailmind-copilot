@@ -296,7 +296,7 @@ export default function DashboardPage() {
         {/* Revenue Impact Section */}
         <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Revenue Impact</h2>
+            <h2 className="text-xl font-semibold">{t('dashboard.revenueImpact')}</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -321,7 +321,7 @@ export default function DashboardPage() {
           )}
           
           <div className="mt-4 premium-card rounded-2xl p-6">
-            <h3 className="font-medium mb-4">30-Day Trend</h3>
+            <h3 className="font-medium mb-4">{t('dashboard.thirtyDayTrend')}</h3>
             <RevenueTrendChart
               data={revenueHistory}
               loading={loadingRevenue}

@@ -30,5 +30,7 @@
   "outOfStock": "स्टॉक से बाहर",
   "products_count": "उत्पाद",
   "totalInventoryValue": "आपके सभी स्टॉक का कुल मूल्य",
-  "totalProductsTracking": "कुल उत्पाद जिन्हें आप ट्रैक कर रहे हैं"
+  "totalProductsTracking": "कुल उत्पाद जिन्हें आप ट्रैक कर रहे हैं",
+  "revenueImpact": "राजस्व प्रभाव",
+  "thirtyDayTrend": "30-दिन का रुझान"
 }
