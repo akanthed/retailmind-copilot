@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Samsung Galaxy Buds2 Pro",
+    "category": "Electronics",
+    "sku": "SGBUDS2PRO-BLK",
+    "currentPrice": 11999,
+    "competitorPrices": {
+      "amazon": 11499,
+      "flipkart": 11999
+    },
+    "stockLevel": 45,
+    "reorderPoint": 20,
+    "description": "Premium wireless earbuds with active noise cancellation",
+    "insights": [
+      "Amazon pricing ₹500 lower - consider price match",
+      "High demand during festive season",
+      "Competitor stock levels indicate strong sales"
+    ],
+    "alerts": [
+      "Price drop alert: Amazon reduced by 8%",
+      "Stock trending down - reorder recommended"
+    ]
+  },
+  {
+    "name": "Boat Airdopes 141",
+    "category": "Electronics",
+    "sku": "BOAT-AD141-WHT",
+    "currentPrice": 1299,
+    "competitorPrices": {
+      "amazon": 1199,
+      "flipkart": 1349
+    },
+    "stockLevel": 120,
+    "reorderPoint": 50,
+    "description": "Budget wireless earbuds with 42H playback",
+    "insights": [
+      "You're priced competitively between Amazon and Flipkart",
+      "High volume product - maintain stock levels",
+      "Price elasticity suggests room for ₹50-100 increase"
+    ],
+    "alerts": [
+      "Stock level healthy",
+      "Amazon flash sale detected - temporary price drop"
+    ]
+  },
+  {
+    "name": "Prestige Svachh Hard Anodised Pressure Cooker 5L",
+    "category": "Home & Kitchen",
+    "sku": "PRES-PC5L-HA",
+    "currentPrice": 2499,
+    "competitorPrices": {
+      "amazon": 2299,
+      "flipkart": 2599
+    },
+    "stockLevel": 28,
+    "reorderPoint": 30,
+    "description": "5 Litre hard anodised pressure cooker with outer lid",
+    "insights": [
+      "Approaching reorder point - place order soon",
+      "Seasonal demand spike expected in wedding season",
+      "Amazon aggressive pricing - monitor closely"
+    ],
+    "alerts": [
+      "Stock below reorder point - order now",
+      "Competitor price war detected",
+      "Demand forecast: 40% increase next month"
+    ]
+  },
+  {
+    "name": "Himalaya Herbals Face Wash Combo Pack",
+    "category": "Beauty & Personal Care",
+    "sku": "HIM-FW-COMBO3",
+    "currentPrice": 399,
+    "competitorPrices": {
+      "amazon": 379,
+      "flipkart": 425
+    },
+    "stockLevel": 85,
+    "reorderPoint": 40,
+    "description": "Pack of 3 face wash tubes (100ml each)",
+    "insights": [
+      "Fast-moving product with consistent demand",
+      "Your pricing optimal - between competitors",
+      "Bundle deals performing well in this category"
+    ],
+    "alerts": [
+      "Stock sufficient for 2 weeks",
+      "Amazon running limited-time offer"
+    ]
+  },
+  {
+    "name": "Puma Unisex Running Shoes",
+    "category": "Fashion",
+    "sku": "PUMA-RUN-BLK42",
+    "currentPrice": 2799,
+    "competitorPrices": {
+      "amazon": 2599,
+      "flipkart": 2899
+    },
+    "stockLevel": 15,
+    "reorderPoint": 25,
+    "description": "Black running shoes, Size 8 UK",
+    "insights": [
+      "Low stock - critical reorder needed",
+      "Amazon undercutting by ₹200 - losing sales",
+      "Size 8 high demand - consider bulk order"
+    ],
+    "alerts": [
+      "CRITICAL: Stock critically low",
+      "Price gap with Amazon causing sales loss",
+      "Competitor out-of-stock on Flipkart - opportunity"
+    ]
+  }
+]

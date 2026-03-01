@@ -18,6 +18,7 @@ export default function ActionsPage() {
   const [filter, setFilter] = useState<"all" | "pending" | "implemented">("pending");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadRecommendations();
@@ -46,6 +47,37 @@ export default function ActionsPage() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGenerateRecommendations() {
+    setGenerating(true);
+    try {
+      const result = await apiClient.generateRecommendations();
+      
+      if (result.error) {
+        toast({
+          title: "Generation Failed",
+          description: result.error,
+          variant: "destructive"
+        });
+      } else if (result.data) {
+        toast({
+          title: "TO-DOs Generated",
+          description: `Generated ${result.data.recommendationsGenerated} new recommendations`,
+        });
+        // Reload recommendations
+        await loadRecommendations();
+      }
+    } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
+      toast({
+        title: friendlyError.title,
+        description: friendlyError.description,
+        variant: "destructive"
+      });
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -81,17 +113,38 @@ export default function ActionsPage() {
               {t('actions.subtitle')}
             </p>
           </div>
-          {recommendations.length > 0 && (
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportRecommendationsToCSV(recommendations)}
+              onClick={handleGenerateRecommendations}
+              disabled={generating}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
-              {t('actions.exportCSV')}
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="h-4 w-4" />
+                  Generate TO-DOs
+                </>
+              )}
             </Button>
-          )}
+            {recommendations.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportRecommendationsToCSV(recommendations)}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {t('actions.exportCSV')}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -148,11 +201,35 @@ export default function ActionsPage() {
               <h3 className="text-lg font-medium text-foreground mb-2">
                 {filter === "pending" ? t('actions.noActions') : t('actions.noRecommendations')}
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 {filter === "pending" 
                   ? t('actions.noActionsDesc')
                   : t('actions.noRecommendationsDesc')}
               </p>
+              {filter === "pending" && recommendations.length === 0 && (
+                <div className="mt-4">
+                  <Button
+                    onClick={handleGenerateRecommendations}
+                    disabled={generating}
+                    className="gap-2"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-4 w-4" />
+                        Generate TO-DOs Now
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Note: TO-DOs require competitor price data. Search prices on product pages first.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             filteredRecommendations.map((action, index) => (

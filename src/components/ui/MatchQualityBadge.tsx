@@ -19,26 +19,28 @@ export function MatchQualityBadge({
   // Determine which score to use
   const score = aiScore ?? matchScore ?? 0;
   
-  // Determine badge variant and icon
+  // Determine badge variant and icon based on score first, then matchType
   let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
   let icon = null;
   let label = '';
   
-  if (matchType === 'exact' || score >= 90) {
+  // Prioritize score over matchType for better accuracy
+  if (score >= 85 || matchType === 'exact') {
     variant = 'default';
     icon = <CheckCircle2 className="w-3 h-3" />;
     label = 'Exact Match';
-  } else if (matchType === 'approximate' || score >= 70) {
+  } else if (score >= 70 || matchType === 'approximate') {
     variant = 'secondary';
+    icon = <CheckCircle2 className="w-3 h-3" />;
+    label = 'Good Match';
+  } else if (score >= 50) {
+    variant = 'outline';
     icon = <AlertCircle className="w-3 h-3" />;
     label = 'Approx Match';
-  } else if (matchType === 'mismatch' || score < 50) {
+  } else {
     variant = 'destructive';
     icon = <XCircle className="w-3 h-3" />;
     label = 'Mismatch';
-  } else {
-    variant = 'outline';
-    label = `${score}% Match`;
   }
   
   return (

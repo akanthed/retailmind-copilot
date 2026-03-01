@@ -814,14 +814,23 @@ export function filterResultsStrict(parsedQuery, results, options = {}) {
       }
     });
     
-    // Determine overall match type
+    // Determine overall match type based on match score and attribute matching
     let matchType = 'exact';
-    if (Object.values(attributeMatches).includes('mismatch')) {
-      matchType = 'mismatch';
-    } else if (Object.values(attributeMatches).includes('approximate')) {
+    
+    // If match score is very high (>85), consider it a good match regardless of minor attribute differences
+    if (matchScore >= 85) {
+      matchType = 'exact';
+    } else if (matchScore >= 70) {
+      // Good match - check if there are any critical mismatches
+      if (Object.values(attributeMatches).includes('mismatch')) {
+        matchType = 'approximate';
+      } else {
+        matchType = 'exact';
+      }
+    } else if (matchScore >= 50) {
       matchType = 'approximate';
-    } else if (Object.values(attributeMatches).includes('missing')) {
-      matchType = 'missing';
+    } else {
+      matchType = 'mismatch';
     }
     
     // Legacy capacity fields for backward compatibility

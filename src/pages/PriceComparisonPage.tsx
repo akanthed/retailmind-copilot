@@ -133,23 +133,6 @@ export default function PriceComparisonPage() {
           return platform.includes('amazon') || platform.includes('flipkart');
         });
         setCompetitorPrices(filteredComparisons);
-        
-        // Auto-search if no prices found OR explicit URLs exist but current rows are stale/non-direct
-        const now = Date.now();
-        const fiveMinutes = 5 * 60 * 1000;
-        const hasExplicitUrl = Boolean(productResult.data?.amazonUrl || productResult.data?.flipkartUrl);
-        const hasDirectRows = filteredComparisons.some((comp: CompetitorPrice) => comp.source === 'direct_url');
-        const shouldAutoRefresh =
-          filteredComparisons.length === 0 ||
-          (hasExplicitUrl && !hasDirectRows);
-
-        if (shouldAutoRefresh && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
-          // Auto-search in background after 1 second
-          setAutoSearching(true);
-          setTimeout(() => {
-            handleSearchPrices(true);
-          }, 1000);
-        }
       }
 
       // Load price history
@@ -443,32 +426,34 @@ export default function PriceComparisonPage() {
             <div className="p-12 text-center">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                {autoSearching ? "Searching for prices..." : "No competitor prices found"}
+                No competitor prices found
               </h3>
               <p className="text-muted-foreground mb-6">
-                {autoSearching 
-                  ? "AI is analyzing Amazon, Flipkart, and other platforms..."
-                  : "We couldn't find competitor prices for this product."
-                }
+                Click the button below to search for prices on Amazon and Flipkart
               </p>
-              {autoSearching && (
-                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-              )}
-              {!autoSearching && (
-                <div className="flex flex-col gap-3 items-center">
-                  <Button 
-                    onClick={() => handleSearchPrices(false)}
-                    disabled={searching}
-                    className="gap-2"
-                  >
-                    <Search className="w-4 h-4" />
-                    {searching ? "Searching..." : "Search Now"}
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Make sure Amazon/Flipkart product URLs are added in product details.
-                  </p>
-                </div>
-              )}
+              <div className="flex flex-col gap-3 items-center">
+                <Button 
+                  onClick={() => handleSearchPrices(false)}
+                  disabled={searching}
+                  className="gap-2"
+                  size="lg"
+                >
+                  {searching ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Search Competitor Prices
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Add Amazon/Flipkart product URLs in product details for better results
+                </p>
+              </div>
             </div>
           ) : (
             <Table>

@@ -78,7 +78,8 @@ export default function DecisionDetailPage() {
 
   const currentPrice = recommendation?.currentPrice || 0;
   const suggestedPrice = recommendation?.suggestedPrice || currentPrice;
-  const percentageChange = currentPrice
+  const hasPriceRecommendation = recommendation?.type === 'price_decrease' || recommendation?.type === 'price_increase';
+  const percentageChange = currentPrice && hasPriceRecommendation
     ? (((suggestedPrice - currentPrice) / currentPrice) * 100).toFixed(1)
     : "0.0";
 
@@ -146,32 +147,48 @@ export default function DecisionDetailPage() {
             </div>
           </div>
 
-          {/* Price Change Visual */}
-          <div className="flex items-center gap-6 p-5 bg-secondary/50 rounded-xl mb-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">{t('decisions.current')}</p>
-              <p className="text-2xl font-semibold text-foreground">₹{currentPrice.toLocaleString("en-IN")}</p>
+          {/* Price Change Visual - Only show for price recommendations */}
+          {hasPriceRecommendation && (
+            <div className="flex items-center gap-6 p-5 bg-secondary/50 rounded-xl mb-6">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">{t('decisions.current')}</p>
+                <p className="text-2xl font-semibold text-foreground">₹{currentPrice.toLocaleString("en-IN")}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {Number(percentageChange) > 0 ? (
+                  <TrendingUp className="w-5 h-5 text-destructive" />
+                ) : (
+                  <TrendingDown className="w-5 h-5 text-success" />
+                )}
+                <span className={Number(percentageChange) > 0 ? "text-destructive font-medium" : "text-success font-medium"}>
+                  {Number(percentageChange) > 0 ? "+" : ""}
+                  {percentageChange}%
+                </span>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">{t('decisions.recommended')}</p>
+                <p className="text-2xl font-semibold text-primary">₹{suggestedPrice.toLocaleString("en-IN")}</p>
+              </div>
+              <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-success/10 text-success rounded-full text-sm font-medium">
+                <div className="w-2 h-2 rounded-full bg-success" />
+                {recommendation.confidence}% {t('decisions.confidence')}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {Number(percentageChange) > 0 ? (
-                <TrendingUp className="w-5 h-5 text-destructive" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-success" />
-              )}
-              <span className={Number(percentageChange) > 0 ? "text-destructive font-medium" : "text-success font-medium"}>
-                {Number(percentageChange) > 0 ? "+" : ""}
-                {percentageChange}%
-              </span>
+          )}
+
+          {/* Stock/Inventory Info - Show for restock/promotion types */}
+          {!hasPriceRecommendation && recommendation.currentStock !== undefined && (
+            <div className="flex items-center gap-6 p-5 bg-secondary/50 rounded-xl mb-6">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Current Stock</p>
+                <p className="text-2xl font-semibold text-foreground">{recommendation.currentStock} units</p>
+              </div>
+              <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-success/10 text-success rounded-full text-sm font-medium">
+                <div className="w-2 h-2 rounded-full bg-success" />
+                {recommendation.confidence}% {t('decisions.confidence')}
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">{t('decisions.recommended')}</p>
-              <p className="text-2xl font-semibold text-primary">₹{suggestedPrice.toLocaleString("en-IN")}</p>
-            </div>
-            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-success/10 text-success rounded-full text-sm font-medium">
-              <div className="w-2 h-2 rounded-full bg-success" />
-              {recommendation.confidence}% {t('decisions.confidence')}
-            </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">

@@ -180,7 +180,14 @@ export default function InsightsPage() {
 
         {/* Competitor Intelligence */}
         <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-          <h2 className="text-lg font-medium text-foreground mb-4">{t('insights.competitorPriceIntelligence')}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-medium text-foreground">{t('insights.competitorPriceIntelligence')}</h2>
+              <p className="text-sm text-muted-foreground">
+                Average pricing across all tracked products
+              </p>
+            </div>
+          </div>
           <div className="premium-card rounded-2xl overflow-hidden">
             <div className="grid grid-cols-4 gap-4 p-4 border-b border-border text-sm font-medium text-muted-foreground">
               <span>{t('insights.competitor')}</span>
@@ -189,10 +196,23 @@ export default function InsightsPage() {
               <span>{t('insights.lastUpdate')}</span>
             </div>
             {competitorStats.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                {products.length === 0
-                  ? t('insights.noProducts')
-                  : t('insights.noCompetitorData')}
+              <div className="p-8 text-center">
+                <div className="text-muted-foreground mb-4">
+                  {products.length === 0
+                    ? t('insights.noProducts')
+                    : "No competitor price data available yet"}
+                </div>
+                {products.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    <p className="mb-2">To see competitor intelligence:</p>
+                    <ol className="text-left max-w-md mx-auto space-y-1">
+                      <li>1. Go to any product page</li>
+                      <li>2. Click "Compare Prices" tab</li>
+                      <li>3. Click "Search Competitor Prices" button</li>
+                      <li>4. Return here to see aggregated insights</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             ) : (
               competitorStats.map((comp) => (
@@ -204,7 +224,9 @@ export default function InsightsPage() {
                   <span className={String(comp.avgPriceDiff).startsWith("-") ? "text-success" : "text-destructive"}>
                     {comp.avgPriceDiff}
                   </span>
-                  <span className="text-muted-foreground">{comp.products}</span>
+                  <span className="text-muted-foreground">
+                    {comp.products} of {products.length} products
+                  </span>
                   <span className="text-muted-foreground">
                     {comp.lastUpdate ? new Date(comp.lastUpdate).toLocaleString('en-US', {
                       month: 'short',
@@ -217,6 +239,18 @@ export default function InsightsPage() {
               ))
             )}
           </div>
+          {competitorStats.length > 0 && (
+            <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">💡 Understanding this data:</span> Each row shows the average price difference 
+                across all products where competitor prices were found. For example, if Amazon shows "3 of 10 products", 
+                it means 3 products have Amazon prices tracked, and the average difference is calculated from those 3 products only.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Visit individual product pages → Compare Prices tab to see detailed competitor prices for each product.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Demand Forecast */}
