@@ -76,10 +76,25 @@ export default function OnboardingPage() {
         description: t('onboarding.sampleDataSuccess').replace('{count}', successCount.toString()),
       });
 
-      // Generate forecasts and recommendations
-      await apiClient.generateForecasts();
-      await apiClient.generateRecommendations();
-      await apiClient.generateAlerts();
+      // Generate forecasts and recommendations - wrap each in try-catch
+      // so one failure doesn't block the whole flow
+      try {
+        await apiClient.generateForecasts();
+      } catch (e) {
+        console.warn('Forecast generation skipped:', e);
+      }
+      try {
+        await apiClient.generateRecommendations();
+      } catch (e) {
+        console.warn('Recommendation generation skipped:', e);
+      }
+      try {
+        await apiClient.generateAlerts();
+      } catch (e) {
+        console.warn('Alert generation skipped:', e);
+      }
+
+      localStorage.setItem("onboarding_completed", "true");
 
       setTimeout(() => {
         navigate("/dashboard");

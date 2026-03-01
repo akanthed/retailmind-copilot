@@ -16,5 +16,9 @@
   "next7Days": "Next 7 days",
   "loadingInsights": "Loading insights...",
   "confidenceNote": "All forecasts include 95% confidence intervals. Data refreshes every 4 hours.",
-  "justNow": "Just now"
+  "justNow": "Just now",
+  "noProducts": "No products added yet. Add products to see insights.",
+  "noCompetitorData": "No competitor data available yet. Run price comparisons to see insights.",
+  "demandIncreasing": "Demand increasing",
+  "demandDecreasing": "Demand decreasing"
 }

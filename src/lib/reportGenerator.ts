@@ -191,18 +191,22 @@ function downloadFile(blob: Blob, filename: string) {
 export async function getPricingPerformanceData(period: string) {
   try {
     const response = await apiClient.getProducts();
-    if (!response.success || !response.data) {
+    if (!response.data) {
       return getFallbackPricingData();
     }
 
-    const products = response.data.products;
-    
-    return products.map(product => ({
+    const respData = response.data as any;
+    const products = respData.products || (Array.isArray(respData) ? respData : []);
+    if (products.length === 0) return getFallbackPricingData();
+
+    return products.map((product: any) => ({
       product: product.name,
       sku: product.sku,
       currentPrice: product.currentPrice,
       costPrice: product.costPrice,
-      margin: ((product.currentPrice - product.costPrice) / product.currentPrice * 100).toFixed(1) + '%',
+      margin: product.currentPrice && product.costPrice
+        ? ((product.currentPrice - product.costPrice) / product.currentPrice * 100).toFixed(1) + '%'
+        : '0%',
       stock: product.stock,
       category: product.category,
     }));
@@ -221,19 +225,22 @@ function getFallbackPricingData() {
 export async function getCompetitorAnalysisData(period: string) {
   try {
     const response = await apiClient.getProducts();
-    if (!response.success || !response.data) {
+    if (!response.data) {
       return getFallbackCompetitorData();
     }
 
-    const products = response.data.products;
+    const respData = response.data as any;
+    const products = respData.products || (Array.isArray(respData) ? respData : []);
+    if (products.length === 0) return getFallbackCompetitorData();
     const analysisData = [];
 
     for (const product of products.slice(0, 10)) {
       try {
         const priceResponse = await apiClient.getProductPriceComparison(product.id);
-        
-        if (priceResponse.success && priceResponse.data?.comparisons?.length > 0) {
-          const comparisons = priceResponse.data.comparisons;
+        const priceData = priceResponse.data as any;
+
+        if (priceData?.comparisons?.length > 0) {
+          const comparisons = priceData.comparisons;
           const avgCompetitorPrice = comparisons.reduce((sum, c) => sum + c.price, 0) / comparisons.length;
           const minCompetitorPrice = Math.min(...comparisons.map(c => c.price));
           const maxCompetitorPrice = Math.max(...comparisons.map(c => c.price));
@@ -279,20 +286,21 @@ function getFallbackCompetitorData() {
 export async function getDemandForecastData(period: string) {
   try {
     const response = await apiClient.getForecasts();
-    if (!response.success || !response.data?.forecasts) {
+    const respData = response.data as any;
+    if (!respData?.forecasts) {
       return getFallbackForecastData();
     }
 
-    const forecasts = response.data.forecasts;
+    const forecasts = respData.forecasts;
     
-    return forecasts.map(forecast => ({
+    return forecasts.map((forecast: any) => ({
       product: forecast.productName,
       sku: forecast.sku,
       currentStock: forecast.currentStock,
-      avgDailyDemand: forecast.summary.avgDailyDemand.toFixed(1),
-      predictedDemand: forecast.summary.totalPredictedDemand,
-      confidence: (forecast.confidence * 100).toFixed(0) + '%',
-      trend: forecast.summary.totalPredictedDemand > forecast.currentStock ? 'Growing' : 'Stable',
+      avgDailyDemand: forecast.summary?.avgDailyDemand?.toFixed(1) || '0',
+      predictedDemand: forecast.summary?.totalPredictedDemand || 0,
+      confidence: forecast.summary?.confidence ? (forecast.summary.confidence * 100).toFixed(0) + '%' : '—',
+      trend: (forecast.summary?.totalPredictedDemand || 0) > (forecast.currentStock || 0) ? 'Growing' : 'Stable',
     }));
   } catch (error) {
     console.error('Error fetching forecast data:', error);
@@ -313,36 +321,41 @@ export async function getInventoryRiskData(period: string) {
       apiClient.getAlerts(),
     ]);
 
-    if (!productsResponse.success || !productsResponse.data) {
+    const prodData = productsResponse.data as any;
+    if (!prodData) {
       return getFallbackInventoryData();
     }
 
-    const products = productsResponse.data.products;
-    const alerts = alertsResponse.success ? alertsResponse.data?.alerts || [] : [];
+    const products = prodData.products || (Array.isArray(prodData) ? prodData : []);
+    if (products.length === 0) return getFallbackInventoryData();
+
+    const alertData = alertsResponse.data as any;
+    const alerts = alertData?.alerts || (Array.isArray(alertData) ? alertData : []);
     
-    return products.map(product => {
-      const productAlerts = alerts.filter(a => a.productId === product.id && a.type === 'stock_risk');
+    return products.map((product: any) => {
+      const productAlerts = alerts.filter((a: any) => a.productId === product.id && a.type === 'stock_risk');
       const hasStockAlert = productAlerts.length > 0;
+      const stockDays = product.stockDays ?? (product.stock > 0 ? Math.floor(product.stock / 2) : 0);
       
       let risk = 'Low';
       let action = 'Monitor';
       
-      if (product.stockDays <= 3) {
+      if (stockDays <= 3) {
         risk = 'Critical';
         action = 'Urgent Reorder';
-      } else if (product.stockDays <= 7) {
+      } else if (stockDays <= 7) {
         risk = 'High';
         action = 'Reorder Soon';
-      } else if (product.stockDays > 30) {
+      } else if (stockDays > 30) {
         risk = 'Overstock';
         action = 'Promote';
       }
       
       return {
         product: product.name,
-        sku: product.sku,
-        stock: product.stock,
-        daysLeft: product.stockDays,
+        sku: product.sku || '—',
+        stock: product.stock || 0,
+        daysLeft: stockDays,
         risk,
         action,
         alerts: hasStockAlert ? 'Yes' : 'No',

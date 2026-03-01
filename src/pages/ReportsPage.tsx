@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { FileDown, FileText, Download, Calendar } from "lucide-react";
+import { FileDown, FileText, Download, Calendar, Loader2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -12,11 +12,13 @@ import {
   getDemandForecastData,
   getInventoryRiskData,
 } from "@/lib/reportGenerator";
+import { apiClient } from "@/api/client";
 
 export default function ReportsPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState<'7' | '30' | '90' | 'custom'>('30');
+  const [generatingReport, setGeneratingReport] = useState<string | null>(null);
 
   const getPeriodLabel = () => {
     switch (selectedPeriod) {
@@ -29,20 +31,93 @@ export default function ReportsPage() {
 
   const getReportData = async (reportTitle: string) => {
     const period = getPeriodLabel();
-    
+
     let data;
     if (reportTitle === t('reports.pricingPerformance')) {
-      data = await getPricingPerformanceData(period);
+      // Try to enrich with real product data
+      try {
+        const productsResult = await apiClient.getProducts();
+        const pd = productsResult.data as any;
+        const products = pd?.products || (Array.isArray(pd) ? pd : []);
+        if (products.length > 0) {
+          data = products.map((p: any) => ({
+            product: p.name,
+            sku: p.sku || '—',
+            currentPrice: p.currentPrice || 0,
+            costPrice: p.costPrice || 0,
+            margin: p.currentPrice && p.costPrice
+              ? `${(((p.currentPrice - p.costPrice) / p.currentPrice) * 100).toFixed(1)}%`
+              : '—',
+            stock: p.stock || 0,
+            category: p.category || '—',
+          }));
+        } else {
+          data = await getPricingPerformanceData(period);
+        }
+      } catch {
+        data = await getPricingPerformanceData(period);
+      }
     } else if (reportTitle === t('reports.competitorAnalysis')) {
-      data = await getCompetitorAnalysisData(period);
+      try {
+        const insightsResult = await apiClient.getInsights();
+        const insightsData = insightsResult.data as any;
+        if (insightsData?.competitorStats?.length > 0) {
+          data = insightsData.competitorStats.map((cs: any) => ({
+            competitor: cs.name,
+            avgPriceDifference: cs.avgPriceDiff,
+            productsCompared: cs.products,
+            lastUpdated: cs.lastUpdate ? new Date(cs.lastUpdate).toLocaleDateString('en-IN') : '—',
+          }));
+        } else {
+          data = await getCompetitorAnalysisData(period);
+        }
+      } catch {
+        data = await getCompetitorAnalysisData(period);
+      }
     } else if (reportTitle === t('reports.demandForecast')) {
-      data = await getDemandForecastData(period);
+      try {
+        const productsResult = await apiClient.getProducts();
+        const pd = productsResult.data as any;
+        const products = pd?.products || (Array.isArray(pd) ? pd : []);
+        if (products.length > 0) {
+          data = products.map((p: any) => ({
+            product: p.name,
+            currentStock: p.stock || 0,
+            category: p.category || '—',
+            stockStatus: (p.stock || 0) < 10 ? 'Low' : (p.stock || 0) < 30 ? 'Medium' : 'Healthy',
+            estimatedDemand: (p.stock || 0) < 10 ? 'High' : (p.stock || 0) < 30 ? 'Medium' : 'Low',
+            reorderSuggestion: (p.stock || 0) < 10 ? 'Reorder Now' : (p.stock || 0) < 20 ? 'Plan Reorder' : 'No Action',
+          }));
+        } else {
+          data = await getDemandForecastData(period);
+        }
+      } catch {
+        data = await getDemandForecastData(period);
+      }
     } else if (reportTitle === t('reports.inventoryRisk')) {
-      data = await getInventoryRiskData(period);
+      try {
+        const productsResult = await apiClient.getProducts();
+        const pd = productsResult.data as any;
+        const products = pd?.products || (Array.isArray(pd) ? pd : []);
+        if (products.length > 0) {
+          data = products.map((p: any) => ({
+            product: p.name,
+            currentStock: p.stock || 0,
+            category: p.category || '—',
+            riskLevel: (p.stock || 0) < 5 ? 'Critical' : (p.stock || 0) < 10 ? 'High' : (p.stock || 0) < 20 ? 'Medium' : 'Low',
+            estimatedStockoutDate: (p.stock || 0) < 20 ? `${Math.max(1, Math.floor((p.stock || 0) / 2))} days` : 'N/A',
+            suggestedAction: (p.stock || 0) < 5 ? 'Urgent Restock' : (p.stock || 0) < 10 ? 'Reorder Soon' : 'Monitor',
+          }));
+        } else {
+          data = await getInventoryRiskData(period);
+        }
+      } catch {
+        data = await getInventoryRiskData(period);
+      }
     } else {
       return null;
     }
-    
+
     return {
       title: reportTitle,
       period,
@@ -52,20 +127,27 @@ export default function ReportsPage() {
   };
 
   const handleGenerateReport = async (reportTitle: string, format: string) => {
+    const reportKey = `${reportTitle}-${format}`;
+    setGeneratingReport(reportKey);
     toast({
       title: t('reports.generating'),
       description: `${reportTitle} (${format})`,
     });
-    
+
     try {
       const reportData = await getReportData(reportTitle);
-      
-      if (!reportData) {
-        throw new Error('Report data not available');
+
+      if (!reportData || !reportData.data || reportData.data.length === 0) {
+        toast({
+          title: t('errors.error'),
+          description: 'No data available for this report. Add products first.',
+          variant: 'destructive',
+        });
+        return;
       }
 
       const filename = `${reportTitle.replace(/\s+/g, '_')}_${selectedPeriod}days.${format.toLowerCase()}`;
-      
+
       if (format === 'PDF') {
         generatePDF(reportData, filename);
         toast({
@@ -82,41 +164,60 @@ export default function ReportsPage() {
     } catch (error) {
       console.error('Report generation error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to generate report',
+        title: t('errors.error'),
+        description: 'Failed to generate report. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setGeneratingReport(null);
     }
   };
 
   const handleDownloadRecent = async (reportName: string, type: string) => {
+    setGeneratingReport(reportName);
     toast({
       title: t('reports.downloading'),
       description: reportName,
     });
-    
+
     try {
-      // Generate sample data for recent reports using actual product data
       const data = await getPricingPerformanceData('30 days');
+
       const reportData = {
         title: reportName,
         period: 'Historical',
         generatedAt: new Date().toLocaleString('en-IN'),
-        data,
+        data: data || [],
       };
-      
+
+      if (!reportData.data || reportData.data.length === 0) {
+        toast({
+          title: t('errors.error'),
+          description: 'No data available. Add products first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       if (type === 'PDF') {
         generatePDF(reportData, `${reportName.replace(/\s+/g, '_')}.pdf`);
       } else {
         generateCSV(reportData.data, `${reportName.replace(/\s+/g, '_')}.csv`);
       }
+
+      toast({
+        title: t('reports.ready'),
+        description: `${reportName} downloaded`,
+      });
     } catch (error) {
       console.error('Download error:', error);
       toast({
-        title: 'Error',
+        title: t('errors.error'),
         description: 'Failed to download report',
         variant: 'destructive',
       });
+    } finally {
+      setGeneratingReport(null);
     }
   };
 
@@ -154,9 +255,9 @@ export default function ReportsPage() {
   ];
 
   const recentReports = [
-    { name: `${t('reports.weeklySummary')} - Jan 15-21`, date: "Jan 22, 2024", type: "PDF" },
-    { name: `${t('reports.competitorAnalysis')} - Q4`, date: "Jan 15, 2024", type: "PDF" },
-    { name: t('reports.productPerformanceExport'), date: "Jan 10, 2024", type: "CSV" },
+    { name: `${t('reports.weeklySummary')} - ${new Date().toLocaleDateString('en-IN')}`, date: new Date().toLocaleDateString('en-IN'), type: "PDF" },
+    { name: `${t('reports.competitorAnalysis')} - Q${Math.ceil((new Date().getMonth() + 1) / 3)}`, date: new Date(Date.now() - 7 * 86400000).toLocaleDateString('en-IN'), type: "PDF" },
+    { name: t('reports.productPerformanceExport'), date: new Date(Date.now() - 14 * 86400000).toLocaleDateString('en-IN'), type: "CSV" },
   ];
 
   return (
@@ -238,8 +339,13 @@ export default function ReportsPage() {
                       size="sm"
                       className="rounded-lg"
                       onClick={() => handleGenerateReport(report.title, format)}
+                      disabled={generatingReport === `${report.title}-${format}`}
                     >
-                      <Download className="w-3 h-3 mr-1.5" />
+                      {generatingReport === `${report.title}-${format}` ? (
+                        <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3 mr-1.5" />
+                      )}
                       {format}
                     </Button>
                   ))}
@@ -272,8 +378,13 @@ export default function ReportsPage() {
                   size="sm" 
                   className="rounded-lg"
                   onClick={() => handleDownloadRecent(report.name, report.type)}
+                  disabled={generatingReport === report.name}
                 >
-                  <Download className="w-4 h-4" />
+                  {generatingReport === report.name ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             ))}
