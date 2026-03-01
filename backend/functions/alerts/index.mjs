@@ -172,6 +172,15 @@ async function generateAlerts() {
 async function analyzeProduct(product, priceHistory) {
     const alerts = [];
     
+    // Skip if product is expired/invalid
+    if (product.validUntil) {
+        const validDate = new Date(product.validUntil);
+        if (validDate < new Date()) {
+            console.log(`Skipping expired product: ${product.name} (expired ${validDate.toISOString()})`);
+            return alerts;
+        }
+    }
+    
     if (priceHistory.length === 0) {
         return alerts;
     }
@@ -189,21 +198,52 @@ async function analyzeProduct(product, priceHistory) {
         if (competitorPrice.inStock && competitorPrice.price > 0) {
             const priceDiff = ((product.currentPrice - competitorPrice.price) / competitorPrice.price) * 100;
             
-            if (priceDiff > 10 && isFinite(priceDiff)) {
+            // Only alert if competitor price is still above our cost (profitable)
+            const isProfitable = !product.costPrice || competitorPrice.price > product.costPrice;
+            
+            if (priceDiff > 10 && isFinite(priceDiff) && isProfitable) {
+                const margin = product.costPrice 
+                    ? ((competitorPrice.price - product.costPrice) / competitorPrice.price * 100).toFixed(1)
+                    : null;
+                
                 alerts.push({
                     id: randomUUID(),
                     type: 'price_drop',
                     severity: priceDiff > 20 ? 'critical' : 'warning',
                     title: `${competitorPrice.competitorName} dropped ${product.name} price`,
-                    description: `Price reduced to ₹${competitorPrice.price} (${Math.round(priceDiff)}% below yours)`,
+                    description: `Price reduced to ₹${competitorPrice.price} (${Math.round(priceDiff)}% below yours)${margin ? `, ${margin}% margin if matched` : ''}`,
                     productId: product.id,
                     productName: product.name,
-                    suggestion: `Consider matching to maintain market share`,
+                    suggestion: margin 
+                        ? `Consider matching to maintain market share (${margin}% margin maintained)`
+                        : `Consider matching to maintain market share`,
                     data: {
                         yourPrice: product.currentPrice,
                         competitorPrice: competitorPrice.price,
                         competitor: competitorPrice.competitorName,
-                        difference: Math.round(priceDiff)
+                        difference: Math.round(priceDiff),
+                        costPrice: product.costPrice,
+                        margin: margin
+                    },
+                    acknowledged: false,
+                    createdAt: Date.now()
+                });
+            } else if (priceDiff > 10 && !isProfitable) {
+                // Alert about unprofitable competitor pricing
+                alerts.push({
+                    id: randomUUID(),
+                    type: 'opportunity',
+                    severity: 'info',
+                    title: `${competitorPrice.competitorName} pricing ${product.name} below cost`,
+                    description: `Competitor price ₹${competitorPrice.price} is below your cost ₹${product.costPrice}. They may be clearing inventory.`,
+                    productId: product.id,
+                    productName: product.name,
+                    suggestion: `Maintain current pricing. Competitor likely clearing stock at a loss.`,
+                    data: {
+                        yourPrice: product.currentPrice,
+                        competitorPrice: competitorPrice.price,
+                        competitor: competitorPrice.competitorName,
+                        costPrice: product.costPrice
                     },
                     acknowledged: false,
                     createdAt: Date.now()

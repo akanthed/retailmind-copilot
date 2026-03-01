@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Home, Package, CheckSquare, HelpCircle } from "lucide-react";
+import { Home, Package, CheckSquare, Bell, HelpCircle } from "lucide-react";
 
 export function BottomNav() {
   const { t } = useLanguage();
@@ -21,6 +21,11 @@ export function BottomNav() {
       title: t('nav.actions'),
       icon: CheckSquare,
       href: "/actions",
+    },
+    {
+      title: t('nav.alerts'),
+      icon: Bell,
+      href: "/alerts",
     },
     {
       title: t('nav.help'),

@@ -22,6 +22,7 @@
   "flipkartUrlPlaceholder": "https://www.flipkart.com/...",
   "keywords": "खोज कीवर्ड",
   "keywordsPlaceholder": "जैसे Samsung Galaxy S24 256GB Black",
+  "validUntil": "वैध तिथि / समाप्ति तिथि",
   "showAdvanced": "उन्नत विकल्प दिखाएं (वैकल्पिक)",
   "hideAdvanced": "उन्नत विकल्प छुपाएं",
   "updateProduct": "उत्पाद अपडेट करें",

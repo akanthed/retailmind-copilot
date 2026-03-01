@@ -4,6 +4,9 @@
   "actions": "To-Do List",
   "alerts": "Alerts",
   "forecast": "Forecast",
+  "insights": "Insights",
+  "outcomes": "Outcomes",
+  "reports": "Reports",
   "settings": "Settings",
   "help": "Help",
   "dashboardDesc": "Your daily overview",
@@ -11,6 +14,9 @@
   "actionsDesc": "AI recommendations",
   "alertsDesc": "Critical notifications",
   "forecastDesc": "Demand predictions",
+  "insightsDesc": "Market intelligence",
+  "outcomesDesc": "Track your results",
+  "reportsDesc": "View detailed reports",
   "settingsDesc": "Settings",
   "helpDesc": "Get support"
 }

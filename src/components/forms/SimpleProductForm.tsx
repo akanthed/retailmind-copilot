@@ -16,6 +16,7 @@ interface SimpleProductFormProps {
     amazonUrl?: string;
     flipkartUrl?: string;
     keywords?: string;
+    validUntil?: string;
   };
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
@@ -45,22 +46,26 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
   const [amazonUrl, setAmazonUrl] = useState(initialData?.amazonUrl || "");
   const [flipkartUrl, setFlipkartUrl] = useState(initialData?.flipkartUrl || "");
   const [keywords, setKeywords] = useState(initialData?.keywords || "");
+  const [validUntil, setValidUntil] = useState(initialData?.validUntil || "");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     
     const data = {
-      name,
+      name: name.trim(),
       currentPrice: parseFloat(price),
       stock: parseInt(stock),
       costPrice: costPrice ? parseFloat(costPrice) : 0,
-      category,
-      sku: sku || `PROD-${Date.now()}`,
-      amazonUrl: amazonUrl || undefined,
-      flipkartUrl: flipkartUrl || undefined,
-      keywords: keywords || name, // Use name as default keywords
+      category: category.trim(),
+      sku: sku.trim() || `PROD-${Date.now()}`,
+      amazonUrl: amazonUrl.trim() || undefined,
+      flipkartUrl: flipkartUrl.trim() || undefined,
+      keywords: (keywords.trim() || name.trim()), // Use name as default keywords
+      validUntil: validUntil.trim() || null, // Product validity/expiry date
     };
+    
+    console.log('Form submitting data:', data);
     
     try {
       await onSubmit(data);
@@ -256,6 +261,23 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               aria-describedby="keywords-hint"
             />
             <span id="keywords-hint" className="sr-only">Optional: Enter specific search terms to help find this product</span>
+          </div>
+
+          <div>
+            <label htmlFor="valid-until" className="text-sm font-medium mb-2 flex items-center gap-2">
+              {t('products.validUntil')}
+              <HelpTooltip content="Expiry or discontinuation date. Alerts won't be generated after this date." />
+            </label>
+            <Input
+              id="valid-until"
+              type="date"
+              value={validUntil}
+              onChange={(e) => setValidUntil(e.target.value)}
+              className="h-12 text-base"
+              min={new Date().toISOString().split('T')[0]}
+              aria-describedby="valid-until-hint"
+            />
+            <span id="valid-until-hint" className="sr-only">Optional: Set expiry date for perishable or seasonal products</span>
           </div>
         </div>
       )}

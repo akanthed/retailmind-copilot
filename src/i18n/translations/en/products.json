@@ -26,6 +26,7 @@
   "flipkartUrlPlaceholder": "https://www.flipkart.com/...",
   "keywords": "Search Keywords",
   "keywordsPlaceholder": "e.g. Samsung Galaxy S24 256GB Black",
+  "validUntil": "Valid Until / Expiry Date",
   "showAdvanced": "Show Advanced Options (optional)",
   "hideAdvanced": "Hide Advanced Options",
   "updateProduct": "Update Product",

@@ -125,8 +125,10 @@ async function listRecommendations() {
     
     const result = await docClient.send(command);
     
-    // Sort by createdAt descending
-    const recommendations = (result.Items || []).sort((a, b) => b.createdAt - a.createdAt);
+    // Filter out deleted recommendations and sort by createdAt descending
+    const recommendations = (result.Items || [])
+        .filter(rec => rec.status !== 'deleted')
+        .sort((a, b) => b.createdAt - a.createdAt);
     
     return {
         statusCode: 200,

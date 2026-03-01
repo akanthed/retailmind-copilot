@@ -17,5 +17,12 @@
   "inventoryRiskDesc": "स्टॉक-आउट और ओवरस्टॉक जोखिम",
   "recentReports": "हाल की रिपोर्ट",
   "weeklySummary": "साप्ताहिक सारांश",
-  "productPerformanceExport": "उत्पाद प्रदर्शन निर्यात"
+  "productPerformanceExport": "उत्पाद प्रदर्शन निर्यात",
+  "generating": "रिपोर्ट उत्पन्न हो रही है",
+  "ready": "रिपोर्ट तैयार है",
+  "pdfOpened": "PDF नई विंडो में खुला। सहेजने के लिए ब्राउज़र प्रिंट का उपयोग करें।",
+  "downloadStarting": "आपका डाउनलोड जल्द ही शुरू होगा",
+  "downloading": "डाउनलोड हो रहा है",
+  "customRange": "कस्टम तिथि सीमा",
+  "customRangeDesc": "कस्टम तिथि चयनकर्ता जल्द आ रहा है"
 }

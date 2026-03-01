@@ -17,5 +17,12 @@
   "inventoryRiskDesc": "Stock-out and overstock risks",
   "recentReports": "Recent Reports",
   "weeklySummary": "Weekly Summary",
-  "productPerformanceExport": "Product Performance Export"
+  "productPerformanceExport": "Product Performance Export",
+  "generating": "Generating Report",
+  "ready": "Report Ready",
+  "pdfOpened": "PDF opened in new window. Use browser print to save.",
+  "downloadStarting": "Your download will start shortly",
+  "downloading": "Downloading",
+  "customRange": "Custom Date Range",
+  "customRangeDesc": "Custom date picker coming soon"
 }

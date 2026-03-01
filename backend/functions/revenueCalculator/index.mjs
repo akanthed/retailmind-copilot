@@ -18,6 +18,19 @@ export const handler = async (event) => {
   const httpMethod = event.httpMethod;
   const path = event.path;
 
+  // Handle CORS preflight
+  if (httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+      body: "",
+    };
+  }
+
   try {
     let response;
 
@@ -39,6 +52,8 @@ export const handler = async (event) => {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
       body: JSON.stringify(response.body || response),
     };
@@ -49,6 +64,8 @@ export const handler = async (event) => {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
       body: JSON.stringify({
         error: "Internal server error",

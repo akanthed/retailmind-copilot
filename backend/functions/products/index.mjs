@@ -1,11 +1,16 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand, UpdateCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand, UpdateCommand, QueryCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-1" }));
 
 const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
+const RECOMMENDATIONS_TABLE = "RetailMind-Recommendations";
+const ALERTS_TABLE = "RetailMind-Alerts";
+const FORECASTS_TABLE = "RetailMind-Forecasts";
+const PRICE_COMPARISON_TABLE = "RetailMind-PriceComparison";
+const REVENUE_IMPACT_TABLE = "RetailMind-RevenueImpact";
 
 export const handler = async (event) => {
   const requestId = event.requestContext?.requestId || 'unknown';
@@ -106,6 +111,16 @@ function validateProductData(data, isUpdate = false) {
     }
   }
   
+  // Validate validUntil (optional, but must be future date if provided)
+  if (data.validUntil !== undefined && data.validUntil !== null && data.validUntil !== '') {
+    const validDate = new Date(data.validUntil);
+    if (isNaN(validDate.getTime())) {
+      errors.push('validUntil must be a valid date');
+    } else if (validDate < new Date()) {
+      errors.push('validUntil must be a future date');
+    }
+  }
+  
   // Validate price >= cost
   const price = parseFloat(data.currentPrice);
   const cost = parseFloat(data.costPrice);
@@ -143,12 +158,17 @@ async function checkSKUUniqueness(sku, excludeProductId = null) {
 
 // Create product
 async function createProduct(data, requestId) {
-  console.log(`[${requestId}] Creating product`);
+  console.log(`[${requestId}] Creating product with data:`, JSON.stringify(data));
   
   const validation = validateProductData(data, false);
   if (!validation.valid) {
     console.error(`[${requestId}] Validation failed:`, validation.errors);
-    return buildResponse(400, { error: 'Validation failed', details: validation.errors.join(', ') });
+    return buildResponse(400, { 
+      error: 'Validation failed', 
+      message: validation.errors.join(', '),
+      details: validation.errors,
+      receivedData: data
+    });
   }
   
   const isUnique = await checkSKUUniqueness(data.sku);
@@ -167,6 +187,7 @@ async function createProduct(data, requestId) {
     costPrice: parseFloat(data.costPrice),
     stock: parseInt(data.stock),
     stockDays: Math.floor(parseInt(data.stock) / 10) || 0, // Estimate stock days
+    validUntil: data.validUntil || null, // Product validity/expiry date
     competitors: data.competitors || [],
     amazonUrl: data.amazonUrl || '',
     flipkartUrl: data.flipkartUrl || '',
@@ -351,6 +372,11 @@ async function updateProduct(productId, data, requestId) {
       names['#keywords'] = 'keywords';
       values[':keywords'] = data.keywords;
     }
+    if (data.validUntil !== undefined) {
+      updates.push('#validUntil = :validUntil');
+      names['#validUntil'] = 'validUntil';
+      values[':validUntil'] = data.validUntil || null;
+    }
     
     updates.push('#updatedAt = :updatedAt');
     names['#updatedAt'] = 'updatedAt';
@@ -373,9 +399,9 @@ async function updateProduct(productId, data, requestId) {
   }
 }
 
-// Delete product (soft delete)
+// Delete product (soft delete) and all related data
 async function deleteProduct(productId, requestId) {
-  console.log(`[${requestId}] Deleting product:`, productId);
+  console.log(`[${requestId}] Deleting product and all related data:`, productId);
   
   try {
     const existing = await dynamodb.send(new GetCommand({
@@ -388,6 +414,7 @@ async function deleteProduct(productId, requestId) {
       return buildResponse(404, { error: 'Product not found' });
     }
     
+    // Soft delete the product
     await dynamodb.send(new UpdateCommand({
       TableName: PRODUCTS_TABLE,
       Key: { id: productId },
@@ -398,11 +425,180 @@ async function deleteProduct(productId, requestId) {
       }
     }));
     
-    console.log(`[${requestId}] Product deleted successfully:`, productId);
-    return buildResponse(200, { message: 'Product deleted successfully', id: productId });
+    // Delete all related data across all tables
+    await Promise.all([
+      deleteProductRecommendations(productId, requestId),
+      deleteProductPriceHistory(productId, requestId),
+      deleteProductAlerts(productId, requestId),
+      deleteProductForecasts(productId, requestId),
+      deleteProductPriceComparisons(productId, requestId),
+      deleteProductRevenueImpact(productId, requestId)
+    ]);
+    
+    console.log(`[${requestId}] Product and all related data deleted successfully:`, productId);
+    return buildResponse(200, { message: 'Product and all related data deleted successfully', id: productId });
   } catch (error) {
     console.error(`[${requestId}] DynamoDB error:`, error);
     return buildResponse(500, { error: 'Failed to delete product' });
+  }
+}
+
+// Delete all recommendations for a product
+async function deleteProductRecommendations(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: RECOMMENDATIONS_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} recommendations to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new UpdateCommand({
+        TableName: RECOMMENDATIONS_TABLE,
+        Key: { id: item.id },
+        UpdateExpression: 'SET #status = :status, #updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#status': 'status',
+          '#updatedAt': 'updatedAt'
+        },
+        ExpressionAttributeValues: {
+          ':status': 'deleted',
+          ':updatedAt': Date.now()
+        }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting recommendations:`, error);
+  }
+}
+
+// Delete all price history for a product
+async function deleteProductPriceHistory(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: PRICE_HISTORY_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} price history records to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new DeleteCommand({
+        TableName: PRICE_HISTORY_TABLE,
+        Key: { id: item.id, timestamp: item.timestamp }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting price history:`, error);
+  }
+}
+
+// Delete all alerts for a product
+async function deleteProductAlerts(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: ALERTS_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} alerts to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new DeleteCommand({
+        TableName: ALERTS_TABLE,
+        Key: { id: item.id }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting alerts:`, error);
+  }
+}
+
+// Delete all forecasts for a product
+async function deleteProductForecasts(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: FORECASTS_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} forecasts to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new DeleteCommand({
+        TableName: FORECASTS_TABLE,
+        Key: { id: item.id }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting forecasts:`, error);
+  }
+}
+
+// Delete all price comparisons for a product
+async function deleteProductPriceComparisons(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: PRICE_COMPARISON_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} price comparisons to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new DeleteCommand({
+        TableName: PRICE_COMPARISON_TABLE,
+        Key: { id: item.id }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting price comparisons:`, error);
+  }
+}
+
+// Delete all revenue impact records for a product
+async function deleteProductRevenueImpact(productId, requestId) {
+  try {
+    const scanResult = await dynamodb.send(new ScanCommand({
+      TableName: REVENUE_IMPACT_TABLE,
+      FilterExpression: 'productId = :productId',
+      ExpressionAttributeValues: {
+        ':productId': productId
+      }
+    }));
+    
+    const items = scanResult.Items || [];
+    console.log(`[${requestId}] Found ${items.length} revenue impact records to delete for product ${productId}`);
+    
+    for (const item of items) {
+      await dynamodb.send(new DeleteCommand({
+        TableName: REVENUE_IMPACT_TABLE,
+        Key: { id: item.id }
+      }));
+    }
+  } catch (error) {
+    console.error(`[${requestId}] Error deleting revenue impact records:`, error);
   }
 }
 

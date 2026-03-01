@@ -539,6 +539,7 @@ export default function ProductsPage() {
               amazonUrl: editingProduct.amazonUrl,
               flipkartUrl: editingProduct.flipkartUrl,
               keywords: editingProduct.keywords,
+              validUntil: editingProduct.validUntil || '',
             } : undefined}
             onSubmit={handleSaveProduct}
             onCancel={() => setShowAddDialog(false)}

@@ -57,6 +57,7 @@ export interface Product {
   costPrice: number;
   stock: number;
   stockDays: number;
+  validUntil?: string | null;
   competitors?: string[];
   amazonUrl?: string;
   flipkartUrl?: string;
@@ -378,6 +379,10 @@ class ApiClient {
 
   async getOutcomes(): Promise<ApiResponse<any>> {
     return this.request('/analytics/outcomes', { method: 'GET' });
+  }
+
+  async getInsights(): Promise<ApiResponse<any>> {
+    return this.request('/analytics/insights', { method: 'GET' });
   }
 
   // Demand Forecasting

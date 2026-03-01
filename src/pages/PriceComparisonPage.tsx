@@ -89,6 +89,7 @@ export default function PriceComparisonPage() {
   const [searching, setSearching] = useState(false);
   const [searchDebug, setSearchDebug] = useState<SearchDebugInfo | null>(null);
   const [lastSearchTime, setLastSearchTime] = useState<number | null>(null);
+  const [autoSearching, setAutoSearching] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -128,6 +129,7 @@ export default function PriceComparisonPage() {
         const fiveMinutes = 5 * 60 * 1000;
         if (filteredComparisons.length === 0 && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
           // Auto-search in background after 1 second
+          setAutoSearching(true);
           setTimeout(() => {
             handleSearchPrices(true);
           }, 1000);
@@ -188,6 +190,7 @@ export default function PriceComparisonPage() {
         });
         setCompetitorPrices(filteredResults);
         setLastSearchTime(Date.now());
+        setAutoSearching(false);
 
         // Show data source notification only for manual search
         if (!isAutoSearch) {
@@ -226,6 +229,7 @@ export default function PriceComparisonPage() {
         }
       } finally {
         setSearching(false);
+        setAutoSearching(false);
       }
     }
 
@@ -395,27 +399,44 @@ export default function PriceComparisonPage() {
         {/* Competitor Prices Table */}
         <div className="premium-card rounded-2xl overflow-hidden mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="p-4 border-b border-border">
-            <h2 className="font-semibold flex items-center gap-2">
-              <Globe className="w-5 h-5 text-primary" />
-              {t('priceComparison.competitorPrices')}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {t('priceComparison.pricesFoundDesc')}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-primary" />
+                  {t('priceComparison.competitorPrices')}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('priceComparison.pricesFoundDesc')}
+                </p>
+              </div>
+              {competitorPrices.some(p => p.source === 'synthetic') && (
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/30">
+                  📊 Demo Prices
+                </Badge>
+              )}
+            </div>
           </div>
 
           {competitorPrices.length === 0 ? (
             <div className="p-12 text-center">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                Finding competitor prices...
+                {autoSearching ? "Searching for prices..." : "Finding competitor prices..."}
               </h3>
               <p className="text-muted-foreground mb-4">
-                AI is searching Amazon, Flipkart, and other platforms for this product
+                {autoSearching 
+                  ? "AI is analyzing Amazon, Flipkart, and other platforms..."
+                  : "AI is searching Amazon, Flipkart, and other platforms for this product"
+                }
               </p>
-              <p className="text-sm text-muted-foreground">
-                This happens automatically. Prices will appear here shortly.
-              </p>
+              {autoSearching && (
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+              )}
+              {!autoSearching && (
+                <p className="text-sm text-muted-foreground">
+                  This happens automatically. Prices will appear here shortly.
+                </p>
+              )}
             </div>
           ) : (
             <Table>

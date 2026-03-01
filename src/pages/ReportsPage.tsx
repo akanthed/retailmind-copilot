@@ -2,9 +2,133 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileText, Download, Calendar } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  generateCSV,
+  generatePDF,
+  getPricingPerformanceData,
+  getCompetitorAnalysisData,
+  getDemandForecastData,
+  getInventoryRiskData,
+} from "@/lib/reportGenerator";
 
 export default function ReportsPage() {
   const { t } = useLanguage();
+  const { toast } = useToast();
+  const [selectedPeriod, setSelectedPeriod] = useState<'7' | '30' | '90' | 'custom'>('30');
+
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case '7': return t('reports.last7Days');
+      case '30': return t('reports.last30Days');
+      case '90': return t('reports.last90Days');
+      default: return 'Custom Period';
+    }
+  };
+
+  const getReportData = async (reportTitle: string) => {
+    const period = getPeriodLabel();
+    
+    let data;
+    if (reportTitle === t('reports.pricingPerformance')) {
+      data = await getPricingPerformanceData(period);
+    } else if (reportTitle === t('reports.competitorAnalysis')) {
+      data = await getCompetitorAnalysisData(period);
+    } else if (reportTitle === t('reports.demandForecast')) {
+      data = await getDemandForecastData(period);
+    } else if (reportTitle === t('reports.inventoryRisk')) {
+      data = await getInventoryRiskData(period);
+    } else {
+      return null;
+    }
+    
+    return {
+      title: reportTitle,
+      period,
+      generatedAt: new Date().toLocaleString('en-IN'),
+      data,
+    };
+  };
+
+  const handleGenerateReport = async (reportTitle: string, format: string) => {
+    toast({
+      title: t('reports.generating'),
+      description: `${reportTitle} (${format})`,
+    });
+    
+    try {
+      const reportData = await getReportData(reportTitle);
+      
+      if (!reportData) {
+        throw new Error('Report data not available');
+      }
+
+      const filename = `${reportTitle.replace(/\s+/g, '_')}_${selectedPeriod}days.${format.toLowerCase()}`;
+      
+      if (format === 'PDF') {
+        generatePDF(reportData, filename);
+        toast({
+          title: t('reports.ready'),
+          description: t('reports.pdfOpened'),
+        });
+      } else if (format === 'CSV') {
+        generateCSV(reportData.data, filename);
+        toast({
+          title: t('reports.ready'),
+          description: t('reports.downloadStarting'),
+        });
+      }
+    } catch (error) {
+      console.error('Report generation error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate report',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadRecent = async (reportName: string, type: string) => {
+    toast({
+      title: t('reports.downloading'),
+      description: reportName,
+    });
+    
+    try {
+      // Generate sample data for recent reports using actual product data
+      const data = await getPricingPerformanceData('30 days');
+      const reportData = {
+        title: reportName,
+        period: 'Historical',
+        generatedAt: new Date().toLocaleString('en-IN'),
+        data,
+      };
+      
+      if (type === 'PDF') {
+        generatePDF(reportData, `${reportName.replace(/\s+/g, '_')}.pdf`);
+      } else {
+        generateCSV(reportData.data, `${reportName.replace(/\s+/g, '_')}.csv`);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download report',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePeriodChange = (period: '7' | '30' | '90' | 'custom') => {
+    setSelectedPeriod(period);
+    if (period === 'custom') {
+      toast({
+        title: t('reports.customRange'),
+        description: t('reports.customRangeDesc'),
+      });
+    }
+  };
 
   const reportTypes = [
     {
@@ -58,10 +182,38 @@ export default function ReportsPage() {
             <span className="text-foreground font-medium">{t('reports.reportPeriod')}</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.last7Days')}</Button>
-            <Button size="sm" className="rounded-lg bg-primary text-primary-foreground">{t('reports.last30Days')}</Button>
-            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.last90Days')}</Button>
-            <Button variant="outline" size="sm" className="rounded-lg">{t('reports.custom')}</Button>
+            <Button 
+              variant={selectedPeriod === '7' ? 'default' : 'outline'} 
+              size="sm" 
+              className="rounded-lg"
+              onClick={() => handlePeriodChange('7')}
+            >
+              {t('reports.last7Days')}
+            </Button>
+            <Button 
+              variant={selectedPeriod === '30' ? 'default' : 'outline'}
+              size="sm" 
+              className="rounded-lg"
+              onClick={() => handlePeriodChange('30')}
+            >
+              {t('reports.last30Days')}
+            </Button>
+            <Button 
+              variant={selectedPeriod === '90' ? 'default' : 'outline'}
+              size="sm" 
+              className="rounded-lg"
+              onClick={() => handlePeriodChange('90')}
+            >
+              {t('reports.last90Days')}
+            </Button>
+            <Button 
+              variant={selectedPeriod === 'custom' ? 'default' : 'outline'}
+              size="sm" 
+              className="rounded-lg"
+              onClick={() => handlePeriodChange('custom')}
+            >
+              {t('reports.custom')}
+            </Button>
           </div>
         </div>
 
@@ -85,6 +237,7 @@ export default function ReportsPage() {
                       variant="outline"
                       size="sm"
                       className="rounded-lg"
+                      onClick={() => handleGenerateReport(report.title, format)}
                     >
                       <Download className="w-3 h-3 mr-1.5" />
                       {format}
@@ -114,7 +267,12 @@ export default function ReportsPage() {
                     <p className="text-sm text-muted-foreground">{report.date}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="rounded-lg">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="rounded-lg"
+                  onClick={() => handleDownloadRecent(report.name, report.type)}
+                >
                   <Download className="w-4 h-4" />
                 </Button>
               </div>

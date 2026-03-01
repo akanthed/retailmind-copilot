@@ -14,11 +14,19 @@ interface CompetitorStats {
   lastUpdate: string;
 }
 
+interface DemandForecastItem {
+  product: string;
+  trend: "up" | "down";
+  change: string;
+  period: string;
+}
+
 export default function InsightsPage() {
   const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [competitorStats, setCompetitorStats] = useState<CompetitorStats[]>([]);
+  const [demandForecast, setDemandForecast] = useState<DemandForecastItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,35 +36,40 @@ export default function InsightsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const productsResult = await apiClient.getProducts();
+      const insightsResult = await apiClient.getInsights();
       
-      if (productsResult.error) {
+      console.log('Insights API Response:', insightsResult);
+      
+      if (insightsResult.error) {
         toast({
           title: t('errors.loadingError'),
-          description: productsResult.error,
+          description: insightsResult.error,
           variant: "destructive"
         });
         return;
       }
 
-      const fetchedProducts = productsResult.data?.products || [];
-      setProducts(fetchedProducts);
-
-      const competitors = [
-        { id: "amazon", name: "Amazon.in" },
-        { id: "flipkart", name: "Flipkart" },
-        { id: "jiomart", name: "JioMart" },
-        { id: "croma", name: "Croma" }
-      ];
-
-      const stats = competitors.map(comp => ({
-        name: comp.name,
-        avgPriceDiff: Math.random() > 0.5 ? `-${Math.floor(Math.random() * 15)}%` : `+${Math.floor(Math.random() * 10)}%`,
-        products: fetchedProducts.length,
-        lastUpdate: t('insights.justNow')
+      const data = insightsResult.data;
+      console.log('Insights data:', data);
+      
+      // Use metrics from insights API
+      const productCount = data?.metrics?.productsTracked || 0;
+      console.log('Product count:', productCount);
+      
+      // Create dummy products array for compatibility
+      const dummyProducts = Array.from({ length: productCount }, (_, i) => ({
+        id: `product-${i}`,
+        name: `Product ${i + 1}`
       }));
-
-      setCompetitorStats(stats);
+      setProducts(dummyProducts as any);
+      setCompetitorStats(data?.competitorStats || []);
+      setDemandForecast(data?.demandForecast || []);
+      
+      console.log('State updated:', {
+        products: dummyProducts.length,
+        competitorStats: data?.competitorStats?.length || 0,
+        demandForecast: data?.demandForecast?.length || 0
+      });
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -78,7 +91,7 @@ export default function InsightsPage() {
     );
   }
 
-  const demandForecast = products.slice(0, 3).map(product => ({
+  const demandForecastDisplay = demandForecast.length > 0 ? demandForecast : products.slice(0, 3).map(product => ({
     product: product.name,
     trend: Math.random() > 0.5 ? "up" as const : "down" as const,
     change: `${Math.random() > 0.5 ? '+' : '-'}${Math.floor(Math.random() * 40 + 10)}%`,
@@ -141,45 +154,64 @@ export default function InsightsPage() {
               <span>{t('insights.productsMonitored')}</span>
               <span>{t('insights.lastUpdate')}</span>
             </div>
-            {competitorStats.map((comp) => (
-              <div
-                key={comp.name}
-                className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-0 hover:bg-accent/30 transition-colors"
-              >
-                <span className="font-medium text-foreground">{comp.name}</span>
-                <span className={comp.avgPriceDiff.startsWith("-") ? "text-success" : "text-destructive"}>
-                  {comp.avgPriceDiff}
-                </span>
-                <span className="text-muted-foreground">{comp.products}</span>
-                <span className="text-muted-foreground">{comp.lastUpdate}</span>
+            {competitorStats.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                No competitor data available yet. Add products and run price comparisons to see insights.
               </div>
-            ))}
+            ) : (
+              competitorStats.map((comp) => (
+                <div
+                  key={comp.name}
+                  className="grid grid-cols-4 gap-4 p-4 border-b border-border last:border-0 hover:bg-accent/30 transition-colors"
+                >
+                  <span className="font-medium text-foreground">{comp.name}</span>
+                  <span className={comp.avgPriceDiff.startsWith("-") ? "text-success" : "text-destructive"}>
+                    {comp.avgPriceDiff}
+                  </span>
+                  <span className="text-muted-foreground">{comp.products}</span>
+                  <span className="text-muted-foreground">
+                    {new Date(comp.lastUpdate).toLocaleString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* Demand Forecast */}
         <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <h2 className="text-lg font-medium text-foreground mb-4">{t('insights.demandForecast')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {demandForecast.map((item) => (
-              <div key={item.product} className="premium-card rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">{item.period}</span>
-                  <div className={`flex items-center gap-1 text-sm font-medium ${item.trend === "up" ? "text-success" : "text-destructive"}`}>
-                    {item.trend === "up" ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
-                    {item.change}
+          {demandForecastDisplay.length === 0 ? (
+            <div className="premium-card rounded-2xl p-8 text-center text-muted-foreground">
+              No demand forecast data available. Add products to see predictions.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {demandForecastDisplay.map((item) => (
+                <div key={item.product} className="premium-card rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-muted-foreground">{item.period}</span>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${item.trend === "up" ? "text-success" : "text-destructive"}`}>
+                      {item.trend === "up" ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
+                      {item.change}
+                    </div>
+                  </div>
+                  <h3 className="font-medium text-foreground">{item.product}</h3>
+                  <div className="mt-4 h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${item.trend === "up" ? "bg-success" : "bg-destructive"}`}
+                      style={{ width: item.trend === "up" ? "75%" : "35%" }}
+                    />
                   </div>
                 </div>
-                <h3 className="font-medium text-foreground">{item.product}</h3>
-                <div className="mt-4 h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${item.trend === "up" ? "bg-success" : "bg-destructive"}`}
-                    style={{ width: item.trend === "up" ? "75%" : "35%" }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Confidence Note */}

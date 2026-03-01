@@ -18,6 +18,10 @@ import AlertsPage from "./pages/AlertsPage";
 import ForecastPage from "./pages/ForecastPage";
 import HelpPage from "./pages/HelpPage";
 import SettingsPage from "./pages/SettingsPage";
+import InsightsPage from "./pages/InsightsPage";
+import OutcomesPage from "./pages/OutcomesPage";
+import ReportsPage from "./pages/ReportsPage";
+import SetupPage from "./pages/SetupPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +46,10 @@ const App = () => (
             <Route path="/decisions/:id" element={<DecisionDetailPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/forecast" element={<ForecastPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/outcomes" element={<OutcomesPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/setup" element={<SetupPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/help" element={<HelpPage />} />
             
