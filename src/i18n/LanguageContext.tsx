@@ -17,6 +17,8 @@ import enSetup from './translations/en/setup.json';
 import enReports from './translations/en/reports.json';
 import enOutcomes from './translations/en/outcomes.json';
 import enInsights from './translations/en/insights.json';
+import enOnboarding from './translations/en/onboarding.json';
+import enForecast from './translations/en/forecast.json';
 
 import hiCommon from './translations/hi/common.json';
 import hiNav from './translations/hi/nav.json';
@@ -36,6 +38,8 @@ import hiSetup from './translations/hi/setup.json';
 import hiReports from './translations/hi/reports.json';
 import hiOutcomes from './translations/hi/outcomes.json';
 import hiInsights from './translations/hi/insights.json';
+import hiOnboarding from './translations/hi/onboarding.json';
+import hiForecast from './translations/hi/forecast.json';
 
 type Language = 'en' | 'hi';
 
@@ -56,6 +60,8 @@ interface Translations {
   commandCenter: typeof enCommandCenter;
   setup: typeof enSetup;
   reports: typeof enReports;
+  onboarding: typeof enOnboarding;
+  forecast: typeof enForecast;
   outcomes: typeof enOutcomes;
   insights: typeof enInsights;
 }
@@ -86,6 +92,8 @@ const translations: Record<Language, Translations> = {
     commandCenter: enCommandCenter,
     setup: enSetup,
     reports: enReports,
+    onboarding: enOnboarding,
+    forecast: enForecast,
     outcomes: enOutcomes,
     insights: enInsights,
   },
@@ -104,6 +112,8 @@ const translations: Record<Language, Translations> = {
     notFound: hiNotFound,
     landing: hiLanding,
     commandCenter: hiCommandCenter,
+    onboarding: hiOnboarding,
+    forecast: hiForecast,
     setup: hiSetup,
     reports: hiReports,
     outcomes: hiOutcomes,
