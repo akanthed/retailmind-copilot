@@ -37,7 +37,7 @@ export default function HelpPage() {
     }
   ];
 
-  const translatedFaqs = [
+  const faqs = [
     { question: t('help.faq1Q'), answer: t('help.faq1A') },
     { question: t('help.faq2Q'), answer: t('help.faq2A') },
     { question: t('help.faq3Q'), answer: t('help.faq3A') },
@@ -90,12 +90,35 @@ export default function HelpPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-medium text-foreground mb-3">{t('help.featuresTitle')}</h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>• <span className="text-foreground font-medium">{t('help.featureAICopilot')}</span> {t('help.featureAICopilotDesc')}</p>
-                <p>• <span className="text-foreground font-medium">{t('help.featurePriceMonitoring')}</span> {t('help.featurePriceMonitoringDesc')}</p>
-                <p>• <span className="text-foreground font-medium">{t('help.featureRecommendations')}</span> {t('help.featureRecommendationsDesc')}</p>
-                <p>• <span className="text-foreground font-medium">{t('help.featureAlerts')}</span> {t('help.featureAlertsDesc')}</p>
-                <p>• <span className="text-foreground font-medium">{t('help.featureAnalytics')}</span> {t('help.featureAnalyticsDesc')}</p>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div>
+                  <p className="text-foreground font-medium mb-1">📊 {t('help.featureDashboard')}</p>
+                  <p>{t('help.featureDashboardDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">📦 {t('help.featureProducts')}</p>
+                  <p>{t('help.featureProductsDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">✅ {t('help.featureActions')}</p>
+                  <p>{t('help.featureActionsDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">🔔 {t('help.featureAlerts')}</p>
+                  <p>{t('help.featureAlertsDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">📈 {t('help.featureForecast')}</p>
+                  <p>{t('help.featureForecastDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">💡 {t('help.featureInsights')}</p>
+                  <p>{t('help.featureInsightsDesc')}</p>
+                </div>
+                <div>
+                  <p className="text-foreground font-medium mb-1">📄 {t('help.featureReports')}</p>
+                  <p>{t('help.featureReportsDesc')}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -105,7 +128,7 @@ export default function HelpPage() {
         <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <h2 className="text-lg font-medium text-foreground mb-4">{t('help.commonQuestions')}</h2>
           <div className="space-y-3">
-            {translatedFaqs.map((faq, index) => (
+            {faqs.map((faq, index) => (
               <div key={index} className="premium-card rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
@@ -128,29 +151,16 @@ export default function HelpPage() {
           </div>
         </div>
 
-        {/* Technical Details & Support */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-          <div className="premium-card rounded-2xl p-6">
-            <Book className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-medium text-foreground mb-2">{t('help.technicalStackTitle')}</h3>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>• {t('help.techBedrock')}</p>
-              <p>• {t('help.techLambda')}</p>
-              <p>• {t('help.techDynamoDB')}</p>
-              <p>• {t('help.techAPIGateway')}</p>
-              <p>• {t('help.techFrontend')}</p>
-            </div>
-          </div>
-          <div className="premium-card rounded-2xl p-6">
-            <HelpCircle className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-medium text-foreground mb-2">{t('help.needHelpTitle')}</h3>
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>{t('help.needHelpDesc')} <code className="text-xs bg-accent px-1 py-0.5 rounded">docs/</code> {t('help.needHelpFolder')}</p>
-              <p>• {t('help.needHelpFile1')}</p>
-              <p>• {t('help.needHelpFile2')}</p>
-              <p>• {t('help.needHelpFile3')}</p>
-              <p className="pt-2">{t('help.needHelpCommand')} <code className="text-xs bg-accent px-1 py-0.5 rounded">./check-config.ps1</code></p>
-            </div>
+        {/* Support */}
+        <div className="premium-card rounded-2xl p-6 animate-fade-in" style={{ animationDelay: "0.25s" }}>
+          <HelpCircle className="w-8 h-8 text-primary mb-3" />
+          <h3 className="font-medium text-foreground mb-2">{t('help.needHelpTitle')}</h3>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>{t('help.needHelpDesc')}</p>
+            <p>• {t('help.needHelpPoint1')}</p>
+            <p>• {t('help.needHelpPoint2')}</p>
+            <p>• {t('help.needHelpPoint3')}</p>
+            <p>• {t('help.needHelpPoint4')}</p>
           </div>
         </div>
       </div>
