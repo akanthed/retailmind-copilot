@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, MessageSquare, Save, CheckCircle, Database, RefreshCw, AlertTriangle } from "lucide-react";
+import { Settings, MessageSquare, Save, CheckCircle, Database, RefreshCw, AlertTriangle, LogOut, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, UrlValidationSummary } from "@/api/client";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SettingsPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [whatsappNumber, setWhatsappNumber] = useState(
     localStorage.getItem("whatsapp_number") || ""
   );
@@ -21,6 +23,15 @@ export default function SettingsPage() {
   const [loadingHealth, setLoadingHealth] = useState(true);
   const [validatingUrls, setValidatingUrls] = useState(false);
   const { toast } = useToast();
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: 'Logged out',
+      description: 'You have been successfully logged out',
+    });
+    navigate('/login');
+  };
 
   useEffect(() => {
     loadLiveDataHealth(false);
@@ -105,6 +116,41 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Account Information */}
+          <Card className="premium-card rounded-2xl p-6 animate-fade-in">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <User className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold mb-1">Account</h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage your account settings and preferences
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="text-sm font-medium mt-1">{user?.email || 'Not available'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Shop Name</Label>
+                  <p className="text-sm font-medium mt-1">{user?.shopName || 'Not set'}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button onClick={handleLogout} variant="outline" className="gap-2">
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </Card>
+
           {/* WhatsApp Integration */}
           <Card className="premium-card rounded-2xl p-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-start gap-4 mb-6">

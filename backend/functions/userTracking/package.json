@@ -1,0 +1,9 @@
+{
+  "name": "user-tracking",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.709.0",
+    "@aws-sdk/lib-dynamodb": "^3.709.0"
+  }
+}

@@ -1,0 +1,5 @@
+# Add this dependency to package.json:
+
+"@aws-sdk/client-cognito-identity-provider": "^3.709.0"
+
+# Run: npm install

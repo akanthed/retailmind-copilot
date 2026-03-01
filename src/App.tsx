@@ -7,7 +7,11 @@ import { Analytics } from "@vercel/analytics/react";
 import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProductsPage from "./pages/ProductsPage";
@@ -28,41 +32,48 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <TooltipProvider>
-        <OfflineBanner />
-        <Toaster />
-        <Sonner />
-        <Analytics />
-        <BrowserRouter>
-          <KeyboardShortcuts />
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/products/:productId/compare" element={<PriceComparisonPage />} />
-            <Route path="/actions" element={<ActionsPage />} />
-            <Route path="/decisions/:id" element={<DecisionDetailPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/forecast" element={<ForecastPage />} />
-            <Route path="/insights" element={<InsightsPage />} />
-            <Route path="/outcomes" element={<OutcomesPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/setup" element={<SetupPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/help" element={<HelpPage />} />
-            
-            {/* Legacy routes - redirect to new names */}
-            <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/decisions" element={<Navigate to="/actions" replace />} />
-            
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </LanguageProvider>
+    <AuthProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <OfflineBanner />
+          <Toaster />
+          <Sonner />
+          <Analytics />
+          <BrowserRouter>
+            <KeyboardShortcuts />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              
+              {/* Protected routes */}
+              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+              <Route path="/products/:productId/compare" element={<ProtectedRoute><PriceComparisonPage /></ProtectedRoute>} />
+              <Route path="/actions" element={<ProtectedRoute><ActionsPage /></ProtectedRoute>} />
+              <Route path="/decisions/:id" element={<ProtectedRoute><DecisionDetailPage /></ProtectedRoute>} />
+              <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
+              <Route path="/forecast" element={<ProtectedRoute><ForecastPage /></ProtectedRoute>} />
+              <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
+              <Route path="/outcomes" element={<ProtectedRoute><OutcomesPage /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+              <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+              
+              {/* Legacy routes - redirect to new names */}
+              <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/decisions" element={<Navigate to="/actions" replace />} />
+              
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </LanguageProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

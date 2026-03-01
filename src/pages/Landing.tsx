@@ -5,14 +5,24 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useEffect } from "react";
 import { apiClient } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { t, language, setLanguage } = useLanguage();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    checkForProducts();
-  }, []);
+    // Redirect authenticated users to onboarding or dashboard
+    if (!isLoading && isAuthenticated) {
+      const onboardingCompleted = localStorage.getItem("onboarding_completed");
+      if (!onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   async function checkForProducts() {
     try {
@@ -20,7 +30,7 @@ export default function Landing() {
 
       if (result.data && result.data.products.length === 0) {
         const onboardingCompleted = localStorage.getItem("onboarding_completed");
-        if (!onboardingCompleted) {
+        if (!onboardingCompleted && isAuthenticated) {
           navigate("/onboarding");
         }
       }
@@ -30,11 +40,15 @@ export default function Landing() {
   }
 
   function handleGetStarted() {
-    const onboardingCompleted = localStorage.getItem("onboarding_completed");
-    if (onboardingCompleted) {
-      navigate("/dashboard");
+    if (isAuthenticated) {
+      const onboardingCompleted = localStorage.getItem("onboarding_completed");
+      if (!onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
     } else {
-      navigate("/onboarding");
+      navigate("/signup");
     }
   }
 
@@ -84,9 +98,34 @@ export default function Landing() {
             <Languages className="w-4 h-4 mr-2" />
             {language === 'en' ? 'हिंदी' : 'English'}
           </Button>
-          <Button onClick={handleGetStarted} size="sm" className="rounded-xl px-5">
-            {t('landing.getStarted')}
-          </Button>
+          {!isAuthenticated && (
+            <>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/login')}
+                className="rounded-lg"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={() => navigate('/signup')} 
+                size="sm" 
+                className="rounded-xl px-5"
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+          {isAuthenticated && (
+            <Button 
+              onClick={handleGetStarted} 
+              size="sm" 
+              className="rounded-xl px-5"
+            >
+              {t('landing.getStarted')}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -130,20 +169,22 @@ export default function Landing() {
                   size="lg"
                   className="w-full sm:w-auto rounded-xl px-8 group"
                 >
-                  {t('landing.getStartedFree')}
+                  {isAuthenticated ? t('landing.getStarted') : 'Sign Up Free'}
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button
-                  onClick={() => navigate('/help')}
+                  onClick={() => isAuthenticated ? navigate('/dashboard') : navigate('/login')}
                   variant="outline"
                   size="lg"
                   className="w-full sm:w-auto rounded-xl px-8"
                 >
-                  {t('landing.seeHowItWorks')}
+                  {isAuthenticated ? 'Go to Dashboard' : 'Sign In'}
                 </Button>
               </div>
 
-              <p className="text-sm text-muted-foreground">{t('landing.noCreditCard')}</p>
+              <p className="text-sm text-muted-foreground">
+                {!isAuthenticated && t('landing.noCreditCard')}
+              </p>
             </div>
 
             <div className="animate-fade-in [animation-delay:120ms]">
@@ -170,7 +211,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="px-4 md:px-8 lg:px-12 pb-14 md:pb-20">
+        <section className="px-4 md:px-8 lg:px-12 pb-14 md:pb-20 hidden md:block">
           <div className="mx-auto max-w-6xl rounded-2xl border border-border/70 bg-card/60 p-6 md:p-8">
             <div className="grid gap-4 md:grid-cols-3">
               {featureCards.map((feature) => {
