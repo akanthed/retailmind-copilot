@@ -51,7 +51,7 @@ export default function DashboardPage() {
       const productsList = productsResult.data?.products || [];
       setProducts(productsList);
 
-      // Auto-generate recommendations if none exist
+      // Load top 3 pending recommendations only
       const recsResult = await apiClient.getRecommendations();
       const recsList = recsResult.data?.recommendations || [];
       
@@ -61,12 +61,21 @@ export default function DashboardPage() {
           loadRecommendations();
         });
       } else {
-        setRecommendations(recsList.filter(r => r.status === 'pending').slice(0, 3));
+        // Show only top 3 highest confidence pending recommendations
+        const topRecs = recsList
+          .filter(r => r.status === 'pending')
+          .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+          .slice(0, 3);
+        setRecommendations(topRecs);
       }
 
-      // Load alerts
+      // Load top 3 most recent critical alerts only
       const alertsResult = await apiClient.getAlerts();
-      setAlerts((alertsResult.data?.alerts || []).slice(0, 3));
+      const topAlerts = (alertsResult.data?.alerts || [])
+        .filter(a => a.severity === 'critical' || a.severity === 'warning')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 3);
+      setAlerts(topAlerts);
     } catch (error) {
       console.error("Error:", error);
       const friendlyError = getUserFriendlyError(error);
@@ -83,7 +92,11 @@ export default function DashboardPage() {
   async function loadRecommendations() {
     const result = await apiClient.getRecommendations();
     if (result.data) {
-      setRecommendations(result.data.recommendations.filter(r => r.status === 'pending').slice(0, 3));
+      const topRecs = result.data.recommendations
+        .filter(r => r.status === 'pending')
+        .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+        .slice(0, 3);
+      setRecommendations(topRecs);
     }
   }
 

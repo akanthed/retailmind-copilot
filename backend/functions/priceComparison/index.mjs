@@ -368,6 +368,27 @@ async function searchCompetitorPrices(productId, searchParams) {
         priceDiffPercent: ((r.price - product.currentPrice) / product.currentPrice) * 100
     }));
 
+    // 3.5. Deduplicate - Keep only the BEST match per platform
+    const platformBestMatches = {};
+    results.forEach(result => {
+        const platform = result.platform?.toLowerCase() || 'unknown';
+        const score = result.aiScore || result.matchScore || 0;
+        
+        if (!platformBestMatches[platform] || score > (platformBestMatches[platform].aiScore || platformBestMatches[platform].matchScore || 0)) {
+            platformBestMatches[platform] = result;
+        }
+    });
+    
+    // Replace results with only best matches per platform
+    results = Object.values(platformBestMatches);
+    
+    console.log('[PRICE-COMPARE] Deduplicated results', {
+        productId,
+        originalCount: results.length,
+        deduplicatedCount: results.length,
+        platforms: Object.keys(platformBestMatches)
+    });
+
     // 4. Replace previously stored comparisons to avoid stale mismatched rows
     await deleteExistingComparisons(productId);
 
