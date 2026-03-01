@@ -2,8 +2,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Settings, Store, Bell, DollarSign, Check, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function SetupPage() {
+  const { t } = useLanguage();
   const [storeName, setStoreName] = useState("My Retail Store");
   const [currency, setCurrency] = useState("INR");
   const [alertEmail, setAlertEmail] = useState("");
@@ -25,10 +27,10 @@ export default function SetupPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Settings className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('setup.title')}</h1>
           </div>
           <p className="text-muted-foreground">
-            Configure RetailMind AI for your store
+            {t('setup.subtitle')}
           </p>
         </div>
 
@@ -36,26 +38,26 @@ export default function SetupPage() {
         <div className="premium-card rounded-2xl p-6 mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-5 h-5 text-primary" />
-            <h2 className="font-medium text-foreground">Store Information</h2>
+            <h2 className="font-medium text-foreground">{t('setup.storeInfo')}</h2>
           </div>
           
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
-                Store Name
+                {t('setup.storeName')}
               </label>
               <input
                 type="text"
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Enter your store name"
+                placeholder={t('setup.storeNamePlaceholder')}
               />
             </div>
 
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
-                Currency
+                {t('setup.currency')}
               </label>
               <select
                 value={currency}
@@ -75,31 +77,31 @@ export default function SetupPage() {
         <div className="premium-card rounded-2xl p-6 mb-6 animate-fade-in" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center gap-3 mb-4">
             <Bell className="w-5 h-5 text-primary" />
-            <h2 className="font-medium text-foreground">Alert Preferences</h2>
+            <h2 className="font-medium text-foreground">{t('setup.alertPreferences')}</h2>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">
-                Email for Alerts (Optional)
+                {t('setup.emailForAlerts')}
               </label>
               <input
                 type="email"
                 value={alertEmail}
                 onChange={(e) => setAlertEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="your@email.com"
+                placeholder={t('setup.emailPlaceholder')}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Get urgent alerts via email (critical price drops, stockouts)
+                {t('setup.emailHelp')}
               </p>
             </div>
 
             <div className="space-y-3">
               <label className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer">
                 <div>
-                  <p className="font-medium text-foreground">Price Change Alerts</p>
-                  <p className="text-sm text-muted-foreground">Notify when competitors change prices</p>
+                  <p className="font-medium text-foreground">{t('setup.priceChangeAlerts')}</p>
+                  <p className="text-sm text-muted-foreground">{t('setup.priceChangeAlertsDesc')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -111,8 +113,8 @@ export default function SetupPage() {
 
               <label className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer">
                 <div>
-                  <p className="font-medium text-foreground">Stock Risk Alerts</p>
-                  <p className="text-sm text-muted-foreground">Notify when inventory is running low</p>
+                  <p className="font-medium text-foreground">{t('setup.stockRiskAlerts')}</p>
+                  <p className="text-sm text-muted-foreground">{t('setup.stockRiskAlertsDesc')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -129,17 +131,17 @@ export default function SetupPage() {
         <div className="premium-card rounded-2xl p-6 mb-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-center gap-3 mb-4">
             <DollarSign className="w-5 h-5 text-primary" />
-            <h2 className="font-medium text-foreground">Pricing Rules</h2>
+            <h2 className="font-medium text-foreground">{t('setup.pricingRules')}</h2>
           </div>
 
           <div className="space-y-3">
             <div className="p-4 rounded-xl bg-secondary">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-foreground">Minimum Profit Margin</p>
+                <p className="font-medium text-foreground">{t('setup.minProfitMargin')}</p>
                 <span className="text-primary font-medium">20%</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                AI won't suggest prices below this margin
+                {t('setup.minProfitMarginDesc')}
               </p>
               <input
                 type="range"
@@ -152,11 +154,11 @@ export default function SetupPage() {
 
             <div className="p-4 rounded-xl bg-secondary">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-foreground">Price Change Limit</p>
+                <p className="font-medium text-foreground">{t('setup.priceChangeLimit')}</p>
                 <span className="text-primary font-medium">15%</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Maximum price change in one recommendation
+                {t('setup.priceChangeLimitDesc')}
               </p>
               <input
                 type="range"
@@ -172,7 +174,7 @@ export default function SetupPage() {
         {/* Save Button */}
         <div className="flex items-center justify-between animate-fade-in" style={{ animationDelay: "0.25s" }}>
           <p className="text-sm text-muted-foreground">
-            Changes are saved automatically
+            {t('setup.changesSavedAuto')}
           </p>
           <Button
             onClick={handleSave}
@@ -181,27 +183,27 @@ export default function SetupPage() {
             {saved ? (
               <>
                 <Check className="w-4 h-4 mr-2" />
-                Saved!
+                {t('setup.saved')}
               </>
             ) : (
-              'Save Changes'
+              t('setup.saveChanges')
             )}
           </Button>
         </div>
 
         {/* Quick Links */}
         <div className="mt-8 space-y-2 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Actions</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('setup.quickActions')}</h3>
           <button className="w-full premium-card rounded-xl p-4 flex items-center justify-between hover:bg-accent/30 transition-colors">
-            <span className="text-foreground">View Product Catalog</span>
+            <span className="text-foreground">{t('setup.viewProductCatalog')}</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
           <button className="w-full premium-card rounded-xl p-4 flex items-center justify-between hover:bg-accent/30 transition-colors">
-            <span className="text-foreground">Manage Competitors</span>
+            <span className="text-foreground">{t('setup.manageCompetitors')}</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
           <button className="w-full premium-card rounded-xl p-4 flex items-center justify-between hover:bg-accent/30 transition-colors">
-            <span className="text-foreground">Export Data</span>
+            <span className="text-foreground">{t('setup.exportData')}</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>

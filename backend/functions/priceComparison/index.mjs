@@ -2,22 +2,61 @@
 // Searches for product prices across e-commerce platforms using SerpAPI (Google Shopping)
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, DeleteCommand, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
-import { createPriceService, normalizePriceSummary } from "./shared/price-service.mjs";
+
+// Import shared modules from local shared folder
+let createPriceService, normalizePriceSummary, parseUserQuery, rerankWithAI, rerankSimple;
+try {
+    const priceServiceModule = await import("./shared/price-service.mjs");
+    createPriceService = priceServiceModule.createPriceService;
+    normalizePriceSummary = priceServiceModule.normalizePriceSummary;
+    
+    const queryParserModule = await import("./shared/query-parser.mjs");
+    parseUserQuery = queryParserModule.parseUserQuery;
+    
+    const rerankerModule = await import("./shared/ai-reranker.mjs");
+    rerankWithAI = rerankerModule.rerankWithAI;
+    rerankSimple = rerankerModule.rerankSimple;
+    
+    console.log('[INIT] Shared modules loaded successfully');
+} catch (error) {
+    console.warn('[INIT] Shared modules not found, using fallback implementations', error.message);
+    // Fallback implementations
+    createPriceService = () => ({ fetchCompetitorPrices: async () => ({ results: [], source: 'fallback', parsedQuery: {}, attemptedQueries: [], selectedQuery: '' }) });
+    normalizePriceSummary = (name, results) => ({
+        product: name,
+        min_price: results.length ? Math.min(...results.map(r => r.price)) : 0,
+        avg_price: results.length ? results.reduce((sum, r) => sum + r.price, 0) / results.length : 0,
+        sources: results.length,
+        last_updated: new Date().toISOString()
+    });
+    parseUserQuery = (query) => ({ original: query });
+    rerankWithAI = async (q, p, results) => results;
+    rerankSimple = (p, results) => results;
+}
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_COMPARISON_TABLE = "RetailMind-PriceComparison";
+const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 
 // SerpAPI key from environment variable
 const SERPAPI_KEY = process.env.SERP_API_KEY || process.env.SERPAPI_KEY || "";
 const BEDROCK_QUERY_MODEL = process.env.BEDROCK_QUERY_MODEL || "";
+const ENABLE_AI_RERANKING = process.env.ENABLE_AI_RERANKING !== 'false'; // Default: enabled
+const ENABLE_STRICT_FILTERING = process.env.ENABLE_STRICT_FILTERING !== 'false'; // Default: enabled
+const ALLOW_SYNTHETIC_FALLBACK = process.env.ALLOW_SYNTHETIC_FALLBACK === 'true'; // Default: disabled
 const bedrockClient = BEDROCK_QUERY_MODEL ? new BedrockRuntimeClient({ region: "us-east-1" }) : null;
-const priceService = createPriceService({ serpApiKey: SERPAPI_KEY, logger: console, retries: 2 });
+const priceService = createPriceService({ 
+  serpApiKey: SERPAPI_KEY, 
+  logger: console, 
+  retries: 2,
+  enableStrictFiltering: ENABLE_STRICT_FILTERING
+});
 
 export const handler = async (event) => {
     console.log('Price Comparison API invoked:', JSON.stringify(event, null, 2));
@@ -169,7 +208,9 @@ async function searchCompetitorPrices(productId, searchParams) {
         incomingKeywords: searchParams?.keywords || null,
         hasStoredKeywords: Boolean(product.keywords),
         hasSerpApiKey: Boolean(SERPAPI_KEY),
-        aiQueryExpansionEnabled: Boolean(BEDROCK_QUERY_MODEL)
+        aiQueryExpansionEnabled: Boolean(BEDROCK_QUERY_MODEL),
+        strictFilteringEnabled: ENABLE_STRICT_FILTERING,
+        aiRerankingEnabled: ENABLE_AI_RERANKING
     });
 
     const queryCandidates = await buildSearchQueryCandidates(product, searchParams);
@@ -185,38 +226,72 @@ async function searchCompetitorPrices(productId, searchParams) {
 
     let results = [];
     let selectedQuery = '';
+    let parsedQuery = null;
     const queryAttempts = [];
+    const providedUrlPlatforms = getProvidedUrlPlatforms(product, searchParams);
+    const useProvidedUrlOnly = providedUrlPlatforms.length > 0 && searchParams?.allowSearchFallback !== true;
+    const directUrlResults = await fetchDirectCompetitorPrices(product, searchParams);
+    if (directUrlResults.length > 0) {
+        results = dedupeResultsByPlatformAndPrice(directUrlResults);
+        console.log('[PRICE-COMPARE] Direct URL results found', {
+            productId,
+            count: results.length,
+            platforms: results.map((r) => r.platform)
+        });
+    }
+
+    if (useProvidedUrlOnly) {
+        console.log('[PRICE-COMPARE] Using provided URL mode (search fallback disabled)', {
+            productId,
+            providedUrlPlatforms,
+            directResults: results.length
+        });
+    }
 
     try {
+        if (!useProvidedUrlOnly) {
         for (const candidateQuery of queryCandidates) {
             console.log('[PRICE-COMPARE] Searching Google Shopping', {
                 productId,
                 query: candidateQuery
             });
 
-            const searchResult = await priceService.fetchCompetitorPrices(candidateQuery);
+            // Configure filtering options
+            const filterOptions = {
+                strictCapacity: searchParams?.strictCapacity !== false,
+                allowTolerance: searchParams?.allowTolerance || false,
+                minScore: searchParams?.minScore || 60
+            };
+
+            const searchResult = await priceService.fetchCompetitorPrices(candidateQuery, filterOptions);
+            parsedQuery = searchResult.parsedQuery;
+            
             queryAttempts.push({
                 query: candidateQuery,
                 source: searchResult.source,
                 selectedQuery: searchResult.selectedQuery,
                 checklist: searchResult.checklist,
                 attempts: searchResult.attemptedQueries,
-                finalResults: searchResult.results.length
+                finalResults: searchResult.results.length,
+                filteringApplied: searchResult.filteringApplied,
+                parsedQuery: searchResult.parsedQuery
             });
 
             if (searchResult.results.length > 0) {
-                results = searchResult.results;
+                results = dedupeResultsByPlatformAndPrice([...results, ...searchResult.results]);
                 selectedQuery = searchResult.selectedQuery || candidateQuery;
                 if (results.length >= 3) {
                     break;
                 }
             }
         }
+        }
 
         console.log('[PRICE-COMPARE] SerpAPI attempt summary', {
             productId,
             selectedQuery: selectedQuery || null,
-            attempts: queryAttempts
+            attempts: queryAttempts,
+            parsedQuery
         });
     } catch (error) {
         console.error('[PRICE-COMPARE] SerpAPI search failed', {
@@ -232,13 +307,56 @@ async function searchCompetitorPrices(productId, searchParams) {
         };
     }
 
-    if (!results.length) {
-        console.warn('[PRICE-COMPARE] No live results found - using synthetic fallback', {
+    if (!results.length && !useProvidedUrlOnly && ALLOW_SYNTHETIC_FALLBACK) {
+        console.warn('[PRICE-COMPARE] No live results found - using synthetic fallback (enabled via env)', {
             productId,
             productName: product.name,
             attempts: queryAttempts
         });
         results = generateSyntheticPrices(product);
+    }
+
+    if (useProvidedUrlOnly) {
+        results = results.filter((item) => item.source === 'direct_url');
+    }
+
+    // Apply AI re-ranking if enabled and we have results
+    let rerankingApplied = false;
+    if (ENABLE_AI_RERANKING && results.length > 1 && parsedQuery) {
+        try {
+            console.log('[PRICE-COMPARE] Applying AI re-ranking', {
+                productId,
+                resultCount: results.length
+            });
+            
+            if (BEDROCK_QUERY_MODEL) {
+                results = await rerankWithAI(
+                    selectedQuery || queryCandidates[0],
+                    parsedQuery,
+                    results,
+                    {
+                        modelId: BEDROCK_QUERY_MODEL,
+                        logger: console
+                    }
+                );
+            } else {
+                // Fallback to simple re-ranking
+                results = rerankSimple(parsedQuery, results);
+            }
+            
+            rerankingApplied = true;
+            
+            console.log('[PRICE-COMPARE] AI re-ranking complete', {
+                productId,
+                finalCount: results.length,
+                topScore: results[0]?.aiScore || 0
+            });
+        } catch (error) {
+            console.error('[PRICE-COMPARE] AI re-ranking failed, using original order', {
+                productId,
+                message: error.message
+            });
+        }
     }
 
     const summary = normalizePriceSummary(product.name, results);
@@ -250,15 +368,21 @@ async function searchCompetitorPrices(productId, searchParams) {
         priceDiffPercent: ((r.price - product.currentPrice) / product.currentPrice) * 100
     }));
 
-    // 4. Store results in DynamoDB
+    // 4. Replace previously stored comparisons to avoid stale mismatched rows
+    await deleteExistingComparisons(productId);
+
+    // 5. Store latest results in DynamoDB
     let storedCount = 0;
     for (const result of results) {
+        const timestamp = Date.now();
+        const comparisonId = randomUUID();
+        const competitorId = `${String(result.platform || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
         try {
             await docClient.send(new PutCommand({
                 TableName: PRICE_COMPARISON_TABLE,
                 Item: {
                     productId: productId,
-                    comparisonId: randomUUID(),
+                    comparisonId,
                     platform: result.platform,
                     title: result.title,
                     price: result.price,
@@ -267,10 +391,30 @@ async function searchCompetitorPrices(productId, searchParams) {
                     priceDiff: result.priceDiff,
                     priceDiffPercent: result.priceDiffPercent,
                     source: result.source,
-                    timestamp: Date.now(),
+                    timestamp,
                     createdAt: new Date().toISOString()
                 }
             }));
+
+            await docClient.send(new PutCommand({
+                TableName: PRICE_HISTORY_TABLE,
+                Item: {
+                    id: randomUUID(),
+                    timestamp,
+                    productId: productId,
+                    productName: product.name,
+                    productSku: product.sku,
+                    competitorId,
+                    competitorName: result.platform || 'Unknown',
+                    competitorDomain: extractDomain(result.url),
+                    price: result.price,
+                    inStock: result.inStock !== false,
+                    source: result.source || 'live',
+                    url: result.url || '',
+                    createdAt: new Date().toISOString()
+                }
+            }));
+
             storedCount += 1;
         } catch (err) {
             console.warn('Failed to store comparison:', err.message);
@@ -281,8 +425,13 @@ async function searchCompetitorPrices(productId, searchParams) {
         productId,
         selectedQuery,
         resultsCount: results.length,
-        storedCount
+        storedCount,
+        rerankingApplied,
+        parsedQuery
     });
+
+    const liveSourcesCount = results.filter((item) => ['live', 'playwright_fallback', 'direct_url'].includes(item.source)).length;
+    const syntheticCount = results.filter((item) => item.source === 'synthetic').length;
 
     return {
         statusCode: 200,
@@ -298,10 +447,171 @@ async function searchCompetitorPrices(productId, searchParams) {
             debugAttempts: queryAttempts,
             results,
             resultsCount: results.length,
-            source: results.some((item) => item.source === 'playwright_fallback') ? 'mixed' : 'google_shopping',
-            timestamp: new Date().toISOString()
+            source: syntheticCount > 0 ? 'synthetic' : (liveSourcesCount > 0 ? 'live' : 'none'),
+            liveDataAvailable: liveSourcesCount > 0,
+            syntheticFallbackUsed: syntheticCount > 0,
+            directUrlUsed: results.some((item) => item.source === 'direct_url'),
+            useProvidedUrlOnly,
+            providedUrlPlatforms,
+            fallbackEnabled: ALLOW_SYNTHETIC_FALLBACK,
+            timestamp: new Date().toISOString(),
+            parsedQuery,
+            rerankingApplied,
+            strictFilteringEnabled: ENABLE_STRICT_FILTERING
         }
     };
+}
+
+function getProvidedUrlPlatforms(product, searchParams = {}) {
+    const entries = [
+        { platform: 'Amazon.in', url: searchParams?.amazonUrl || product.amazonUrl },
+        { platform: 'Flipkart', url: searchParams?.flipkartUrl || product.flipkartUrl }
+    ];
+
+    return entries
+        .filter((entry) => typeof entry.url === 'string' && entry.url.trim().length > 0)
+        .map((entry) => entry.platform);
+}
+
+async function deleteExistingComparisons(productId) {
+    try {
+        const queryResult = await docClient.send(new QueryCommand({
+            TableName: PRICE_COMPARISON_TABLE,
+            KeyConditionExpression: 'productId = :pid',
+            ExpressionAttributeValues: { ':pid': productId }
+        }));
+
+        const items = queryResult.Items || [];
+        for (const item of items) {
+            if (!item.comparisonId) continue;
+            await docClient.send(new DeleteCommand({
+                TableName: PRICE_COMPARISON_TABLE,
+                Key: {
+                    productId,
+                    comparisonId: item.comparisonId
+                }
+            }));
+        }
+    } catch (error) {
+        console.warn('[PRICE-COMPARE] Failed to clear old comparisons', {
+            productId,
+            message: error.message
+        });
+    }
+}
+
+async function fetchDirectCompetitorPrices(product, searchParams = {}) {
+    const urls = [
+        { platform: 'Amazon.in', url: searchParams?.amazonUrl || product.amazonUrl },
+        { platform: 'Flipkart', url: searchParams?.flipkartUrl || product.flipkartUrl }
+    ].filter((item) => typeof item.url === 'string' && item.url.trim().length > 0);
+
+    if (!urls.length) {
+        return [];
+    }
+
+    const results = [];
+    for (const item of urls) {
+        try {
+            const response = await fetch(item.url, {
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-IN,en;q=0.9"
+                },
+                signal: AbortSignal.timeout(7000)
+            });
+
+            if (!response.ok) {
+                console.warn('[PRICE-COMPARE] Direct URL fetch failed', {
+                    platform: item.platform,
+                    status: response.status
+                });
+                continue;
+            }
+
+            const html = await response.text();
+            const price = extractPriceFromHtml(item.platform, html);
+            if (!price) {
+                console.warn('[PRICE-COMPARE] Direct URL price extraction failed', {
+                    platform: item.platform
+                });
+                continue;
+            }
+
+            results.push({
+                platform: item.platform,
+                title: product.name,
+                price,
+                url: item.url,
+                inStock: true,
+                source: 'direct_url',
+                rating: null,
+                reviews: null,
+                thumbnail: null
+            });
+        } catch (error) {
+            console.warn('[PRICE-COMPARE] Direct URL scrape error', {
+                platform: item.platform,
+                message: error.message
+            });
+        }
+    }
+
+    return results;
+}
+
+function extractPriceFromHtml(platform, html) {
+    if (!html) return null;
+
+    const amazonPatterns = [
+        /<span class="a-price-whole">([0-9,]+)<\/span>/,
+        /"priceAmount":\s*"?([0-9]+(?:\.[0-9]+)?)"?/,
+        /₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/
+    ];
+
+    const flipkartPatterns = [
+        /<div class="[^"]*_30jeq3[^"]*">₹([0-9,]+)<\/div>/,
+        /<div class="[^"]*Nx9bqj[^"]*">₹([0-9,]+)<\/div>/,
+        /₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/
+    ];
+
+    const genericPatterns = [
+        /₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/,
+        /Rs\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+        /INR\s*([0-9,]+(?:\.[0-9]{1,2})?)/i
+    ];
+
+    const patterns = platform.toLowerCase().includes('amazon')
+        ? amazonPatterns
+        : platform.toLowerCase().includes('flipkart')
+            ? flipkartPatterns
+            : genericPatterns;
+
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (!match?.[1]) continue;
+        const parsed = Number(match[1].replace(/,/g, ''));
+        if (Number.isFinite(parsed) && parsed > 0) {
+            return parsed;
+        }
+    }
+
+    return null;
+}
+
+function dedupeResultsByPlatformAndPrice(items) {
+    const seen = new Set();
+    const output = [];
+
+    for (const item of items || []) {
+        const key = `${String(item.platform || '').toLowerCase()}-${Number(item.price)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        output.push(item);
+    }
+
+    return output;
 }
 
 async function buildSearchQueryCandidates(product, searchParams) {

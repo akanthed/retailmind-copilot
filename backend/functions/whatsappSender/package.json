@@ -1,0 +1,10 @@
+{
+  "name": "whatsapp-sender",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Send proactive WhatsApp messages for alerts",
+  "main": "index.mjs",
+  "dependencies": {
+    "twilio": "^5.3.5"
+  }
+}

@@ -1,0 +1,264 @@
+import { useEffect, useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Settings, MessageSquare, Save, CheckCircle, Database, RefreshCw, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient, UrlValidationSummary } from "@/api/client";
+import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/i18n/LanguageContext";
+
+export default function SettingsPage() {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [whatsappNumber, setWhatsappNumber] = useState(
+    localStorage.getItem("whatsapp_number") || ""
+  );
+  const [saved, setSaved] = useState(false);
+  const [liveDataHealth, setLiveDataHealth] = useState<UrlValidationSummary | null>(null);
+  const [loadingHealth, setLoadingHealth] = useState(true);
+  const [validatingUrls, setValidatingUrls] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadLiveDataHealth(false);
+  }, []);
+
+  async function loadLiveDataHealth(showToast: boolean) {
+    setLoadingHealth(true);
+    try {
+      const result = await apiClient.validateProductUrls();
+      if (result.error) {
+        if (showToast) {
+          toast({
+            title: t('setup.validationFailed'),
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      setLiveDataHealth(result.data?.urlValidation || null);
+
+      if (showToast && result.data?.urlValidation) {
+        toast({
+          title: t('setup.validationComplete'),
+          description: `${t('setup.checkedProducts')}: ${result.data.urlValidation.totalProducts}`,
+        });
+      }
+    } catch (error) {
+      if (showToast) {
+        toast({
+          title: t('setup.validationFailed'),
+          description: error instanceof Error ? error.message : t('setup.validationError'),
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoadingHealth(false);
+      setValidatingUrls(false);
+    }
+  }
+
+  async function handleValidateUrls() {
+    setValidatingUrls(true);
+    await loadLiveDataHealth(true);
+  }
+
+  function handleSave() {
+    if (whatsappNumber && !whatsappNumber.startsWith("+")) {
+      toast({
+        title: t('setup.invalidFormat'),
+        description: t('setup.phoneFormatError'),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    localStorage.setItem("whatsapp_number", whatsappNumber);
+    setSaved(true);
+    
+    toast({
+      title: t('setup.saved'),
+      description: t('setup.settingsSavedDesc'),
+    });
+
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  return (
+    <AppLayout>
+      <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto">
+        <div className="mb-8 animate-fade-in">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-primary" />
+            </div>
+            <h1 className="text-2xl font-semibold">{t('setup.title')}</h1>
+          </div>
+          <p className="text-muted-foreground">
+            {t('setup.subtitle')}
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {/* WhatsApp Integration */}
+          <Card className="premium-card rounded-2xl p-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold mb-1">{t('setup.whatsappNotifications')}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('setup.whatsappNotificationDesc')}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="whatsapp">{t('setup.whatsappNumber')}</Label>
+                <Input
+                  id="whatsapp"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {t('setup.includeCountryCode')}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button onClick={handleSave} className="gap-2">
+                  {saved ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      {t('setup.saved')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {t('setup.saveSettings')}
+                    </>
+                  )}
+                </Button>
+                
+                {whatsappNumber && (
+                  <span className="text-sm text-muted-foreground">
+                    {t('setup.alertsWillBeSent')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Note:</strong> {t('setup.noteWhatsappIntegration')}
+              </p>
+            </div>
+          </Card>
+
+          <Card className="premium-card rounded-2xl p-6 animate-fade-in" style={{ animationDelay: "0.15s" }}>
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Database className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold mb-1">{t('setup.liveDataHealth')}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('setup.validateAmazonFlipkart')}
+                </p>
+              </div>
+              <Button onClick={handleValidateUrls} disabled={validatingUrls} variant="outline" className="gap-2">
+                <RefreshCw className={`w-4 h-4 ${validatingUrls ? 'animate-spin' : ''}`} />
+                {validatingUrls ? t('setup.validating') : t('setup.validateURLs')}
+              </Button>
+            </div>
+
+            {loadingHealth ? (
+              <p className="text-sm text-muted-foreground">{t('setup.checkingLiveData')}</p>
+            ) : !liveDataHealth ? (
+              <p className="text-sm text-muted-foreground">{t('setup.noValidationData')}</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">{t('setup.products')}</p>
+                    <p className="text-lg font-semibold">{liveDataHealth.totalProducts}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">{t('setup.withAnyUrl')}</p>
+                    <p className="text-lg font-semibold text-green-600">{liveDataHealth.productsWithAnyUrl}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">{t('setup.missingUrls')}</p>
+                    <p className="text-lg font-semibold text-orange-600">{liveDataHealth.productsMissingUrls}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">{t('setup.urlIssues')}</p>
+                    <p className="text-lg font-semibold text-red-600">{liveDataHealth.issueCount}</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  {t('setup.lastChecked')}: {new Date(liveDataHealth.checkedAt).toLocaleString("en-IN")}
+                </div>
+
+                {liveDataHealth.issueCount > 0 && (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                    <div className="flex items-center gap-2 text-orange-700 mb-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="text-sm font-medium">{t('setup.topUrlIssues')}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {liveDataHealth.details
+                        .filter((item) => item.invalidCount > 0 || item.unreachableCount > 0 || !item.hasAnyUrl)
+                        .slice(0, 5)
+                        .map((item) => (
+                          <div key={item.productId} className="flex items-center justify-between gap-3 rounded-md bg-white/50 px-2 py-1">
+                            <div className="text-xs text-orange-800 break-words">
+                              {item.productName} {item.invalidCount > 0 ? `· ${item.invalidCount} ${t('setup.invalid')}` : ''}{item.unreachableCount > 0 ? ` · ${item.unreachableCount} ${t('setup.unreachable')}` : ''}{!item.hasAnyUrl ? ` · ${t('setup.missingURLs')}` : ''}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => navigate(`/products?editProductId=${item.productId}&from=settings`)}
+                            >
+                              {t('setup.fixUrl')}
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+
+          {/* Future Settings Sections */}
+          <Card className="premium-card rounded-2xl p-6 opacity-60 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <h2 className="text-lg font-semibold mb-2">{t('setup.notificationPreferences')}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t('setup.customizeAlerts')}
+            </p>
+          </Card>
+
+          <Card className="premium-card rounded-2xl p-6 opacity-60 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+            <h2 className="text-lg font-semibold mb-2">{t('setup.dataPrivacy')}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t('setup.manageData')}
+            </p>
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

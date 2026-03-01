@@ -2,49 +2,67 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
+import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
+import { LanguageProvider } from "@/i18n/LanguageContext";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import Landing from "./pages/Landing";
-import CommandCenterPage from "./pages/CommandCenterPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import DashboardPage from "./pages/DashboardPage";
 import ProductsPage from "./pages/ProductsPage";
 import PriceComparisonPage from "./pages/PriceComparisonPage";
-import DecisionsPage from "./pages/DecisionsPage";
+import ActionsPage from "./pages/ActionsPage";
 import DecisionDetailPage from "./pages/DecisionDetailPage";
-import InsightsPage from "./pages/InsightsPage";
 import AlertsPage from "./pages/AlertsPage";
+import ForecastPage from "./pages/ForecastPage";
+import HelpPage from "./pages/HelpPage";
+import SettingsPage from "./pages/SettingsPage";
+import InsightsPage from "./pages/InsightsPage";
 import OutcomesPage from "./pages/OutcomesPage";
 import ReportsPage from "./pages/ReportsPage";
 import SetupPage from "./pages/SetupPage";
-import HelpPage from "./pages/HelpPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Analytics />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/command-center" element={<CommandCenterPage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/products/:productId/compare" element={<PriceComparisonPage />} />
-          <Route path="/decisions" element={<DecisionsPage />} />
-          <Route path="/decisions/:id" element={<DecisionDetailPage />} />
-          <Route path="/insights" element={<InsightsPage />} />
-          <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/outcomes" element={<OutcomesPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/setup" element={<SetupPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider>
+        <OfflineBanner />
+        <Toaster />
+        <Sonner />
+        <Analytics />
+        <BrowserRouter>
+          <KeyboardShortcuts />
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:productId/compare" element={<PriceComparisonPage />} />
+            <Route path="/actions" element={<ActionsPage />} />
+            <Route path="/decisions/:id" element={<DecisionDetailPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/forecast" element={<ForecastPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/outcomes" element={<OutcomesPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/setup" element={<SetupPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            
+            {/* Legacy routes - redirect to new names */}
+            <Route path="/command-center" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/decisions" element={<Navigate to="/actions" replace />} />
+            
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 

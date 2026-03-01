@@ -1,4 +1,5 @@
 import https from "https";
+import { parseUserQuery, extractCapacity, filterResultsStrict } from "./query-parser.mjs";
 
 const STOP_WORDS = new Set([
   "buy",
@@ -19,12 +20,16 @@ const STOP_WORDS = new Set([
   "india"
 ]);
 
-export function createPriceService({ serpApiKey, logger = console, retries = 2, scraper = scrapeFallbackPrices } = {}) {
+export function createPriceService({ serpApiKey, logger = console, retries = 2, scraper = scrapeFallbackPrices, enableStrictFiltering = true } = {}) {
   return {
     extractPrices,
-    fetchCompetitorPrices: async (rawQuery) => {
+    fetchCompetitorPrices: async (rawQuery, filterOptions = {}) => {
       const cleanedQuery = cleanSearchQuery(rawQuery);
       const compactQuery = buildCompactQuery(cleanedQuery);
+      
+      // Parse query for intelligent filtering
+      const parsedQuery = parseUserQuery(rawQuery);
+      
       const attemptedQueries = [];
       const checklist = {
         hasApiKey: Boolean(serpApiKey),
@@ -32,7 +37,8 @@ export function createPriceService({ serpApiKey, logger = console, retries = 2, 
         region: "in",
         queryLength: cleanedQuery.length,
         hasShoppingResults: false,
-        rateLimited: false
+        rateLimited: false,
+        parsedAttributes: parsedQuery
       };
 
       let aggregated = [];
@@ -65,13 +71,39 @@ export function createPriceService({ serpApiKey, logger = console, retries = 2, 
         }
       }
 
-      if (aggregated.length >= 3) {
+      // Apply strict filtering if enabled
+      let filtered = aggregated;
+      let filteringApplied = false;
+      
+      if (enableStrictFiltering && aggregated.length > 0) {
+        const beforeCount = aggregated.length;
+        
+        // Apply strict filtering with options
+        filtered = filterResultsStrict(parsedQuery, aggregated, {
+          strictCapacity: filterOptions.strictCapacity !== false,
+          allowTolerance: filterOptions.allowTolerance || false,
+          minScore: filterOptions.minScore || 60
+        });
+        
+        filteringApplied = true;
+        
+        logger.log('[PRICE-SERVICE] Strict filtering applied', {
+          beforeCount,
+          afterCount: filtered.length,
+          rejectedCount: beforeCount - filtered.length,
+          parsedQuery
+        });
+      }
+
+      if (filtered.length >= 3) {
         return {
-          results: aggregated,
+          results: filtered,
           source: "serpapi",
           selectedQuery: compactQuery || cleanedQuery,
           attemptedQueries,
-          checklist
+          checklist,
+          filteringApplied,
+          parsedQuery
         };
       }
 
@@ -84,13 +116,31 @@ export function createPriceService({ serpApiKey, logger = console, retries = 2, 
         hasShoppingResults: false
       });
 
-      const merged = dedupePrices([...aggregated, ...scraperResults]);
+      let merged = dedupePrices([...filtered, ...scraperResults]);
+      
+      // Apply filtering to merged results if enabled
+      if (enableStrictFiltering && merged.length > 0) {
+        const beforeCount = merged.length;
+        merged = filterResultsStrict(parsedQuery, merged, {
+          strictCapacity: filterOptions.strictCapacity !== false,
+          allowTolerance: filterOptions.allowTolerance || false,
+          minScore: filterOptions.minScore || 60
+        });
+        
+        logger.log('[PRICE-SERVICE] Strict filtering applied to merged results', {
+          beforeCount,
+          afterCount: merged.length
+        });
+      }
+      
       return {
         results: merged,
-        source: aggregated.length ? "mixed" : "playwright",
+        source: filtered.length ? "mixed" : "playwright",
         selectedQuery: compactQuery || cleanedQuery,
         attemptedQueries,
-        checklist
+        checklist,
+        filteringApplied,
+        parsedQuery
       };
     }
   };
@@ -125,6 +175,7 @@ export function extractPrices(data) {
       price: Number(item.extracted_price),
       source: item.source,
       title: item.title,
+      snippet: item.snippet || '',
       link: item.link || item.product_link || ""
     }));
 
@@ -141,6 +192,7 @@ export function extractPrices(data) {
         price,
         source: item.source || item.displayed_link || "Organic",
         title: item.title,
+        snippet: item.snippet || '',
         link: item.link || ""
       };
     })

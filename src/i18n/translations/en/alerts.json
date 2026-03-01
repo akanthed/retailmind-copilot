@@ -1,0 +1,23 @@
+{
+  "title": "Alerts",
+  "subtitle": "Critical notifications and opportunities",
+  "generateAlerts": "Generate Alerts",
+  "generating": "Generating...",
+  "priceChanges": "Price Changes",
+  "stockRisks": "Stock Risks",
+  "opportunities": "Opportunities",
+  "recentActivity": "Recent Activity",
+  "loadingAlerts": "Loading alerts...",
+  "noAlerts": "No alerts yet. Click 'Generate Alerts' to analyze your products.",
+  "noAlertsDesc": "All clear! No critical alerts at this time",
+  "all": "All",
+  "unread": "Unread",
+  "acknowledged": "Acknowledged",
+  "critical": "Critical",
+  "warning": "Warning",
+  "info": "Info",
+  "acknowledge": "Acknowledge",
+  "priceDropAlert": "Price Drop Alert",
+  "stockRiskAlert": "Stock Risk Alert",
+  "opportunityAlert": "Opportunity Alert"
+}

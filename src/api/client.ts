@@ -9,6 +9,37 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+    
+    // Retry on 5xx errors or network issues
+    if (response.status >= 500 && retries > 0) {
+      console.warn(`Request failed with ${response.status}, retrying... (${retries} attempts left)`);
+      await sleep(RETRY_DELAY);
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    
+    return response;
+  } catch (error) {
+    // Network error - retry if attempts remaining
+    if (retries > 0) {
+      console.warn(`Network error, retrying... (${retries} attempts left)`, error);
+      await sleep(RETRY_DELAY);
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw error;
+  }
+}
+
 export interface CopilotResponse {
   query: string;
   response: string;
@@ -26,6 +57,7 @@ export interface Product {
   costPrice: number;
   stock: number;
   stockDays: number;
+  validUntil?: string | null;
   competitors?: string[];
   amazonUrl?: string;
   flipkartUrl?: string;
@@ -44,6 +76,13 @@ export interface PriceComparison {
   priceDiff: number;
   priceDiffPercent: number;
   source: string;
+  matchScore?: number;
+  matchType?: 'exact' | 'approximate' | 'mismatch' | 'missing';
+  extractedCapacity?: string;
+  capacityMatch?: boolean;
+  aiScore?: number;
+  aiRank?: number;
+  aiReason?: string;
 }
 
 export interface PriceHistory {
@@ -69,6 +108,10 @@ export interface Recommendation {
   currentPrice?: number;
   suggestedAction?: string;
   currentStock?: number;
+  gst?: {
+    current: GSTBreakdown;
+    suggested: GSTBreakdown;
+  };
   impact: string;
   confidence: number;
   status: 'pending' | 'implemented' | 'dismissed';
@@ -92,6 +135,108 @@ export interface Alert {
   acknowledgedAt?: number;
 }
 
+export interface DemandForecast {
+  productId: string;
+  productName: string;
+  sku: string;
+  category: string;
+  currentStock: number;
+  forecastPeriod: string;
+  generatedAt: number;
+  summary: {
+    totalPredictedDemand: number;
+    avgDailyDemand: number;
+    maxDemand: number;
+    minDemand: number;
+    daysUntilStockout: number;
+    stockoutRisk: 'low' | 'medium' | 'high' | 'critical';
+    confidence: number;
+  };
+  dailyForecasts: Array<{
+    date: string;
+    predictedDemand: number;
+    confidence: number;
+    festival: string | null;
+    festivalImpact: number;
+    dayOfWeek: string;
+  }>;
+  peakPeriods: Array<{
+    date: string;
+    festival: string;
+    expectedDemand: number;
+    impact: number;
+  }>;
+  recommendations: Array<{
+    type: string;
+    priority: string;
+    message: string;
+    action: string;
+    impact: string;
+  }>;
+  methodology: string;
+}
+
+export interface RevenueSummary {
+  revenue_protected: number;
+  alert_response_rate: number;
+  competitive_score: number;
+  period: {
+    start: string;
+    end: string;
+  };
+  alerts_responded: number;
+  alerts_total: number;
+}
+
+export interface RevenueHistoryItem {
+  date: string;
+  revenue_protected: number;
+  competitive_score: number;
+}
+
+export interface GSTBreakdown {
+  priceIncludingGST: number;
+  priceExcludingGST: number;
+  gstAmount: number;
+  gstRate: number;
+  gstPercentage: string;
+}
+
+export interface UrlValidationEntry {
+  present: boolean;
+  validFormat: boolean;
+  domainMatches: boolean;
+  reachable: boolean | null;
+  status: number | null;
+  error: string | null;
+  url: string;
+}
+
+export interface ProductUrlValidationDetail {
+  productId: string;
+  productName: string;
+  sku: string;
+  hasAnyUrl: boolean;
+  hasBothUrls: boolean;
+  invalidCount: number;
+  unreachableCount: number;
+  amazon: UrlValidationEntry;
+  flipkart: UrlValidationEntry;
+}
+
+export interface UrlValidationSummary {
+  checkedAt: string;
+  totalProducts: number;
+  productsWithAnyUrl: number;
+  productsWithBothUrls: number;
+  productsMissingUrls: number;
+  invalidFormatCount: number;
+  unreachableCount: number;
+  validReachableCount: number;
+  issueCount: number;
+  details: ProductUrlValidationDetail[];
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -104,10 +249,13 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const method = (options.method || 'GET').toUpperCase();
+      const shouldSetJsonContentType = Boolean(options.body) && method !== 'GET' && method !== 'HEAD';
+
+      const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...(shouldSetJsonContentType ? { 'Content-Type': 'application/json' } : {}),
           ...options.headers,
         },
       });
@@ -125,23 +273,38 @@ class ApiClient {
       return { data };
     } catch (error) {
       console.error('API Error:', error);
-      return {
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
-      };
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'An unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { error: errorMessage };
     }
   }
 
   // AI Copilot
-  async queryCopilot(query: string): Promise<ApiResponse<CopilotResponse>> {
+  async queryCopilot(query: string, language: 'en' | 'hi' = 'en'): Promise<ApiResponse<CopilotResponse>> {
     return this.request<CopilotResponse>('/copilot', {
       method: 'POST',
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, language }),
     });
   }
 
   // Products
   async getProducts(): Promise<ApiResponse<{ products: Product[]; count: number }>> {
     return this.request('/products', { method: 'GET' });
+  }
+
+  async validateProductUrls(): Promise<ApiResponse<{ products: Product[]; pagination: { totalCount: number; pageSize: number; currentPage: number; totalPages: number }; urlValidation: UrlValidationSummary | null }>> {
+    return this.request('/products?validateUrls=true&pageSize=100', { method: 'GET' });
   }
 
   async getProduct(productId: string): Promise<ApiResponse<Product>> {
@@ -175,9 +338,9 @@ class ApiClient {
     return this.request(`/products/${productId}/compare`, { method: 'GET' });
   }
 
-  async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[] }>> {
+  async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[]; liveDataAvailable?: boolean; syntheticFallbackUsed?: boolean; directUrlUsed?: boolean; fallbackEnabled?: boolean }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/products/${productId}/compare/search`, {
+      const response = await fetchWithRetry(`${this.baseUrl}/products/${productId}/compare/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,6 +421,40 @@ class ApiClient {
 
   async getOutcomes(): Promise<ApiResponse<any>> {
     return this.request('/analytics/outcomes', { method: 'GET' });
+  }
+
+  async getInsights(): Promise<ApiResponse<any>> {
+    return this.request('/analytics/insights', { method: 'GET' });
+  }
+
+  // Demand Forecasting
+  async getForecasts(): Promise<ApiResponse<{ forecasts: DemandForecast[]; count: number }>> {
+    return this.request('/forecast', { method: 'GET' });
+  }
+
+  async getForecast(productId: string): Promise<ApiResponse<{ forecast: DemandForecast }>> {
+    return this.request(`/forecast/${productId}`, { method: 'GET' });
+  }
+
+  async generateForecasts(productId?: string): Promise<ApiResponse<{ message: string; forecasts: DemandForecast[] }>> {
+    return this.request('/forecast/generate', {
+      method: 'POST',
+      body: JSON.stringify({ productId }),
+    });
+  }
+
+  // Revenue Impact
+  async getRevenueSummary(startDate?: string, endDate?: string): Promise<ApiResponse<RevenueSummary>> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<RevenueSummary>(`/revenue/summary${query}`, { method: 'GET' });
+  }
+
+  async getRevenueHistory(days: number = 30): Promise<ApiResponse<{ history: RevenueHistoryItem[]; count: number }>> {
+    return this.request(`/revenue/history?days=${days}`, { method: 'GET' });
   }
 }
 

@@ -1,0 +1,22 @@
+{
+  "dashboard": "डैशबोर्ड",
+  "products": "मेरे उत्पाद",
+  "actions": "कार्य सूची",
+  "alerts": "अलर्ट",
+  "forecast": "पूर्वानुमान",
+  "insights": "अंतर्दृष्टि",
+  "outcomes": "परिणाम",
+  "reports": "रिपोर्ट",
+  "settings": "सेटिंग्स",
+  "help": "सहायता",
+  "dashboardDesc": "आपका दैनिक अवलोकन",
+  "productsDesc": "इन्वेंटरी प्रबंधित करें",
+  "actionsDesc": "AI सुझाव",
+  "alertsDesc": "महत्वपूर्ण सूचनाएं",
+  "forecastDesc": "मांग पूर्वानुमान",
+  "insightsDesc": "बाजार बुद्धिमत्ता",
+  "outcomesDesc": "अपने परिणाम ट्रैक करें",
+  "reportsDesc": "विस्तृत रिपोर्ट देखें",
+  "settingsDesc": "सेटिंग्स",
+  "helpDesc": "सहायता प्राप्त करें"
+}

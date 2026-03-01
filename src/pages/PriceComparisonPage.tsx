@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   Table,
   TableBody,
@@ -27,6 +28,10 @@ import {
 } from "lucide-react";
 import { apiClient, Product, PriceHistory } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { DataFreshness } from "@/components/ui/DataFreshness";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
+import { MatchQualityBadge } from "@/components/ui/MatchQualityBadge";
 
 interface CompetitorPrice {
   platform: string;
@@ -38,6 +43,13 @@ interface CompetitorPrice {
   priceDiff: number;
   priceDiffPercent: number;
   source: string;
+  matchScore?: number;
+  matchType?: 'exact' | 'approximate' | 'mismatch' | 'missing';
+  extractedCapacity?: string;
+  capacityMatch?: boolean;
+  aiScore?: number;
+  aiRank?: number;
+  aiReason?: string;
 }
 
 interface SearchDebugAttempt {
@@ -54,12 +66,31 @@ interface SearchDebugInfo {
   searchQuery?: string;
   attemptedQueries: string[];
   debugAttempts: SearchDebugAttempt[];
+  parsedQuery?: {
+    brand?: string;
+    category?: string;
+    capacity?: string;
+    model?: string;
+  };
+  rerankingApplied?: boolean;
+  strictFilteringEnabled?: boolean;
+}
+
+function isLiveSource(source: string) {
+  return source === "live" || source === "playwright_fallback" || source === "direct_url";
+}
+
+function getSourceLabel(source: string, t: (key: string) => string) {
+  if (isLiveSource(source)) return t('priceComparison.live');
+  if (source === 'synthetic') return 'Demo';
+  return t('priceComparison.cache');
 }
 
 export default function PriceComparisonPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [competitorPrices, setCompetitorPrices] = useState<CompetitorPrice[]>([]);
@@ -67,6 +98,8 @@ export default function PriceComparisonPage() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchDebug, setSearchDebug] = useState<SearchDebugInfo | null>(null);
+  const [lastSearchTime, setLastSearchTime] = useState<number | null>(null);
+  const [autoSearching, setAutoSearching] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -81,8 +114,8 @@ export default function PriceComparisonPage() {
       const productResult = await apiClient.getProduct(productId!);
       if (productResult.error) {
         toast({
-          title: "Error",
-          description: "Product not found",
+          title: errorMessages.productNotFound.title,
+          description: errorMessages.productNotFound.description,
           variant: "destructive",
         });
         navigate("/products");
@@ -93,17 +126,36 @@ export default function PriceComparisonPage() {
       // Load price comparison data
       const priceResult = await apiClient.getProductPriceComparison(productId!);
       if (priceResult.data) {
-        setCompetitorPrices(priceResult.data.comparisons || []);
+        const comparisons = priceResult.data.comparisons || [];
+        // Filter to only show Amazon and Flipkart
+        const filteredComparisons = comparisons.filter((comp: CompetitorPrice) => {
+          const platform = comp.platform.toLowerCase();
+          return platform.includes('amazon') || platform.includes('flipkart');
+        });
+        setCompetitorPrices(filteredComparisons);
+        
+        // Auto-search if no prices found OR explicit URLs exist but current rows are stale/non-direct
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        const hasExplicitUrl = Boolean(productResult.data?.amazonUrl || productResult.data?.flipkartUrl);
+        const hasDirectRows = filteredComparisons.some((comp: CompetitorPrice) => comp.source === 'direct_url');
+        const shouldAutoRefresh =
+          filteredComparisons.length === 0 ||
+          (hasExplicitUrl && !hasDirectRows);
+
+        if (shouldAutoRefresh && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
+          // Auto-search in background after 1 second
+          setAutoSearching(true);
+          setTimeout(() => {
+            handleSearchPrices(true);
+          }, 1000);
+        }
       }
 
       // Load price history
       const historyResult = await apiClient.getProductPrices(productId!);
-      if (historyResult.data) {
-        setPriceHistory(
-          Array.isArray(historyResult.data)
-            ? historyResult.data
-            : (historyResult.data as any).priceHistory || []
-        );
+      if (!historyResult.error && historyResult.data) {
+        setPriceHistory(Array.isArray(historyResult.data) ? historyResult.data : []);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -112,95 +164,110 @@ export default function PriceComparisonPage() {
     }
   }
 
-  async function handleSearchPrices() {
-    if (!product || searching) return;
-    setSearching(true);
-    try {
-      const result = await apiClient.searchCompetitorPrices(productId!, {
-        keywords: (product as any).keywords || product.name,
-        amazonUrl: (product as any).amazonUrl,
-        flipkartUrl: (product as any).flipkartUrl,
-      });
+  async function handleSearchPrices(isAutoSearch = false) {
+      if (!product || searching) return;
+      setSearching(true);
 
-      setSearchDebug({
-        selectedQuery: (result.data as any)?.searchQuery,
-        searchQuery: (result.data as any)?.searchQuery,
-        attemptedQueries: (result.data as any)?.attemptedQueries || [],
-        debugAttempts: (result.data as any)?.debugAttempts || [],
-      });
-
-      if (result.error) {
+      if (!isAutoSearch) {
         toast({
-          title: "Search Error",
-          description: result.error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const results = result.data?.results || [];
-      setCompetitorPrices(results);
-
-      // Show data source notification
-      const liveCount = results.filter((r: any) => r.source === 'live').length;
-      const syntheticCount = results.filter((r: any) => r.source === 'synthetic').length;
-      
-      if (liveCount > 0) {
-        toast({
-          title: "Live Data Retrieved",
-          description: `Found ${liveCount} live prices from Google Shopping`,
-        });
-      } else if (syntheticCount > 0) {
-        toast({
-          title: "Using Demo Data",
-          description: "Showing synthetic prices for demonstration",
-          variant: "default",
+          title: "Searching...",
+          description: "Finding competitor prices",
         });
       }
 
-      if (results.length === 0) {
-        toast({
-          title: "No Prices Found",
-          description: "Try adding brand/model keywords in product details, then search again.",
+      try {
+        const result = await apiClient.searchCompetitorPrices(productId!, {
+          keywords: product.keywords || product.name,
+          amazonUrl: product.amazonUrl,
+          flipkartUrl: product.flipkartUrl,
         });
-        return;
-      }
 
-      toast({
-        title: "Prices Updated",
-        description: `Found ${result.data?.results?.length || 0} competitor prices`,
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to search competitor prices",
-        variant: "destructive",
-      });
-    } finally {
-      setSearching(false);
+        setSearchDebug({
+          selectedQuery: result.data?.searchQuery,
+          searchQuery: result.data?.searchQuery,
+          attemptedQueries: result.data?.attemptedQueries || [],
+          debugAttempts: result.data?.debugAttempts || [],
+        });
+
+        if (result.error) {
+          toast({
+            title: errorMessages.priceSearchFailed.title,
+            description: errorMessages.priceSearchFailed.description,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const results = result.data?.results || [];
+        // Filter to only show Amazon and Flipkart
+        const filteredResults = results.filter((r: any) => {
+          const platform = r.platform.toLowerCase();
+          return platform.includes('amazon') || platform.includes('flipkart');
+        });
+        setCompetitorPrices(filteredResults);
+        setLastSearchTime(Date.now());
+        setAutoSearching(false);
+
+        // Show data source notification only for manual search
+        if (!isAutoSearch) {
+          const liveCount = filteredResults.filter((r: any) => isLiveSource(r.source)).length;
+          const syntheticCount = filteredResults.filter((r: any) => r.source === 'synthetic').length;
+
+          if (liveCount > 0) {
+            toast({
+              title: "Live Data Retrieved",
+              description: `Found ${liveCount} real competitor prices`,
+            });
+          } else if (syntheticCount > 0) {
+            toast({
+              title: "Using Demo Data",
+              description: "Showing sample prices",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "No Live Data Found",
+              description: "Add valid Amazon/Flipkart product URLs for better results",
+              variant: "default",
+            });
+          }
+
+          if (filteredResults.length === 0) {
+            toast({
+              title: errorMessages.noPricesFound.title,
+              description: errorMessages.noPricesFound.description,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        if (!isAutoSearch) {
+          const friendlyError = getUserFriendlyError(error);
+          toast({
+            title: friendlyError.title,
+            description: friendlyError.description,
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setSearching(false);
+        setAutoSearching(false);
+      }
     }
-  }
+
 
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading price comparison...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading price comparison..." />
       </AppLayout>
     );
   }
 
-  if (loading || !product) {
+  if (!product) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <LoadingPage message="Loading product details..." />
       </AppLayout>
     );
   }
@@ -237,7 +304,7 @@ export default function PriceComparisonPage() {
             className="mb-4 gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Products
+            {t('priceComparison.backToProducts')}
           </Button>
 
           <div className="flex items-center justify-between">
@@ -247,107 +314,49 @@ export default function PriceComparisonPage() {
               </h1>
               <p className="text-muted-foreground">
                 SKU: {product.sku} · {product.category}
+                {lastSearchTime && (
+                  <span className="ml-2">
+                    · Updated {new Date(lastSearchTime).toLocaleTimeString()}
+                  </span>
+                )}
               </p>
             </div>
             <Button
-              onClick={handleSearchPrices}
+              onClick={() => handleSearchPrices(false)}
               disabled={searching}
+              variant="outline"
+              size="sm"
               className="gap-2"
             >
               {searching ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Searching...
+                  {t('priceComparison.updating')}
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Search Prices Now
+                  {t('priceComparison.refreshPrices')}
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {/* Debug Details */}
-        {searchDebug &&
-          (searchDebug.attemptedQueries.length > 0 ||
-            searchDebug.debugAttempts.length > 0) && (
-            <div
-              className="premium-card rounded-2xl p-4 mb-6 animate-fade-in"
-              style={{ animationDelay: "0.08s" }}
-            >
-              <details>
-                <summary className="cursor-pointer font-medium text-sm text-foreground">
-                  Debug details (search queries & result mapping)
-                </summary>
-                <div className="mt-3 space-y-3 text-sm">
-                  {searchDebug.searchQuery && (
-                    <p className="text-muted-foreground">
-                      Selected query: <span className="text-foreground">{searchDebug.searchQuery}</span>
-                    </p>
-                  )}
-
-                  {searchDebug.attemptedQueries.length > 0 && (
-                    <div>
-                      <p className="text-muted-foreground mb-1">Attempted queries:</p>
-                      <ul className="space-y-1">
-                        {searchDebug.attemptedQueries.map((query, idx) => (
-                          <li key={`${query}-${idx}`} className="text-foreground">
-                            {idx + 1}. {query}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {searchDebug.debugAttempts.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Query</TableHead>
-                            <TableHead className="text-right">Raw</TableHead>
-                            <TableHead className="text-right">Mapped</TableHead>
-                            <TableHead className="text-right">No Price</TableHead>
-                            <TableHead className="text-right">No Link</TableHead>
-                            <TableHead className="text-right">Final</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {searchDebug.debugAttempts.map((attempt, idx) => (
-                            <TableRow key={`${attempt.query}-${idx}`}>
-                              <TableCell className="max-w-xs truncate">{attempt.query}</TableCell>
-                              <TableCell className="text-right">{attempt.rawShoppingResults}</TableCell>
-                              <TableCell className="text-right">{attempt.mappedResults}</TableCell>
-                              <TableCell className="text-right">{attempt.droppedNoPrice}</TableCell>
-                              <TableCell className="text-right">{attempt.droppedNoLink}</TableCell>
-                              <TableCell className="text-right">{attempt.finalResults}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </details>
-            </div>
-          )}
-
         {/* Price Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           <div className="premium-card rounded-2xl p-4">
-            <p className="text-muted-foreground text-sm mb-1">Your Price</p>
+            <p className="text-muted-foreground text-sm mb-1">{t('priceComparison.yourPrice')}</p>
             <p className="text-2xl font-bold text-primary">
               ₹{currentPrice.toLocaleString("en-IN")}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Cost: ₹{costPrice.toLocaleString("en-IN")}
+              {t('priceComparison.cost')}: ₹{costPrice.toLocaleString("en-IN")}
             </p>
           </div>
 
           <div className="premium-card rounded-2xl p-4">
-            <p className="text-muted-foreground text-sm mb-1">Lowest Found</p>
+            <p className="text-muted-foreground text-sm mb-1">{t('priceComparison.lowestFound')}</p>
             {lowestCompetitor ? (
               <>
                 <p className="text-2xl font-bold text-green-500">
@@ -358,13 +367,13 @@ export default function PriceComparisonPage() {
                 </p>
               </>
             ) : (
-              <p className="text-lg text-muted-foreground">No data yet</p>
+              <p className="text-lg text-muted-foreground">{t('priceComparison.noDataYet')}</p>
             )}
           </div>
 
           <div className="premium-card rounded-2xl p-4">
             <p className="text-muted-foreground text-sm mb-1">
-              Average Market Price
+              {t('priceComparison.avgMarketPrice')}
             </p>
             {avgCompetitorPrice > 0 ? (
               <>
@@ -372,17 +381,17 @@ export default function PriceComparisonPage() {
                   ₹{Math.round(avgCompetitorPrice).toLocaleString("en-IN")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Across {competitorPrices.length} listings
+                  {t('priceComparison.acrossListings').replace('{count}', competitorPrices.length.toString())}
                 </p>
               </>
             ) : (
-              <p className="text-lg text-muted-foreground">No data yet</p>
+              <p className="text-lg text-muted-foreground">{t('priceComparison.noDataYet')}</p>
             )}
           </div>
 
           <div className="premium-card rounded-2xl p-4">
             <p className="text-muted-foreground text-sm mb-1">
-              Your Position
+              {t('priceComparison.yourPosition')}
             </p>
             {competitorPrices.length > 0 ? (
               <>
@@ -390,17 +399,17 @@ export default function PriceComparisonPage() {
                   {isYourPriceLowest ? (
                     <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
                       <TrendingDown className="w-3 h-3 mr-1" />
-                      Lowest
+                      {t('priceComparison.lowest')}
                     </Badge>
                   ) : (
                     <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
                       <TrendingUp className="w-3 h-3 mr-1" />
-                      {pricePosition.toFixed(1)}% higher
+                      {t('priceComparison.higher').replace('{percent}', pricePosition.toFixed(1))}
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  vs. {competitorPrices.length} competitors
+                  {t('priceComparison.vsCompetitors').replace('{count}', competitorPrices.length.toString())}
                 </p>
               </>
             ) : (
@@ -412,148 +421,176 @@ export default function PriceComparisonPage() {
         {/* Competitor Prices Table */}
         <div className="premium-card rounded-2xl overflow-hidden mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
           <div className="p-4 border-b border-border">
-            <h2 className="font-semibold flex items-center gap-2">
-              <Globe className="w-5 h-5 text-primary" />
-              Competitor Prices
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Prices found across e-commerce platforms for this product
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-primary" />
+                  {t('priceComparison.competitorPrices')}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('priceComparison.pricesFoundDesc')}
+                </p>
+              </div>
+              {competitorPrices.some(p => p.source === 'synthetic') && (
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/30">
+                  📊 Demo Prices
+                </Badge>
+              )}
+            </div>
           </div>
 
           {competitorPrices.length === 0 ? (
             <div className="p-12 text-center">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                No competitor prices yet
+                {autoSearching ? "Searching for prices..." : "No competitor prices found"}
               </h3>
-              <p className="text-muted-foreground mb-4">
-                Click "Search Prices Now" to find this product on Amazon,
-                Flipkart, and other platforms
+              <p className="text-muted-foreground mb-6">
+                {autoSearching 
+                  ? "AI is analyzing Amazon, Flipkart, and other platforms..."
+                  : "We couldn't find competitor prices for this product."
+                }
               </p>
-              <Button
-                onClick={handleSearchPrices}
-                disabled={searching}
-                className="gap-2"
-              >
-                <Search className="w-4 h-4" />
-                Search Prices
-              </Button>
+              {autoSearching && (
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+              )}
+              {!autoSearching && (
+                <div className="flex flex-col gap-3 items-center">
+                  <Button 
+                    onClick={() => handleSearchPrices(false)}
+                    disabled={searching}
+                    className="gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    {searching ? "Searching..." : "Search Now"}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Make sure Amazon/Flipkart product URLs are added in product details.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Product Title</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">vs. Your Price</TableHead>
-                  <TableHead className="text-center">Stock</TableHead>
-                  <TableHead className="text-center">Source</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="w-[100px]">{t('priceComparison.platform')}</TableHead>
+                  <TableHead className="min-w-[200px]">{t('priceComparison.productTitle')}</TableHead>
+                  <TableHead className="w-[140px]">Match Quality</TableHead>
+                  <TableHead className="text-right w-[90px]">{t('priceComparison.price')}</TableHead>
+                  <TableHead className="text-right w-[110px]">{t('priceComparison.vsYourPrice')}</TableHead>
+                  <TableHead className="text-center w-[100px]">{t('priceComparison.stock')}</TableHead>
+                  <TableHead className="text-center w-[90px]">{t('priceComparison.source')}</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {/* Your price row */}
                 <TableRow className="bg-primary/5">
-                  <TableCell>
-                    <Badge variant="default">Your Store</Badge>
+                  <TableCell className="w-[100px]">
+                    <Badge variant="default" className="h-6 whitespace-nowrap text-xs">{t('priceComparison.yourStore')}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-right font-bold text-primary">
+                  <TableCell className="font-medium min-w-[200px] text-sm">{product.name}</TableCell>
+                  <TableCell className="w-[140px]">
+                    <Badge variant="default" className="h-6 whitespace-nowrap text-xs">Your Product</Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-primary w-[90px] text-sm">
                     ₹{currentPrice.toLocaleString("en-IN")}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Minus className="w-4 h-4 mx-auto text-muted-foreground" />
+                  <TableCell className="text-right w-[110px]">
+                    <div className="flex items-center justify-end">
+                      <Minus className="w-4 h-4 text-muted-foreground" />
+                    </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center w-[100px]">
                     <Badge
                       variant={product.stock > 0 ? "default" : "destructive"}
+                      className="h-6 whitespace-nowrap text-xs"
                     >
-                      {product.stock > 0 ? `${product.stock} units` : "Out of Stock"}
+                      {product.stock > 0 ? t('priceComparison.inStock') : t('priceComparison.out')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center text-muted-foreground text-sm">
-                    —
+                  <TableCell className="text-center w-[90px]">
+                    <Badge variant="outline" className="h-6 whitespace-nowrap text-xs">
+                      {t('priceComparison.yourData')}
+                    </Badge>
                   </TableCell>
-                  <TableCell></TableCell>
+                  <TableCell className="w-[50px]"></TableCell>
                 </TableRow>
 
                 {/* Competitor rows */}
                 {competitorPrices.map((comp, idx) => (
                   <TableRow key={idx}>
-                    <TableCell>
+                    <TableCell className="w-[100px]">
                       <Badge
                         variant="outline"
-                        className={getPlatformColor(comp.platform)}
+                        className={`${getPlatformColor(comp.platform)} h-6 w-fit whitespace-nowrap text-xs`}
                       >
                         {comp.platform}
                       </Badge>
-                      {comp.source === 'live' && (
-                        <Badge variant="default" className="ml-2 bg-green-500 text-white text-xs">
-                          Live
-                        </Badge>
-                      )}
-                      {comp.source === 'synthetic' && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          Demo
-                        </Badge>
-                      )}
                     </TableCell>
-                    <TableCell>
-                      <p className="max-w-xs truncate">{comp.title}</p>
+                    <TableCell className="min-w-[200px]">
+                      <p className="line-clamp-2 text-sm break-words" title={comp.title}>{comp.title}</p>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="w-[140px]">
+                      <MatchQualityBadge
+                        matchType={comp.matchType}
+                        matchScore={comp.matchScore}
+                        aiScore={comp.aiScore}
+                        extractedCapacity={comp.extractedCapacity}
+                        queryCapacity={searchDebug?.parsedQuery?.capacity}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right font-medium w-[90px] text-sm">
                       ₹{comp.price.toLocaleString("en-IN")}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right w-[110px]">
                       {comp.priceDiff < 0 ? (
-                        <span className="flex items-center justify-end gap-1 text-green-500">
-                          <ArrowDownRight className="w-3 h-3" />₹
-                          {Math.abs(comp.priceDiff).toLocaleString("en-IN")} (
-                          {Math.abs(comp.priceDiffPercent).toFixed(1)}% cheaper)
+                        <span className="flex items-center justify-end gap-1 text-green-500 text-xs">
+                          <ArrowDownRight className="w-3 h-3" />
+                          {Math.abs(comp.priceDiffPercent).toFixed(1)}%
                         </span>
                       ) : comp.priceDiff > 0 ? (
-                        <span className="flex items-center justify-end gap-1 text-red-500">
-                          <ArrowUpRight className="w-3 h-3" />₹
-                          {comp.priceDiff.toLocaleString("en-IN")} (
-                          {comp.priceDiffPercent.toFixed(1)}% more)
+                        <span className="flex items-center justify-end gap-1 text-red-500 text-xs">
+                          <ArrowUpRight className="w-3 h-3" />
+                          {comp.priceDiffPercent.toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Same</span>
+                        <span className="text-muted-foreground text-xs">Same</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center w-[100px]">
                       <Badge
                         variant={comp.inStock ? "default" : "destructive"}
-                        className={
+                        className={`h-6 whitespace-nowrap text-xs ${
                           comp.inStock
                             ? "bg-green-500/10 text-green-500 border-green-500/20"
                             : ""
-                        }
+                        }`}
                       >
-                        {comp.inStock ? "In Stock" : "Out of Stock"}
+                        {comp.inStock ? t('priceComparison.inStock') : t('priceComparison.out')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center w-[90px]">
                       <Badge
                         variant="outline"
-                        className={
-                          comp.source === "live"
+                        className={`h-6 whitespace-nowrap text-xs ${
+                          isLiveSource(comp.source)
                             ? "text-green-500 border-green-500/30"
                             : "text-muted-foreground"
-                        }
+                        }`}
                       >
-                        {comp.source === "live" ? "Live" : "Cached"}
+                        {getSourceLabel(comp.source, t)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[50px]">
                       {comp.url && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => window.open(comp.url, "_blank")}
                           title="View on platform"
+                          className="h-8 w-8 p-0"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>

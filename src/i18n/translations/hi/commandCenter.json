@@ -1,0 +1,23 @@
+{
+  "title": "RetailMind AI सहायक",
+  "subtitle": "अपने उत्पादों, मूल्य निर्धारण, या बाजार की स्थितियों के बारे में कुछ भी पूछें।",
+  "inputPlaceholder": "RetailMind से पूछें: मुझे उत्पाद X के बारे में आज क्या करना चाहिए?",
+  "aiResponse": "AI प्रतिक्रिया",
+  "tryAsking": "पूछने का प्रयास करें:",
+  "prompt1": "मेरी बिक्री क्यों कम है?",
+  "prompt2": "क्या मुझे इस उत्पाद पर छूट देनी चाहिए?",
+  "prompt3": "अभी मेरा सबसे बड़ा जोखिम क्या है?",
+  "prompt4": "किन उत्पादों को पुनर्मूल्यांकन की आवश्यकता है?",
+  "todaysRecommendations": "आज की सिफारिशें",
+  "pendingActions": "लंबित कार्य",
+  "loadingRecommendations": "सिफारिशें लोड हो रही हैं...",
+  "noRecommendationsYet": "अभी तक कोई सिफारिश नहीं",
+  "generateRecommendations": "सिफारिशें उत्पन्न करें",
+  "emptyQuery": "खाली प्रश्न",
+  "pleaseEnterQuestion": "कृपया एक प्रश्न दर्ज करें",
+  "errorTitle": "त्रुटि",
+  "aiResponseReady": "AI प्रतिक्रिया तैयार",
+  "poweredBy": "द्वारा संचालित",
+  "recommendationsGenerated": "सिफारिशें उत्पन्न की गईं",
+  "generatedCount": "{count} नई सिफारिशें उत्पन्न की गईं"
+}

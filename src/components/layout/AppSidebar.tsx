@@ -1,88 +1,100 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/Logo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
-  Sparkles,
-  FileText,
-  BarChart3,
-  Bell,
-  Target,
-  FileDown,
-  Settings,
-  HelpCircle,
-  ChevronLeft,
+  Home,
   Package,
+  CheckSquare,
+  TrendingUp,
+  Bell,
+  BarChart3,
+  Target,
+  FileText,
+  HelpCircle,
+  Settings,
+  ChevronLeft,
 } from "lucide-react";
 import { useState } from "react";
 
-const navItems = [
-  {
-    title: "AI Assistant",
-    icon: Sparkles,
-    href: "/command-center",
-    description: "RetailMind AI recommendations",
-  },
-  {
-    title: "My Products",
-    icon: Package,
-    href: "/products",
-    description: "Add & manage products",
-  },
-  {
-    title: "Decisions",
-    icon: FileText,
-    href: "/decisions",
-    description: "Review actions",
-  },
-  {
-    title: "Insights",
-    icon: BarChart3,
-    href: "/insights",
-    description: "Market evidence",
-  },
-  {
-    title: "Alerts",
-    icon: Bell,
-    href: "/alerts",
-    description: "Signals & risks",
-  },
-  {
-    title: "Outcomes",
-    icon: Target,
-    href: "/outcomes",
-    description: "Track results",
-  },
-  {
-    title: "Reports",
-    icon: FileDown,
-    href: "/reports",
-    description: "Export & share",
-  },
-];
-
 const bottomItems = [
   {
-    title: "Setup",
+    title: "settings",
     icon: Settings,
-    href: "/setup",
-  },
-  {
-    title: "Help",
-    icon: HelpCircle,
-    href: "/help",
+    href: "/settings",
   },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const navItems = [
+    {
+      title: t('nav.dashboard'),
+      icon: Home,
+      href: "/dashboard",
+      description: t('nav.dashboardDesc'),
+    },
+    {
+      title: t('nav.products'),
+      icon: Package,
+      href: "/products",
+      description: t('nav.productsDesc'),
+    },
+    {
+      title: t('nav.actions'),
+      icon: CheckSquare,
+      href: "/actions",
+      description: t('nav.actionsDesc'),
+    },
+    {
+      title: t('nav.alerts'),
+      icon: Bell,
+      href: "/alerts",
+      description: t('nav.alertsDesc'),
+    },
+    {
+      title: t('nav.forecast'),
+      icon: TrendingUp,
+      href: "/forecast",
+      description: t('nav.forecastDesc'),
+    },
+    {
+      title: t('nav.insights'),
+      icon: BarChart3,
+      href: "/insights",
+      description: t('nav.insightsDesc'),
+    },
+    {
+      title: t('nav.outcomes'),
+      icon: Target,
+      href: "/outcomes",
+      description: t('nav.outcomesDesc'),
+    },
+    {
+      title: t('nav.reports'),
+      icon: FileText,
+      href: "/reports",
+      description: t('nav.reportsDesc'),
+    },
+    {
+      title: t('nav.help'),
+      icon: HelpCircle,
+      href: "/help",
+      description: t('nav.helpDesc'),
+    },
+  ];
 
   return (
     <aside
       className={cn(
-        "h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+        "fixed left-0 top-0 h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out hidden md:flex z-40",
         collapsed ? "w-20" : "w-64"
       )}
+      aria-label="Main navigation"
     >
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
@@ -90,18 +102,21 @@ export function AppSidebar() {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
         >
           <ChevronLeft
             className={cn(
               "w-4 h-4 text-sidebar-foreground/60 transition-transform duration-300",
               collapsed && "rotate-180"
             )}
+            aria-hidden="true"
           />
         </button>
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto" aria-label="Primary navigation">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -114,48 +129,66 @@ export function AppSidebar() {
                   ? "bg-sidebar-accent text-sidebar-primary font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               )}
+              aria-current={isActive ? "page" : undefined}
             >
               <item.icon
                 className={cn(
                   "w-5 h-5 flex-shrink-0 transition-colors",
                   isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70 group-hover:text-sidebar-foreground"
                 )}
+                aria-hidden="true"
               />
               {!collapsed && (
                 <div className="flex flex-col min-w-0">
-                  <span className="truncate">{item.title}</span>
+                  <span className="line-clamp-1 break-words">{item.title}</span>
                   {!isActive && (
-                    <span className="text-xs text-sidebar-foreground/50 truncate">
+                    <span className="text-xs text-sidebar-foreground/50 line-clamp-1 break-words">
                       {item.description}
                     </span>
                   )}
                 </div>
               )}
+              {collapsed && <span className="sr-only">{item.title}</span>}
             </NavLink>
           );
         })}
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="py-4 px-3 border-t border-sidebar-border space-y-1">
-        {bottomItems.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
-            </NavLink>
-          );
-        })}
+      {bottomItems.length > 0 && (
+        <div className="py-4 px-3 border-t border-sidebar-border space-y-1">
+          {bottomItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                {!collapsed && <span>{t(`nav.${item.title}`)}</span>}
+                {collapsed && <span className="sr-only">{t(`nav.${item.title}`)}</span>}
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+      
+      {/* Language Switcher */}
+      <div className="py-3 px-3 border-t border-sidebar-border">
+        {!collapsed ? (
+          <LanguageSwitcher />
+        ) : (
+          <div className="flex justify-center">
+            <LanguageSwitcher />
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { SimpleProductForm } from "@/components/forms/SimpleProductForm";
 import {
   Table,
   TableBody,
@@ -26,63 +28,14 @@ import {
   Trash2,
   TrendingUp,
   Loader2,
-  ExternalLink,
   IndianRupee,
   BarChart3,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient, Product } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
-
-interface ProductFormData {
-  name: string;
-  sku: string;
-  category: string;
-  currentPrice: string;
-  costPrice: string;
-  stock: string;
-  stockDays: string;
-  amazonUrl: string;
-  flipkartUrl: string;
-  keywords: string;
-}
-
-const defaultForm: ProductFormData = {
-  name: "",
-  sku: "",
-  category: "Electronics",
-  currentPrice: "",
-  costPrice: "",
-  stock: "",
-  stockDays: "",
-  amazonUrl: "",
-  flipkartUrl: "",
-  keywords: "",
-};
-
-const categories = [
-  "Electronics",
-  "Mobile Phones",
-  "Laptops",
-  "Accessories",
-  "Home Appliances",
-  "Fashion",
-  "Grocery",
-  "Health & Beauty",
-  "Sports",
-  "Books",
-  "Toys & Games",
-  "Kitchen & Dining",
-  "Furniture",
-  "Stationery",
-  "Automotive",
-  "Tools & Hardware",
-  "Baby Products",
-  "Pet Supplies",
-  "Musical Instruments",
-  "Jewellery & Watches",
-  "Other",
-];
+import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -93,15 +46,43 @@ export default function ProductsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState<ProductFormData>(defaultForm);
-  const [formStep, setFormStep] = useState(1);
-  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (loading || products.length === 0) return;
+
+    const editProductId = searchParams.get("editProductId");
+    if (!editProductId) return;
+
+    const targetProduct = products.find((product) => product.id === editProductId);
+
+    if (targetProduct) {
+      setEditingProduct(targetProduct);
+      setShowAddDialog(true);
+      toast({
+        title: "Edit Product",
+        description: `Updating ${targetProduct.name}`,
+      });
+    } else {
+      toast({
+        title: "Product Not Found",
+        description: "Could not open the selected product.",
+        variant: "destructive",
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("editProductId");
+    nextParams.delete("from");
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, products, searchParams, setSearchParams, toast]);
 
   async function loadProducts() {
     setLoading(true);
@@ -109,7 +90,7 @@ export default function ProductsPage() {
       const result = await apiClient.getProducts();
       if (result.error) {
         toast({
-          title: "Error loading products",
+          title: errorMessages.genericError.title,
           description: result.error,
           variant: "destructive",
         });
@@ -118,9 +99,10 @@ export default function ProductsPage() {
       setProducts(result.data?.products || []);
     } catch (error) {
       console.error("Error:", error);
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to load products",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -128,67 +110,54 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleSaveProduct() {
-    if (!formData.name || !formData.currentPrice) {
-      toast({
-        title: "Missing fields",
-        description: "Product name and price are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
+  async function handleSaveProduct(productData: any) {
     try {
-      const productData: any = {
-        name: formData.name,
-        sku: formData.sku || undefined,
-        category: formData.category,
-        currentPrice: parseFloat(formData.currentPrice),
-        costPrice: parseFloat(formData.costPrice) || 0,
-        stock: parseInt(formData.stock) || 0,
-        stockDays: parseInt(formData.stockDays) || 0,
-        amazonUrl: formData.amazonUrl || undefined,
-        flipkartUrl: formData.flipkartUrl || undefined,
-        keywords: formData.keywords || undefined,
-      };
-
       let result;
+      let pendingModules: string[] = [];
       if (editingProduct) {
-        // Update existing product
         result = await apiClient.updateProduct(editingProduct.id, productData);
       } else {
-        // Create new product
         result = await apiClient.createProduct(productData);
       }
 
       if (result.error) {
+        const friendlyError = editingProduct 
+          ? errorMessages.productUpdateFailed 
+          : errorMessages.productCreateFailed;
         toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
+          title: friendlyError.title,
+          description: friendlyError.description,
+          variant: "destructive"
         });
-        return;
+        throw new Error(result.error);
+      }
+
+      if (!editingProduct && result.data?.id) {
+        const forecastResult = await apiClient.generateForecasts(result.data.id);
+        if (forecastResult.error) pendingModules.push("Forecast");
+
+        const recommendationsResult = await apiClient.generateRecommendations();
+        if (recommendationsResult.error) pendingModules.push("Actions");
+
+        const alertsResult = await apiClient.generateAlerts();
+        if (alertsResult.error) pendingModules.push("Alerts");
       }
 
       toast({
         title: editingProduct ? "Product Updated" : "Product Added",
-        description: `${formData.name} has been ${editingProduct ? "updated" : "added"} successfully`,
+        description: editingProduct
+          ? `${productData.name} has been updated successfully`
+          : pendingModules.length > 0
+            ? `${productData.name} was added. Pending sync: ${pendingModules.join(", ")}.`
+            : `${productData.name} has been added successfully`,
       });
 
       setShowAddDialog(false);
       setEditingProduct(null);
-      setFormData(defaultForm);
       loadProducts();
     } catch (error) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save product",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+      throw error;
     }
   }
 
@@ -199,7 +168,7 @@ export default function ProductsPage() {
       const result = await apiClient.deleteProduct(deletingProduct.id);
       if (result.error) {
         toast({
-          title: "Error",
+          title: errorMessages.genericError.title,
           description: result.error,
           variant: "destructive",
         });
@@ -213,9 +182,10 @@ export default function ProductsPage() {
       setDeletingProduct(null);
       loadProducts();
     } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: "Failed to delete product",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     }
@@ -223,27 +193,12 @@ export default function ProductsPage() {
 
   function openEditDialog(product: Product) {
     setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      sku: product.sku,
-      category: product.category,
-      currentPrice: String(product.currentPrice),
-      costPrice: String(product.costPrice),
-      stock: String(product.stock),
-      stockDays: String(product.stockDays),
-      amazonUrl: (product as any).amazonUrl || "",
-      flipkartUrl: (product as any).flipkartUrl || "",
-      keywords: (product as any).keywords || "",
-    });
     setShowAddDialog(true);
-    setFormStep(1);
   }
 
   function openAddDialog() {
     setEditingProduct(null);
-    setFormData(defaultForm);
     setShowAddDialog(true);
-    setFormStep(1);
   }
 
   const filteredProducts = products.filter(
@@ -271,12 +226,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading products...</p>
-          </div>
-        </div>
+        <LoadingPage message="Loading products..." />
       </AppLayout>
     );
   }
@@ -292,17 +242,16 @@ export default function ProductsPage() {
                 <Package className="w-5 h-5 text-primary" />
               </div>
               <h1 className="text-2xl font-semibold text-foreground">
-                My Products
+                {t('products.title')}
               </h1>
             </div>
             <p className="text-muted-foreground">
-              Add your products and track competitor prices across e-commerce
-              platforms
+              {t('products.subtitle')}
             </p>
           </div>
           <Button onClick={openAddDialog} className="gap-2">
             <Plus className="w-4 h-4" />
-            Add Product
+            {t('products.addProduct')}
           </Button>
         </div>
 
@@ -311,14 +260,14 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Package className="w-4 h-4" />
-              Total Products
+              {t('products.totalProducts')}
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <IndianRupee className="w-4 h-4" />
-              Inventory Value
+              {t('products.inventoryValue')}
             </div>
             <p className="text-2xl font-bold">
               ₹{totalInventoryValue.toLocaleString("en-IN")}
@@ -327,14 +276,14 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <TrendingUp className="w-4 h-4" />
-              Avg Margin
+              {t('products.avgMargin')}
             </div>
             <p className="text-2xl font-bold">{avgMargin.toFixed(1)}%</p>
           </div>
           <div className="premium-card rounded-2xl p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <BarChart3 className="w-4 h-4" />
-              Being Tracked
+              {t('products.beingTracked')}
             </div>
             <p className="text-2xl font-bold">{products.length}</p>
           </div>
@@ -345,7 +294,7 @@ export default function ProductsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search products by name, SKU, or category..."
+              placeholder={t('products.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -361,7 +310,7 @@ export default function ProductsPage() {
             className="gap-1"
           >
             <Package className="w-4 h-4" />
-            Cards
+            {t('products.cards')}
           </Button>
           <Button
             variant={viewMode === "table" ? "default" : "outline"}
@@ -370,7 +319,7 @@ export default function ProductsPage() {
             className="gap-1"
           >
             <BarChart3 className="w-4 h-4" />
-            Table
+            {t('products.table')}
           </Button>
         </div>
 
@@ -388,45 +337,55 @@ export default function ProductsPage() {
                       100
                     ).toFixed(1)
                   : "—";
+              const isInStock = product.stock > 10;
               return (
-                <div key={product.id} className="premium-card rounded-2xl p-4">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <h3 className="font-medium text-foreground">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground">{product.category}</p>
+                <div key={product.id} className="premium-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground break-words line-clamp-2">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground">{product.category}</p>
                     </div>
-                    <Badge variant={product.stock > 10 ? "default" : "destructive"}>
-                      {product.stock > 10 ? "In Stock" : "Low Stock"}
+                    <Badge 
+                      variant={isInStock ? "default" : "destructive"}
+                      className="shrink-0 h-6 px-2.5 text-xs font-medium"
+                    >
+                      {isInStock ? t('products.inStock') : t('products.lowStock')}
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-primary/10 rounded-xl p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Your Price</p>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-primary/10 rounded-xl p-3">
+                      <p className="text-xs text-muted-foreground mb-1">{t('products.yourPrice')}</p>
                       <p className="text-lg font-semibold text-primary">
                         ₹{product.currentPrice.toLocaleString("en-IN")}
                       </p>
                     </div>
-                    <div className="bg-secondary rounded-xl p-3 text-center">
-                      <p className="text-xs text-muted-foreground">Margin</p>
-                      <p className="text-lg font-semibold">{margin}%</p>
+                    <div className="bg-secondary rounded-xl p-3">
+                      <p className="text-xs text-muted-foreground mb-1">{t('products.margin')}</p>
+                      <p className="text-lg font-semibold text-foreground">{margin}%</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 h-9"
                       onClick={() => navigate(`/products/${product.id}/compare`)}
                     >
-                      Compare
+                      {t('products.compare')}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => openEditDialog(product)}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 w-9 p-0"
+                      onClick={() => openEditDialog(product)}
+                    >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-9 w-9 p-0"
                       onClick={() => {
                         setDeletingProduct(product);
                         setShowDeleteDialog(true);
@@ -445,17 +404,17 @@ export default function ProductsPage() {
           <div className="premium-card rounded-2xl p-12 text-center animate-fade-in" style={{ animationDelay: "0.14s" }}>
             <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {products.length === 0 ? "No products yet" : "No matching products"}
+              {products.length === 0 ? t('products.noProducts') : t('products.noMatchingProducts')}
             </h3>
             <p className="text-muted-foreground mb-4">
               {products.length === 0
-                ? "Add your first product to start tracking competitor prices"
-                : "Try a different search term"}
+                ? t('products.noProductsDesc')
+                : t('products.tryDifferentSearch')}
             </p>
             {products.length === 0 && (
               <Button onClick={openAddDialog} className="gap-2">
                 <Plus className="w-4 h-4" />
-                Add Your First Product
+                {t('products.addFirstProduct')}
               </Button>
             )}
           </div>
@@ -469,18 +428,18 @@ export default function ProductsPage() {
               <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
                 {products.length === 0
-                  ? "No products yet"
-                  : "No matching products"}
+                  ? t('products.noProducts')
+                  : t('products.noMatchingProducts')}
               </h3>
               <p className="text-muted-foreground mb-4">
                 {products.length === 0
-                  ? "Add your first product to start tracking competitor prices"
-                  : "Try a different search term"}
+                  ? t('products.noProductsDesc')
+                  : t('products.tryDifferentSearch')}
               </p>
               {products.length === 0 && (
                 <Button onClick={openAddDialog} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Add Your First Product
+                  {t('products.addFirstProduct')}
                 </Button>
               )}
             </div>
@@ -488,13 +447,13 @@ export default function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Your Price</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">Margin</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead>{t('products.productName')}</TableHead>
+                  <TableHead>{t('products.category')}</TableHead>
+                  <TableHead className="text-right">{t('products.yourPrice')}</TableHead>
+                  <TableHead className="text-right">{t('products.cost')}</TableHead>
+                  <TableHead className="text-right">{t('products.margin')}</TableHead>
+                  <TableHead className="text-right">{t('products.stock')}</TableHead>
+                  <TableHead className="text-center">{t('products.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -602,169 +561,36 @@ export default function ProductsPage() {
           setShowAddDialog(open);
           if (!open) {
             setEditingProduct(null);
-            setFormData(defaultForm);
-            setFormStep(1);
           }
         }}
       >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProduct ? "Edit Product" : "Add New Product"}
+              {editingProduct ? t('products.editProduct') : t('products.addProduct')}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">Step {formStep} of 3</p>
-            <div className="flex gap-1 mt-1">
-              {[1, 2, 3].map((step) => (
-                <div
-                  key={step}
-                  className={`h-1.5 flex-1 rounded-full ${step <= formStep ? "bg-primary" : "bg-muted"}`}
-                />
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {editingProduct ? t('products.updateDetails') : t('products.justBasics')}
+            </p>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            {formStep === 1 && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Product Name *</label>
-                  <Input
-                    placeholder="e.g. Samsung Galaxy S24 Ultra"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Your Selling Price (₹) *</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 129999"
-                    value={formData.currentPrice}
-                    onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Category</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-md bg-secondary text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {formStep === 2 && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Cost Price (₹)</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 95000"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Current Stock</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 50"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Days of Stock</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 30"
-                    value={formData.stockDays}
-                    onChange={(e) => setFormData({ ...formData, stockDays: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">SKU / Model Number</label>
-                  <Input
-                    placeholder="Auto-generated if empty"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
-
-            {formStep === 3 && (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Optional: Add competitor URLs or keywords for better matching.
-                </p>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Amazon Product URL</label>
-                  <Input
-                    placeholder="https://www.amazon.in/dp/B0XXXXX..."
-                    value={formData.amazonUrl}
-                    onChange={(e) => setFormData({ ...formData, amazonUrl: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Flipkart Product URL</label>
-                  <Input
-                    placeholder="https://www.flipkart.com/..."
-                    value={formData.flipkartUrl}
-                    onChange={(e) => setFormData({ ...formData, flipkartUrl: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Search Keywords</label>
-                  <Input
-                    placeholder="e.g. Samsung Galaxy S24 Ultra 256GB"
-                    value={formData.keywords}
-                    onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={saving}>
-              Cancel
-            </Button>
-            {formStep > 1 && (
-              <Button variant="outline" onClick={() => setFormStep((step) => step - 1)} disabled={saving}>
-                Back
-              </Button>
-            )}
-            {formStep < 3 ? (
-              <Button
-                onClick={() => setFormStep((step) => step + 1)}
-                disabled={saving || (formStep === 1 && (!formData.name || !formData.currentPrice))}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button onClick={handleSaveProduct} disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : editingProduct ? (
-                  "Update Product"
-                ) : (
-                  "Add Product"
-                )}
-              </Button>
-            )}
-          </DialogFooter>
+          <SimpleProductForm
+            initialData={editingProduct ? {
+              name: editingProduct.name,
+              currentPrice: String(editingProduct.currentPrice),
+              stock: String(editingProduct.stock),
+              costPrice: String(editingProduct.costPrice),
+              category: editingProduct.category,
+              sku: editingProduct.sku,
+              amazonUrl: editingProduct.amazonUrl,
+              flipkartUrl: editingProduct.flipkartUrl,
+              keywords: editingProduct.keywords,
+              validUntil: editingProduct.validUntil || '',
+            } : undefined}
+            onSubmit={handleSaveProduct}
+            onCancel={() => setShowAddDialog(false)}
+            isEditing={!!editingProduct}
+          />
         </DialogContent>
       </Dialog>
 
@@ -772,25 +598,24 @@ export default function ProductsPage() {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Product</DialogTitle>
+            <DialogTitle>{t('products.deleteProduct')}</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            Are you sure you want to delete{" "}
+            {t('products.deleteConfirm')}{" "}
             <span className="font-medium text-foreground">
               {deletingProduct?.name}
             </span>
-            ? This will also remove all price history and alerts for this
-            product.
+            ? {t('products.deleteWarning')}
           </p>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
             >
-              Cancel
+              {t('products.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDeleteProduct}>
-              Delete
+              {t('products.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

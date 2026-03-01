@@ -1,0 +1,17 @@
+{
+  "title": "Outcome Tracking",
+  "subtitle": "Track the impact of your pricing decisions.",
+  "totalRevenueImpact": "Total Revenue Impact",
+  "thisMonth": "this month",
+  "actionsImplemented": "Actions Implemented",
+  "of": "of",
+  "recommendations": "recommendations",
+  "risksPrevented": "Risks Prevented",
+  "stockoutsAvoided": "stockouts avoided",
+  "decisionHistory": "Decision History",
+  "loadingOutcomes": "Loading outcomes...",
+  "noOutcomesYet": "No outcomes yet. Implement recommendations to track their impact.",
+  "implemented": "implemented",
+  "before": "Before",
+  "after": "After"
+}

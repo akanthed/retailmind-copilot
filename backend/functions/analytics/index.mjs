@@ -2,7 +2,7 @@
 // Generates business analytics and performance metrics
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const dynamoClient = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -18,6 +18,20 @@ export const handler = async (event) => {
     const httpMethod = event.httpMethod;
     const path = event.path;
     
+    // Handle CORS preflight
+    if (httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: ''
+        };
+    }
+    
     try {
         let response;
         
@@ -27,6 +41,13 @@ export const handler = async (event) => {
             response = await getRevenueAnalytics();
         } else if (httpMethod === 'GET' && path.includes('/outcomes')) {
             response = await getOutcomes();
+        } else if (httpMethod === 'GET' && path.includes('/insights')) {
+            response = await getInsights();
+        } else if (httpMethod === 'GET' && path.includes('/recommendations')) {
+            response = await getRecommendations();
+        } else if (httpMethod === 'POST' && path.includes('/recommendations/') && path.includes('/implement')) {
+            const id = path.split('/')[2]; // Extract ID from path
+            response = await implementRecommendation(id);
         } else {
             response = {
                 statusCode: 404,
@@ -38,7 +59,9 @@ export const handler = async (event) => {
             statusCode: response.statusCode || 200,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
             },
             body: JSON.stringify(response.body || response)
         };
@@ -49,7 +72,9 @@ export const handler = async (event) => {
             statusCode: 500,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
             },
             body: JSON.stringify({
                 error: 'Internal server error',
@@ -216,32 +241,40 @@ async function getOutcomes() {
             let beforeMetric = '—';
             let afterMetric = '—';
             
+            // Use outcomeValue if available, otherwise extract from impact string
+            let numericImpact = 0;
+            if (rec.outcomeValue && rec.outcomeValue > 0) {
+                numericImpact = rec.outcomeValue;
+            } else if (rec.impact) {
+                const match = rec.impact.match(/₹([\d,]+)/);
+                if (match) {
+                    numericImpact = parseInt(match[1].replace(/,/g, ''));
+                }
+            }
+            
             if (rec.type === 'price_decrease' && rec.suggestedPrice && rec.currentPrice) {
-                const impact = Math.round(rec.suggestedPrice * 0.2 * 4);
-                impactValue = `+₹${impact.toLocaleString()}`;
+                impactValue = numericImpact > 0 ? `+₹${numericImpact.toLocaleString()}` : '—';
                 impactPercent = '+18%';
-                before = `₹${rec.currentPrice}`;
-                after = `₹${rec.suggestedPrice}`;
+                before = `₹${rec.currentPrice.toLocaleString()}`;
+                after = `₹${rec.suggestedPrice.toLocaleString()}`;
                 beforeMetric = '42 units/week';
                 afterMetric = '68 units/week';
             } else if (rec.type === 'price_increase' && rec.suggestedPrice && rec.currentPrice) {
-                const impact = Math.round((rec.suggestedPrice - rec.currentPrice) * 3 * 4);
-                impactValue = `+₹${impact.toLocaleString()}`;
+                impactValue = numericImpact > 0 ? `+₹${numericImpact.toLocaleString()}` : '—';
                 impactPercent = '+12%';
-                before = `₹${rec.currentPrice}`;
-                after = `₹${rec.suggestedPrice}`;
+                before = `₹${rec.currentPrice.toLocaleString()}`;
+                after = `₹${rec.suggestedPrice.toLocaleString()}`;
                 beforeMetric = 'Normal demand';
                 afterMetric = 'Maintained';
             } else if (rec.type === 'restock') {
-                impactValue = '0 stockouts';
+                impactValue = numericImpact > 0 ? `₹${numericImpact.toLocaleString()} saved` : 'Risk Avoided';
                 impactPercent = 'Prevented';
                 before = product ? `${product.stockDays} days stock` : '3 days stock';
                 after = '14 days stock';
                 beforeMetric = 'High risk';
                 afterMetric = 'Stable';
             } else if (rec.type === 'promotion') {
-                const impact = Math.round(Math.random() * 1500 + 500);
-                impactValue = `+₹${impact.toLocaleString()}`;
+                impactValue = numericImpact > 0 ? `+₹${numericImpact.toLocaleString()}` : '—';
                 impactPercent = '+45%';
                 before = '45 days stock';
                 after = '12 days stock';
@@ -264,7 +297,8 @@ async function getOutcomes() {
                 before,
                 after,
                 beforeMetric,
-                afterMetric
+                afterMetric,
+                numericImpact // Store for summary calculation
             };
         })
         .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -274,15 +308,101 @@ async function getOutcomes() {
         body: {
             outcomes,
             summary: {
-                totalRevenueImpact: outcomes
-                    .filter(o => o.impactValue.startsWith('+₹'))
-                    .reduce((sum, o) => {
-                        const value = parseInt(o.impactValue.replace(/[^0-9]/g, ''));
-                        return sum + (isNaN(value) ? 0 : value);
-                    }, 0),
+                totalRevenueImpact: outcomes.reduce((sum, o) => {
+                    return sum + (o.numericImpact || 0);
+                }, 0),
                 actionsImplemented: outcomes.filter(o => o.status === 'implemented').length,
-                actionsPending: outcomes.filter(o => o.status === 'pending').length,
+                actionsPending: uniqueRecs.filter(r => r.status === 'pending').length,
                 risksPrevented: outcomes.filter(o => o.impactType === 'risk').length
+            }
+        }
+    };
+}
+
+// Get insights data (competitor intelligence and demand forecast)
+async function getInsights() {
+    const [products, priceHistory] = await Promise.all([
+        getAllProducts(),
+        getAllPriceHistory()
+    ]);
+    
+    // Group price history by competitor
+    const competitorData = {};
+    priceHistory.forEach(ph => {
+        if (!competitorData[ph.competitorId]) {
+            competitorData[ph.competitorId] = {
+                id: ph.competitorId,
+                name: ph.competitorName,
+                prices: []
+            };
+        }
+        competitorData[ph.competitorId].prices.push(ph);
+    });
+    
+    // Calculate competitor stats
+    const competitorStats = Object.values(competitorData).map(comp => {
+        const productPrices = {};
+        
+        // Get latest price for each product
+        comp.prices.forEach(p => {
+            if (!productPrices[p.productId] || p.timestamp > productPrices[p.productId].timestamp) {
+                productPrices[p.productId] = p;
+            }
+        });
+        
+        // Calculate average price difference
+        let totalDiff = 0;
+        let count = 0;
+        
+        Object.values(productPrices).forEach(compPrice => {
+            const product = products.find(p => p.id === compPrice.productId);
+            if (product && compPrice.price > 0) {
+                const diff = ((product.currentPrice - compPrice.price) / compPrice.price) * 100;
+                totalDiff += diff;
+                count++;
+            }
+        });
+        
+        const avgPriceDiff = count > 0 ? totalDiff / count : 0;
+        
+        return {
+            name: comp.name,
+            avgPriceDiff: avgPriceDiff > 0 
+                ? `+${Math.round(avgPriceDiff)}%` 
+                : `${Math.round(avgPriceDiff)}%`,
+            products: Object.keys(productPrices).length,
+            lastUpdate: new Date().toISOString()
+        };
+    });
+    
+    // Generate demand forecast for top 3 products
+    const demandForecast = products
+        .sort((a, b) => (b.currentPrice * b.stock) - (a.currentPrice * a.stock))
+        .slice(0, 3)
+        .map(product => {
+            const trend = product.stockDays < 10 ? 'up' : 'down';
+            const change = trend === 'up' 
+                ? `+${Math.floor(Math.random() * 30 + 15)}%`
+                : `-${Math.floor(Math.random() * 20 + 5)}%`;
+            
+            return {
+                product: product.name,
+                trend,
+                change,
+                period: 'Next 7 days'
+            };
+        });
+    
+    return {
+        statusCode: 200,
+        body: {
+            competitorStats,
+            demandForecast,
+            metrics: {
+                productsTracked: products.length,
+                competitorPrices: priceHistory.length,
+                pricingOpportunities: Math.floor(products.length * 0.3),
+                riskAlerts: Math.floor(products.length * 0.2)
             }
         }
     };
@@ -311,4 +431,86 @@ async function getAllAlerts() {
     const command = new ScanCommand({ TableName: ALERTS_TABLE });
     const result = await docClient.send(command);
     return result.Items || [];
+}
+
+// Get all recommendations
+async function getRecommendations() {
+    const recommendations = await getAllRecommendations();
+    
+    return {
+        statusCode: 200,
+        body: {
+            recommendations: recommendations.filter(r => r.status !== 'deleted').sort((a, b) => b.createdAt - a.createdAt),
+            count: recommendations.filter(r => r.status !== 'deleted').length
+        }
+    };
+}
+
+// Implement recommendation
+async function implementRecommendation(id) {
+    // First, get the recommendation to calculate outcome
+    const getCommand = new GetCommand({
+        TableName: RECOMMENDATIONS_TABLE,
+        Key: { id }
+    });
+    
+    const getResult = await docClient.send(getCommand);
+    const recommendation = getResult.Item;
+    
+    if (!recommendation) {
+        return {
+            statusCode: 404,
+            body: { error: 'Recommendation not found' }
+        };
+    }
+    
+    // Calculate actual outcome based on recommendation type
+    let outcomeValue = 0;
+    
+    if (recommendation.type === 'price_decrease' || recommendation.type === 'price_increase') {
+        // Extract numeric value from impact string (e.g., "+₹2000/month estimated" -> 2000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    } else if (recommendation.type === 'restock') {
+        // Extract numeric value from impact string (e.g., "Prevent ₹8000 stockout loss" -> 8000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    } else if (recommendation.type === 'promotion') {
+        // Extract numeric value from impact string (e.g., "Free up ₹5000 capital" -> 5000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    }
+    
+    // Update recommendation with calculated outcome
+    const updateCommand = new UpdateCommand({
+        TableName: RECOMMENDATIONS_TABLE,
+        Key: { id },
+        UpdateExpression: 'SET #status = :status, #implementedAt = :implementedAt, #updatedAt = :updatedAt, #outcomeValue = :outcomeValue',
+        ExpressionAttributeNames: {
+            '#status': 'status',
+            '#implementedAt': 'implementedAt',
+            '#updatedAt': 'updatedAt',
+            '#outcomeValue': 'outcomeValue'
+        },
+        ExpressionAttributeValues: {
+            ':status': 'implemented',
+            ':implementedAt': Date.now(),
+            ':updatedAt': Date.now(),
+            ':outcomeValue': outcomeValue
+        },
+        ReturnValues: 'ALL_NEW'
+    });
+    
+    const result = await docClient.send(updateCommand);
+    
+    return {
+        statusCode: 200,
+        body: result.Attributes
+    };
 }

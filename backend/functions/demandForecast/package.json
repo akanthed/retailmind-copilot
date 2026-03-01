@@ -1,0 +1,12 @@
+{
+  "name": "demand-forecast",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Demand forecasting engine with festival-aware predictions",
+  "main": "index.mjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.709.0",
+    "@aws-sdk/lib-dynamodb": "^3.709.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.709.0"
+  }
+}

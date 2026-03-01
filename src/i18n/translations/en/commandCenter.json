@@ -1,0 +1,23 @@
+{
+  "title": "RetailMind AI Assistant",
+  "subtitle": "Ask anything about your products, pricing, or market conditions.",
+  "inputPlaceholder": "Ask RetailMind: What should I do about Product X today?",
+  "aiResponse": "AI Response",
+  "tryAsking": "Try asking:",
+  "prompt1": "Why are my sales down?",
+  "prompt2": "Should I discount this product?",
+  "prompt3": "What's my biggest risk right now?",
+  "prompt4": "Which products need repricing?",
+  "todaysRecommendations": "Today's Recommendations",
+  "pendingActions": "pending actions",
+  "loadingRecommendations": "Loading recommendations...",
+  "noRecommendationsYet": "No recommendations yet",
+  "generateRecommendations": "Generate Recommendations",
+  "emptyQuery": "Empty query",
+  "pleaseEnterQuestion": "Please enter a question",
+  "errorTitle": "Error",
+  "aiResponseReady": "AI Response Ready",
+  "poweredBy": "Powered by",
+  "recommendationsGenerated": "Recommendations Generated",
+  "generatedCount": "Generated {count} new recommendations"
+}

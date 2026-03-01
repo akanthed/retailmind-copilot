@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
-import { Sparkles, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { Sparkles, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
+import { ConfidenceIndicator } from "./ConfidenceIndicator";
 
 interface AIRecommendationCardProps {
   title: string;
@@ -8,6 +10,22 @@ interface AIRecommendationCardProps {
   impact: string;
   confidence: number;
   status?: "pending" | "implemented" | "dismissed";
+  gst?: {
+    current: {
+      priceIncludingGST: number;
+      priceExcludingGST: number;
+      gstAmount: number;
+      gstRate: number;
+      gstPercentage: string;
+    };
+    suggested: {
+      priceIncludingGST: number;
+      priceExcludingGST: number;
+      gstAmount: number;
+      gstRate: number;
+      gstPercentage: string;
+    };
+  };
   onClick?: () => void;
 }
 
@@ -18,25 +36,25 @@ export function AIRecommendationCard({
   impact,
   confidence,
   status = "pending",
+  gst,
   onClick,
 }: AIRecommendationCardProps) {
-  const getConfidenceColor = () => {
-    if (confidence >= 80) return "text-success";
-    if (confidence >= 60) return "text-warning";
-    return "text-muted-foreground";
-  };
-
-  const getConfidenceLabel = () => {
-    if (confidence >= 80) return "High confidence";
-    if (confidence >= 60) return "Medium confidence";
-    return "Low confidence";
-  };
-
+  const statusLabel = status === "implemented" ? "completed" : "pending";
+  
   return (
     <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} for ${product}. Status: ${statusLabel}. Confidence: ${confidence}%. ${reason}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={cn(
-        "premium-card rounded-2xl p-6 cursor-pointer group",
+        "premium-card rounded-2xl p-6 cursor-pointer group transition-all duration-200 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         status === "implemented" && "border-success/30 bg-success/5"
       )}
     >
@@ -66,16 +84,31 @@ export function AIRecommendationCard({
         {reason}
       </p>
 
+      {/* GST Breakdown (if available) */}
+      {gst && (
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg text-xs space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Current (incl. GST {gst.current.gstPercentage}):</span>
+            <span className="font-medium">₹{gst.current.priceIncludingGST.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Suggested (incl. GST {gst.suggested.gstPercentage}):</span>
+            <span className="font-medium text-primary">₹{gst.suggested.priceIncludingGST.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>GST Amount:</span>
+            <span>₹{gst.suggested.gstAmount.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      )}
+
       {/* Impact & Confidence */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <div className="flex items-center gap-2 text-sm">
           <TrendingUp className="w-4 h-4 text-success" />
           <span className="text-foreground font-medium">{impact}</span>
         </div>
-        <div className={cn("flex items-center gap-1.5 text-sm", getConfidenceColor())}>
-          <div className="w-2 h-2 rounded-full bg-current" />
-          <span>{getConfidenceLabel()}</span>
-        </div>
+        <ConfidenceIndicator score={confidence / 100} showLabel={false} />
       </div>
     </div>
   );
@@ -98,24 +131,26 @@ export function AlertCard({
   suggestion,
   onClick,
 }: AlertCardProps) {
+  const { t } = useLanguage();
+  
   const typeConfig = {
     price_drop: {
       icon: TrendingUp,
       color: "text-destructive",
       bg: "bg-destructive/10",
-      label: "Price Change",
+      label: t('alerts.priceChanges'),
     },
     stock_risk: {
       icon: AlertTriangle,
       color: "text-warning",
       bg: "bg-warning/10",
-      label: "Stock Risk",
+      label: t('alerts.stockRisks'),
     },
     opportunity: {
       icon: Sparkles,
       color: "text-success",
       bg: "bg-success/10",
-      label: "Opportunity",
+      label: t('alerts.opportunities'),
     },
   };
 
@@ -124,7 +159,16 @@ export function AlertCard({
   return (
     <div
       onClick={onClick}
-      className="premium-card rounded-2xl p-5 cursor-pointer group"
+      role="button"
+      tabIndex={0}
+      aria-label={`${config.label}: ${title}. ${description}. ${timestamp}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="premium-card rounded-2xl p-5 cursor-pointer group transition-all duration-200 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <div className="flex gap-4">
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", config.bg)}>
