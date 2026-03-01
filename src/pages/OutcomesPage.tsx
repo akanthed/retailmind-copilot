@@ -61,32 +61,50 @@ export default function OutcomesPage() {
 
         const implemented = recommendations.filter((r: any) => r.status === 'implemented');
 
-        const fallbackOutcomes = implemented.map((rec: any) => ({
-          id: rec.id,
-          action: rec.reason || rec.title || 'Recommendation implemented',
-          status: 'implemented',
-          date: rec.updatedAt
-            ? new Date(rec.updatedAt).toLocaleDateString('en-IN')
-            : new Date().toLocaleDateString('en-IN'),
-          impactType: rec.type === 'restock' ? 'risk' : 'revenue',
-          impactValue: rec.type === 'price_increase'
-            ? `+₹${Math.floor(Math.random() * 5000 + 500)}`
-            : rec.type === 'restock'
-            ? 'Risk Avoided'
-            : `+₹${Math.floor(Math.random() * 3000 + 200)}`,
-          impactPercent: '',
-          before: rec.currentPrice ? `₹${rec.currentPrice.toLocaleString('en-IN')}` : '—',
-          after: rec.suggestedPrice ? `₹${rec.suggestedPrice.toLocaleString('en-IN')}` : '—',
-          beforeMetric: '',
-          afterMetric: ''
-        }));
+        const fallbackOutcomes = implemented.map((rec: any) => {
+          // Use the actual outcomeValue if available, otherwise extract from impact string
+          let impactValue = '—';
+          let numericValue = 0;
+          
+          if (rec.outcomeValue && rec.outcomeValue > 0) {
+            numericValue = rec.outcomeValue;
+            impactValue = rec.type === 'restock' 
+              ? 'Risk Avoided' 
+              : `+₹${numericValue.toLocaleString('en-IN')}`;
+          } else if (rec.impact) {
+            // Extract from impact string as fallback
+            const match = rec.impact.match(/₹([\d,]+)/);
+            if (match) {
+              numericValue = parseInt(match[1].replace(/,/g, ''));
+              impactValue = rec.type === 'restock' 
+                ? 'Risk Avoided' 
+                : `+₹${numericValue.toLocaleString('en-IN')}`;
+            }
+          }
+
+          return {
+            id: rec.id,
+            action: rec.reason || rec.title || 'Recommendation implemented',
+            status: 'implemented',
+            date: rec.updatedAt
+              ? new Date(rec.updatedAt).toLocaleDateString('en-IN')
+              : new Date().toLocaleDateString('en-IN'),
+            impactType: rec.type === 'restock' ? 'risk' : 'revenue',
+            impactValue,
+            impactPercent: '',
+            before: rec.currentPrice ? `₹${rec.currentPrice.toLocaleString('en-IN')}` : '—',
+            after: rec.suggestedPrice ? `₹${rec.suggestedPrice.toLocaleString('en-IN')}` : '—',
+            beforeMetric: '',
+            afterMetric: '',
+            numericValue // Store for summary calculation
+          };
+        });
 
         setOutcomes(fallbackOutcomes);
 
         setSummary({
           totalRevenueImpact: fallbackOutcomes.reduce((sum: number, o: any) => {
-            const val = parseInt(String(o.impactValue).replace(/[^0-9]/g, ''));
-            return sum + (isNaN(val) ? 0 : val);
+            return sum + (o.numericValue || 0);
           }, 0),
           actionsImplemented: implemented.length,
           actionsPending: recommendations.filter((r: any) => r.status === 'pending').length,

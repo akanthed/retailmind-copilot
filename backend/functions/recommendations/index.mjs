@@ -330,24 +330,66 @@ async function analyzeProduct(product, priceHistory) {
 
 // Implement recommendation
 async function implementRecommendation(id) {
-    const command = new UpdateCommand({
+    // First, get the recommendation to calculate outcome
+    const getCommand = new GetCommand({
+        TableName: RECOMMENDATIONS_TABLE,
+        Key: { id }
+    });
+    
+    const getResult = await docClient.send(getCommand);
+    const recommendation = getResult.Item;
+    
+    if (!recommendation) {
+        return {
+            statusCode: 404,
+            body: { error: 'Recommendation not found' }
+        };
+    }
+    
+    // Calculate actual outcome based on recommendation type
+    let outcomeValue = 0;
+    
+    if (recommendation.type === 'price_decrease' || recommendation.type === 'price_increase') {
+        // Extract numeric value from impact string (e.g., "+₹2000/month estimated" -> 2000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    } else if (recommendation.type === 'restock') {
+        // Extract numeric value from impact string (e.g., "Prevent ₹8000 stockout loss" -> 8000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    } else if (recommendation.type === 'promotion') {
+        // Extract numeric value from impact string (e.g., "Free up ₹5000 capital" -> 5000)
+        const impactMatch = recommendation.impact?.match(/₹([\d,]+)/);
+        if (impactMatch) {
+            outcomeValue = parseInt(impactMatch[1].replace(/,/g, ''));
+        }
+    }
+    
+    // Update recommendation with calculated outcome
+    const updateCommand = new UpdateCommand({
         TableName: RECOMMENDATIONS_TABLE,
         Key: { id },
-        UpdateExpression: 'SET #status = :status, #implementedAt = :implementedAt, #updatedAt = :updatedAt',
+        UpdateExpression: 'SET #status = :status, #implementedAt = :implementedAt, #updatedAt = :updatedAt, #outcomeValue = :outcomeValue',
         ExpressionAttributeNames: {
             '#status': 'status',
             '#implementedAt': 'implementedAt',
-            '#updatedAt': 'updatedAt'
+            '#updatedAt': 'updatedAt',
+            '#outcomeValue': 'outcomeValue'
         },
         ExpressionAttributeValues: {
             ':status': 'implemented',
             ':implementedAt': Date.now(),
-            ':updatedAt': Date.now()
+            ':updatedAt': Date.now(),
+            ':outcomeValue': outcomeValue
         },
         ReturnValues: 'ALL_NEW'
     });
     
-    const result = await docClient.send(command);
+    const result = await docClient.send(updateCommand);
     
     return {
         statusCode: 200,
