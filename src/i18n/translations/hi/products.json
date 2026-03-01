@@ -52,5 +52,23 @@
   "cancel": "रद्द करें",
   "delete": "हटाएं",
   "justBasics": "बस मूल बातें - हम बाकी संभाल लेंगे",
-  "updateDetails": "उत्पाद विवरण अपडेट करें"
+  "updateDetails": "उत्पाद विवरण अपडेट करें",
+  "categories": {
+    "electronics": "इलेक्ट्रॉनिक्स",
+    "mobilePhones": "मोबाइल फोन",
+    "laptops": "लैपटॉप",
+    "accessories": "एक्सेसरीज",
+    "homeAppliances": "होम अप्लायंसेस",
+    "fashion": "फैशन",
+    "grocery": "किराना",
+    "healthBeauty": "स्वास्थ्य और सौंदर्य",
+    "sports": "खेल",
+    "books": "किताबें",
+    "toysGames": "खिलौने और गेम्स",
+    "kitchenDining": "किचन और डाइनिंग",
+    "furniture": "फर्नीचर",
+    "stationery": "स्टेशनरी",
+    "automotive": "ऑटोमोटिव",
+    "other": "अन्य"
+  }
 }

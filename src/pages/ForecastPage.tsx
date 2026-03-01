@@ -7,8 +7,6 @@ import { apiClient, DemandForecast } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useLanguage } from "@/i18n/LanguageContext";
-import forecastTranslations from "@/i18n/translations/en/forecast.json";
-import forecastTranslationsHi from "@/i18n/translations/hi/forecast.json";
 
 export default function ForecastPage() {
   const [forecasts, setForecasts] = useState<DemandForecast[]>([]);
@@ -16,9 +14,7 @@ export default function ForecastPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
-  const { language } = useLanguage();
-  
-  const ft = language === 'hi' ? forecastTranslationsHi : forecastTranslations;
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadForecasts();
@@ -47,21 +43,21 @@ export default function ForecastPage() {
       const result = await apiClient.generateForecasts();
       if (result.data) {
         toast({
-          title: ft.generateBtn,
+          title: t('forecast.generateBtn'),
           description: result.data.message,
         });
         await loadForecasts();
       } else {
         toast({
-          title: "Error",
-          description: result.error || "Failed to generate forecasts",
+          title: t('common.error'),
+          description: result.error || t('forecast.generateFailed'),
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate forecasts",
+        title: t('common.error'),
+        description: t('forecast.generateFailed'),
         variant: "destructive",
       });
     } finally {
@@ -97,7 +93,11 @@ export default function ForecastPage() {
   }
 
   if (loading) {
-    return <LoadingPage />;
+    return (
+      <AppLayout>
+        <LoadingPage message={t('loading.forecast')} />
+      </AppLayout>
+    );
   }
 
   return (
@@ -110,10 +110,10 @@ export default function ForecastPage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-2xl font-semibold text-foreground">{ft.title}</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('forecast.title')}</h1>
             </div>
             <p className="text-muted-foreground">
-              {ft.subtitle}
+              {t('forecast.subtitle')}
             </p>
           </div>
           <Button
@@ -124,12 +124,12 @@ export default function ForecastPage() {
             {generating ? (
               <>
                 <Sparkles className="h-4 w-4 animate-spin" />
-                {ft.generating}
+                {t('forecast.generating')}
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                {ft.generateBtn}
+                {t('forecast.generateBtn')}
               </>
             )}
           </Button>
@@ -139,21 +139,21 @@ export default function ForecastPage() {
           <div className="premium-card rounded-2xl p-12 text-center animate-fade-in">
             <Calendar className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
-              {ft.noForecasts}
+              {t('forecast.noForecasts')}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {ft.noForecastsDesc}
+              {t('forecast.noForecastsDesc')}
             </p>
             <Button onClick={handleGenerateForecasts} disabled={generating}>
               <Sparkles className="h-4 w-4 mr-2" />
-              {ft.generateBtn}
+              {t('forecast.generateBtn')}
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Product List */}
             <div className="lg:col-span-1 space-y-2 animate-fade-in">
-              <h3 className="font-semibold text-foreground mb-3 text-sm">{ft.products}</h3>
+              <h3 className="font-semibold text-foreground mb-3 text-sm">{t('forecast.products')}</h3>
               {forecasts.map((forecast) => (
                 <button
                   key={forecast.productId}
@@ -171,7 +171,7 @@ export default function ForecastPage() {
                     forecast.summary.stockoutRisk === 'medium' ? 'text-warning' :
                     'text-success'
                   }`}>
-                    {forecast.summary.daysUntilStockout} {ft.daysStock}
+                    {forecast.summary.daysUntilStockout} {t('forecast.daysStock')}
                   </div>
                 </button>
               ))}
@@ -183,21 +183,21 @@ export default function ForecastPage() {
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="premium-card rounded-xl p-4">
-                    <div className="text-xs text-muted-foreground mb-1">Avg Daily Demand</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('forecast.avgDailyDemand')}</div>
                     <div className="text-2xl font-semibold text-foreground">
                       {selectedForecast.summary.avgDailyDemand}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">units/day</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{t('forecast.unitsPerDay')}</div>
                   </div>
                   <div className="premium-card rounded-xl p-4">
-                    <div className="text-xs text-muted-foreground mb-1">Total 30-Day</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('forecast.total30Day')}</div>
                     <div className="text-2xl font-semibold text-foreground">
                       {selectedForecast.summary.totalPredictedDemand}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">units</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{t('forecast.units')}</div>
                   </div>
                   <div className="premium-card rounded-xl p-4">
-                    <div className="text-xs text-muted-foreground mb-1">Days Until Stockout</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('forecast.daysUntilStockout')}</div>
                     <div className={`text-2xl font-semibold ${
                       selectedForecast.summary.stockoutRisk === 'critical' || selectedForecast.summary.stockoutRisk === 'high' ? 'text-destructive' :
                       selectedForecast.summary.stockoutRisk === 'medium' ? 'text-warning' :
@@ -206,15 +206,15 @@ export default function ForecastPage() {
                       {selectedForecast.summary.daysUntilStockout}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 capitalize">
-                      {selectedForecast.summary.stockoutRisk} risk
+                      {selectedForecast.summary.stockoutRisk} {t('forecast.risk')}
                     </div>
                   </div>
                   <div className="premium-card rounded-xl p-4">
-                    <div className="text-xs text-muted-foreground mb-1">Confidence</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('forecast.confidence')}</div>
                     <div className="text-2xl font-semibold text-foreground">
                       {Math.round(selectedForecast.summary.confidence * 100)}%
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">accuracy</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{t('forecast.accuracy')}</div>
                   </div>
                 </div>
 
@@ -222,14 +222,14 @@ export default function ForecastPage() {
                 <div className="premium-card rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="font-semibold text-foreground">30-Day Demand Forecast</h3>
+                      <h3 className="font-semibold text-foreground">{t('forecast.chartTitle')}</h3>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Red dots = Festival days with higher demand
+                        {t('forecast.chartHelper')}
                       </p>
                     </div>
                     <Button variant="outline" size="sm" onClick={exportForecastCSV} className="gap-2">
                       <Download className="h-4 w-4" />
-                      Export CSV
+                      {t('forecast.exportCSV')}
                     </Button>
                   </div>
                   
@@ -244,12 +244,12 @@ export default function ForecastPage() {
                         }}
                         stroke="hsl(var(--muted-foreground))"
                         style={{ fontSize: '11px' }}
-                        label={{ value: 'Date', position: 'insideBottom', offset: -10, style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' } }}
+                        label={{ value: t('forecast.date'), position: 'insideBottom', offset: -10, style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' } }}
                       />
                       <YAxis 
                         stroke="hsl(var(--muted-foreground))"
                         style={{ fontSize: '11px' }}
-                        label={{ value: 'Units Needed', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' } }}
+                        label={{ value: t('forecast.unitsNeeded'), angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' } }}
                       />
                       <Tooltip 
                         labelFormatter={(date) => {
@@ -261,7 +261,7 @@ export default function ForecastPage() {
                             const festival = props.payload.festival;
                             return [
                               `${value} units${festival ? ` (${festival})` : ''}`,
-                              'Expected Demand'
+                              t('forecast.expectedDemand')
                             ];
                           }
                           return [value, name];
@@ -277,7 +277,7 @@ export default function ForecastPage() {
                       <Line 
                         type="monotone" 
                         dataKey="predictedDemand" 
-                        name="Expected Demand"
+                        name={t('forecast.expectedDemand')}
                         stroke="hsl(var(--primary))" 
                         strokeWidth={3}
                         dot={(props: any) => {
@@ -303,11 +303,11 @@ export default function ForecastPage() {
                   <div className="flex items-center justify-center gap-6 mt-4 text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-primary"></div>
-                      <span className="text-muted-foreground">Normal Days</span>
+                      <span className="text-muted-foreground">{t('forecast.normalDays')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-destructive"></div>
-                      <span className="text-muted-foreground">Festival Days (Higher Demand)</span>
+                      <span className="text-muted-foreground">{t('forecast.festivalDays')}</span>
                     </div>
                   </div>
                 </div>
@@ -317,7 +317,7 @@ export default function ForecastPage() {
                   <div className="premium-card rounded-2xl p-6 border-l-4 border-l-warning">
                     <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-warning" />
-                      Upcoming Festival Peaks
+                      {t('forecast.festivalPeaks')}
                     </h3>
                     <div className="space-y-3">
                       {selectedForecast.peakPeriods.map((peak, idx) => (
@@ -333,10 +333,10 @@ export default function ForecastPage() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-semibold text-warning">
-                              {peak.expectedDemand} units
+                              {peak.expectedDemand} {t('forecast.units')}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              +{Math.round((peak.impact - 1) * 100)}% surge
+                              +{Math.round((peak.impact - 1) * 100)}% {t('forecast.surge')}
                             </div>
                           </div>
                         </div>
@@ -350,7 +350,7 @@ export default function ForecastPage() {
                   <div className="premium-card rounded-2xl p-6">
                     <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-primary" />
-                      Recommendations
+                      {t('forecast.recommendations')}
                     </h3>
                     <div className="space-y-3">
                       {selectedForecast.recommendations.map((rec, idx) => (

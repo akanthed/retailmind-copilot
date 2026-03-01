@@ -250,6 +250,12 @@ async function getAllProducts(queryParams, requestId) {
     const startIndex = (page - 1) * pageSize;
     const paginatedProducts = products.slice(startIndex, startIndex + pageSize);
     
+    const shouldValidateUrls = queryParams.validateUrls === 'true';
+    let urlValidation = null;
+    if (shouldValidateUrls) {
+      urlValidation = await validateProductUrls(products);
+    }
+
     console.log(`[${requestId}] Retrieved ${paginatedProducts.length} products`);
     
     return buildResponse(200, {
@@ -259,11 +265,138 @@ async function getAllProducts(queryParams, requestId) {
         pageSize,
         currentPage: page,
         totalPages
-      }
+      },
+      urlValidation
     });
   } catch (error) {
     console.error(`[${requestId}] DynamoDB error:`, error);
     return buildResponse(500, { error: 'Failed to retrieve products' });
+  }
+}
+
+async function validateProductUrls(products) {
+  const checkedAt = new Date().toISOString();
+
+  const details = await Promise.all(
+    products.map(async (product) => {
+      const amazon = await validateSingleUrl(product.amazonUrl, 'amazon.');
+      const flipkart = await validateSingleUrl(product.flipkartUrl, 'flipkart.');
+
+      const hasAnyUrl = amazon.present || flipkart.present;
+      const hasBothUrls = amazon.present && flipkart.present;
+      const invalidCount = [amazon, flipkart].filter((item) => item.present && (!item.validFormat || !item.domainMatches)).length;
+      const unreachableCount = [amazon, flipkart].filter((item) => item.present && item.validFormat && item.domainMatches && item.reachable === false).length;
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        sku: product.sku,
+        hasAnyUrl,
+        hasBothUrls,
+        invalidCount,
+        unreachableCount,
+        amazon,
+        flipkart
+      };
+    })
+  );
+
+  const productsWithAnyUrl = details.filter((item) => item.hasAnyUrl).length;
+  const productsWithBothUrls = details.filter((item) => item.hasBothUrls).length;
+  const productsMissingUrls = details.filter((item) => !item.hasAnyUrl).length;
+  const invalidFormatCount = details.reduce((sum, item) => sum + item.invalidCount, 0);
+  const unreachableCount = details.reduce((sum, item) => sum + item.unreachableCount, 0);
+  const validReachableCount = details.reduce((sum, item) => {
+    const reachable = [item.amazon, item.flipkart].filter((entry) => entry.present && entry.validFormat && entry.domainMatches && entry.reachable === true).length;
+    return sum + reachable;
+  }, 0);
+  const issueCount = details.filter((item) => item.invalidCount > 0 || item.unreachableCount > 0 || !item.hasAnyUrl).length;
+
+  return {
+    checkedAt,
+    totalProducts: products.length,
+    productsWithAnyUrl,
+    productsWithBothUrls,
+    productsMissingUrls,
+    invalidFormatCount,
+    unreachableCount,
+    validReachableCount,
+    issueCount,
+    details
+  };
+}
+
+async function validateSingleUrl(rawUrl, expectedDomainFragment) {
+  const url = String(rawUrl || '').trim();
+  if (!url) {
+    return {
+      present: false,
+      validFormat: false,
+      domainMatches: false,
+      reachable: null,
+      status: null,
+      error: null,
+      url: ''
+    };
+  }
+
+  if (!isValidUrl(url)) {
+    return {
+      present: true,
+      validFormat: false,
+      domainMatches: false,
+      reachable: null,
+      status: null,
+      error: 'Invalid URL format',
+      url
+    };
+  }
+
+  const hostname = new URL(url).hostname.toLowerCase();
+  const domainMatches = hostname.includes(expectedDomainFragment);
+  if (!domainMatches) {
+    return {
+      present: true,
+      validFormat: true,
+      domainMatches: false,
+      reachable: null,
+      status: null,
+      error: `Expected domain containing ${expectedDomainFragment}`,
+      url
+    };
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-IN,en;q=0.9'
+      },
+      signal: AbortSignal.timeout(7000)
+    });
+
+    return {
+      present: true,
+      validFormat: true,
+      domainMatches: true,
+      reachable: response.ok,
+      status: response.status,
+      error: response.ok ? null : `HTTP ${response.status}`,
+      url
+    };
+  } catch (error) {
+    return {
+      present: true,
+      validFormat: true,
+      domainMatches: true,
+      reachable: false,
+      status: null,
+      error: error.message,
+      url
+    };
   }
 }
 

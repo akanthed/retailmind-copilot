@@ -2,6 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-1" }));
+const ALLOW_SYNTHETIC_FALLBACK = process.env.ALLOW_SYNTHETIC_FALLBACK === "true";
 
 export const handler = async (event) => {
   console.log("Price scraper invoked:", JSON.stringify(event));
@@ -129,8 +130,11 @@ async function scrapePrice(competitor, url) {
     });
 
     if (!response.ok) {
-      console.log(`Failed to fetch ${competitor}: ${response.status} - Using demo price`);
-      return generateDemoPrice(competitor);
+      console.log(`Failed to fetch ${competitor}: ${response.status}`);
+      if (ALLOW_SYNTHETIC_FALLBACK) {
+        return generateDemoPrice(competitor);
+      }
+      return null;
     }
 
     const html = await response.text();
@@ -146,18 +150,24 @@ async function scrapePrice(competitor, url) {
       price = extractGenericPrice(html);
     }
 
-    // If extraction failed, use demo price
+    // If extraction failed, use demo price only if enabled
     if (!price) {
-      console.log(`Price extraction failed for ${competitor} - Using demo price`);
-      return generateDemoPrice(competitor);
+      console.log(`Price extraction failed for ${competitor}`);
+      if (ALLOW_SYNTHETIC_FALLBACK) {
+        return generateDemoPrice(competitor);
+      }
+      return null;
     }
 
     console.log(`Successfully extracted price for ${competitor}: ₹${price}`);
     return price;
   } catch (error) {
     console.error(`Error fetching ${competitor}:`, error.message);
-    console.log(`Using demo price for ${competitor}`);
-    return generateDemoPrice(competitor);
+    if (ALLOW_SYNTHETIC_FALLBACK) {
+      console.log(`Using demo price for ${competitor}`);
+      return generateDemoPrice(competitor);
+    }
+    return null;
   }
 }
 

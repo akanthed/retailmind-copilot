@@ -1,15 +1,24 @@
 // Price Monitor - Lambda Function
-// Generates synthetic competitor price data and stores in DynamoDB
+// Fetches live competitor price data and stores in DynamoDB
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";
+import { createPriceService } from "../shared/price-service.mjs";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
+const SERPAPI_KEY = process.env.SERP_API_KEY || process.env.SERPAPI_KEY || "";
+const ALLOW_SYNTHETIC_FALLBACK = process.env.ALLOW_SYNTHETIC_FALLBACK === "true";
+const priceService = createPriceService({
+    serpApiKey: SERPAPI_KEY,
+    logger: console,
+    retries: 2,
+    enableStrictFiltering: true
+});
 
 // Competitor data
 const COMPETITORS = [
@@ -36,14 +45,33 @@ export const handler = async (event) => {
             };
         }
         
-        // Generate prices for each product and competitor
         let pricesGenerated = 0;
+        let productsWithLiveData = 0;
+        let productsSkipped = 0;
+        let syntheticGenerated = 0;
         
         for (const product of products) {
-            for (const competitor of COMPETITORS) {
-                const priceData = generateCompetitorPrice(product, competitor);
-                await storePriceHistory(priceData);
-                pricesGenerated++;
+            const livePrices = await fetchLivePricesForProduct(product);
+
+            if (livePrices.length > 0) {
+                productsWithLiveData++;
+                for (const result of livePrices) {
+                    const priceData = buildPriceHistoryItem(product, result);
+                    await storePriceHistory(priceData);
+                    pricesGenerated++;
+                }
+                continue;
+            }
+
+            if (ALLOW_SYNTHETIC_FALLBACK) {
+                for (const competitor of COMPETITORS) {
+                    const priceData = generateCompetitorPrice(product, competitor);
+                    await storePriceHistory(priceData);
+                    pricesGenerated++;
+                    syntheticGenerated++;
+                }
+            } else {
+                productsSkipped++;
             }
         }
         
@@ -59,6 +87,10 @@ export const handler = async (event) => {
                 message: 'Price monitoring completed',
                 productsMonitored: products.length,
                 pricesGenerated: pricesGenerated,
+                productsWithLiveData,
+                productsSkipped,
+                syntheticGenerated,
+                syntheticFallbackUsed: ALLOW_SYNTHETIC_FALLBACK,
                 timestamp: new Date().toISOString()
             })
         };
@@ -87,6 +119,66 @@ async function getAllProducts() {
     
     const result = await docClient.send(command);
     return result.Items || [];
+}
+
+async function fetchLivePricesForProduct(product) {
+    const query = product.keywords || product.name;
+    if (!query) {
+        return [];
+    }
+
+    try {
+        const searchResult = await priceService.fetchCompetitorPrices(query, {
+            strictCapacity: true,
+            minScore: 60
+        });
+
+        return (searchResult.results || [])
+            .filter((result) => Number.isFinite(Number(result.price)) && Number(result.price) > 0)
+            .slice(0, 5)
+            .map((result) => ({
+                platform: result.platform || 'Unknown',
+                domain: extractDomain(result.url),
+                price: Number(result.price),
+                inStock: result.inStock !== false,
+                source: result.source || 'live',
+                url: result.url || ''
+            }));
+    } catch (error) {
+        console.warn('[PRICE-MONITOR] Live search failed', {
+            productId: product.id,
+            productName: product.name,
+            message: error.message
+        });
+        return [];
+    }
+}
+
+function buildPriceHistoryItem(product, result) {
+    return {
+        id: randomUUID(),
+        productId: product.id,
+        productName: product.name,
+        productSku: product.sku,
+        competitorId: `${String(result.platform || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        competitorName: result.platform || 'Unknown',
+        competitorDomain: result.domain || 'unknown',
+        price: result.price,
+        inStock: result.inStock,
+        timestamp: Date.now(),
+        source: result.source || 'live',
+        url: result.url || '',
+        createdAt: new Date().toISOString()
+    };
+}
+
+function extractDomain(url) {
+    if (!url) return '';
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return '';
+    }
 }
 
 // Generate realistic competitor price

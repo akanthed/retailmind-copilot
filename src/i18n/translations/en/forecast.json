@@ -26,5 +26,6 @@
   "festivalDays": "Festival Days (Higher Demand)",
   "expectedDemand": "Expected Demand",
   "date": "Date",
-  "unitsNeeded": "Units Needed"
+  "unitsNeeded": "Units Needed",
+  "generateFailed": "Failed to generate forecasts"
 }

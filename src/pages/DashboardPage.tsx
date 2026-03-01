@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AIRecommendationCard, AlertCard } from "@/components/ui/Cards";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
 import { Sparkles, Send, Lightbulb, Loader2, Package, TrendingUp, Bell, IndianRupee, RefreshCw } from "lucide-react";
@@ -100,6 +101,7 @@ export default function DashboardPage() {
       } else if (summaryResult.error) {
         // Use mock data if API not available
         setRevenueSummary({
+          period: { start: '', end: '' },
           revenue_protected: 42000,
           alert_response_rate: 85.5,
           competitive_score: 7.8,
@@ -129,6 +131,7 @@ export default function DashboardPage() {
       setRevenueError("Using demo data - revenue calculator not deployed");
       // Set mock data on error
       setRevenueSummary({
+        period: { start: '', end: '' },
         revenue_protected: 42000,
         alert_response_rate: 85.5,
         competitive_score: 7.8,
@@ -156,7 +159,7 @@ export default function DashboardPage() {
     
     if (!query.trim()) {
       toast({
-        title: "Please enter a question",
+        title: t('dashboard.enterQuestion'),
         variant: "destructive"
       });
       return;
@@ -215,10 +218,16 @@ export default function DashboardPage() {
   if (loadingData) {
     return (
       <AppLayout>
-        <LoadingPage message="Loading your dashboard..." />
+        <LoadingPage message={t('dashboard.loadingDashboard')} />
       </AppLayout>
     );
   }
+
+  const getStockColor = (index: number) => {
+    if (index === 0) return '#10b981';
+    if (index === 1) return '#f59e0b';
+    return '#ef4444';
+  };
 
   return (
     <AppLayout>
@@ -306,7 +315,7 @@ export default function DashboardPage() {
                 <Sparkles className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-foreground mb-2">AI Response</h3>
+                  <h3 className="font-medium text-foreground mb-2">{t('dashboard.aiResponse')}</h3>
                 <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{aiResponse}</div>
               </div>
             </div>
@@ -431,13 +440,10 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={stockData}>
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                      {stockData.map((entry, index) => (
+                      {stockData.map((_, index) => (
                         <Cell 
                           key={`cell-${index}`} 
-                          fill={
-                            entry.name === 'In Stock' ? '#10b981' :
-                            entry.name === 'Low Stock' ? '#f59e0b' : '#ef4444'
-                          } 
+                          fill={getStockColor(index)}
                         />
                       ))}
                     </Bar>
@@ -452,15 +458,11 @@ export default function DashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap gap-3 mt-4">
-                  {stockData.map((item) => (
+                  {stockData.map((item, index) => (
                     <div key={item.name} className="flex items-center gap-2 text-xs">
                       <div 
                         className="w-3 h-3 rounded-full" 
-                        style={{ 
-                          backgroundColor: 
-                            item.name === 'In Stock' ? '#10b981' :
-                            item.name === 'Low Stock' ? '#f59e0b' : '#ef4444'
-                        }}
+                        style={{ backgroundColor: getStockColor(index) }}
                       />
                       <span className="text-muted-foreground">{item.name}: {item.value}</span>
                     </div>

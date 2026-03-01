@@ -17,5 +17,13 @@
   "pendingActions": "Pending Actions",
   "avgConfidence": "Avg Confidence",
   "noRecommendations": "No recommendations yet",
-  "noRecommendationsDesc": "AI is analyzing your products. Recommendations will appear here soon."
+  "noRecommendationsDesc": "AI is analyzing your products. Recommendations will appear here soon.",
+  "exportCSV": "Export CSV",
+  "total": "Total",
+  "toDo": "To Do",
+  "done": "Done",
+  "loadingTodo": "Loading your to-do list...",
+  "yourImpact": "Your Impact",
+  "completedActions": "You've completed {count} action{plural}. Keep it up!",
+  "pluralSuffix": "s"
 }

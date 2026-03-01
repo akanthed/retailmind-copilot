@@ -2,6 +2,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format } from "date-fns";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { RevenueHistoryItem } from "@/api/client";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface RevenueTrendChartProps {
   data: RevenueHistoryItem[];
@@ -10,6 +11,8 @@ interface RevenueTrendChartProps {
 }
 
 export function RevenueTrendChart({ data, loading = false, error }: RevenueTrendChartProps) {
+  const { t } = useLanguage();
+
   if (error) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -29,8 +32,8 @@ export function RevenueTrendChart({ data, loading = false, error }: RevenueTrend
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        <p>No revenue data available yet</p>
-        <p className="text-sm mt-2">Data will appear once revenue calculations are performed</p>
+        <p>{t('dashboard.noRevenueData')}</p>
+        <p className="text-sm mt-2">{t('dashboard.revenueDataHint')}</p>
       </div>
     );
   }
@@ -57,7 +60,7 @@ export function RevenueTrendChart({ data, loading = false, error }: RevenueTrend
           fontSize={12}
         />
         <Tooltip
-          formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, "Revenue Protected"]}
+          formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, t('dashboard.revenueProtected')]}
           labelFormatter={(date) => {
             try {
               return format(new Date(date), "PPP");

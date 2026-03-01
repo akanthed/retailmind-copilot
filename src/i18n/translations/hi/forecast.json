@@ -26,5 +26,6 @@
   "festivalDays": "त्योहार के दिन (अधिक मांग)",
   "expectedDemand": "अपेक्षित मांग",
   "date": "तारीख",
-  "unitsNeeded": "आवश्यक इकाइयां"
+  "unitsNeeded": "आवश्यक इकाइयां",
+  "generateFailed": "पूर्वानुमान बनाने में विफल"
 }

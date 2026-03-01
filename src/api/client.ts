@@ -202,6 +202,41 @@ export interface GSTBreakdown {
   gstPercentage: string;
 }
 
+export interface UrlValidationEntry {
+  present: boolean;
+  validFormat: boolean;
+  domainMatches: boolean;
+  reachable: boolean | null;
+  status: number | null;
+  error: string | null;
+  url: string;
+}
+
+export interface ProductUrlValidationDetail {
+  productId: string;
+  productName: string;
+  sku: string;
+  hasAnyUrl: boolean;
+  hasBothUrls: boolean;
+  invalidCount: number;
+  unreachableCount: number;
+  amazon: UrlValidationEntry;
+  flipkart: UrlValidationEntry;
+}
+
+export interface UrlValidationSummary {
+  checkedAt: string;
+  totalProducts: number;
+  productsWithAnyUrl: number;
+  productsWithBothUrls: number;
+  productsMissingUrls: number;
+  invalidFormatCount: number;
+  unreachableCount: number;
+  validReachableCount: number;
+  issueCount: number;
+  details: ProductUrlValidationDetail[];
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -214,10 +249,13 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
+      const method = (options.method || 'GET').toUpperCase();
+      const shouldSetJsonContentType = Boolean(options.body) && method !== 'GET' && method !== 'HEAD';
+
       const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...(shouldSetJsonContentType ? { 'Content-Type': 'application/json' } : {}),
           ...options.headers,
         },
       });
@@ -265,6 +303,10 @@ class ApiClient {
     return this.request('/products', { method: 'GET' });
   }
 
+  async validateProductUrls(): Promise<ApiResponse<{ products: Product[]; pagination: { totalCount: number; pageSize: number; currentPage: number; totalPages: number }; urlValidation: UrlValidationSummary | null }>> {
+    return this.request('/products?validateUrls=true&pageSize=100', { method: 'GET' });
+  }
+
   async getProduct(productId: string): Promise<ApiResponse<Product>> {
     return this.request(`/products/${productId}`, { method: 'GET' });
   }
@@ -296,7 +338,7 @@ class ApiClient {
     return this.request(`/products/${productId}/compare`, { method: 'GET' });
   }
 
-  async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[] }>> {
+  async searchCompetitorPrices(productId: string, params: { keywords?: string; amazonUrl?: string; flipkartUrl?: string }): Promise<ApiResponse<{ results: PriceComparison[]; resultsCount: number; source: string; searchQuery?: string; attemptedQueries?: string[]; debugAttempts?: any[]; liveDataAvailable?: boolean; syntheticFallbackUsed?: boolean; directUrlUsed?: boolean; fallbackEnabled?: boolean }>> {
     try {
       const response = await fetchWithRetry(`${this.baseUrl}/products/${productId}/compare/search`, {
         method: 'POST',

@@ -32,5 +32,16 @@
   "totalInventoryValue": "आपके सभी स्टॉक का कुल मूल्य",
   "totalProductsTracking": "कुल उत्पाद जिन्हें आप ट्रैक कर रहे हैं",
   "revenueImpact": "राजस्व प्रभाव",
-  "thirtyDayTrend": "30-दिन का रुझान"
+  "thirtyDayTrend": "30-दिन का रुझान",
+  "enterQuestion": "कृपया एक प्रश्न दर्ज करें",
+  "loadingDashboard": "आपका डैशबोर्ड लोड हो रहा है...",
+  "aiResponse": "AI उत्तर",
+  "revenueProtected": "सुरक्षित राजस्व",
+  "thisMonth": "इस महीने",
+  "alertResponse": "अलर्ट प्रतिक्रिया",
+  "competitiveScore": "प्रतिस्पर्धी स्कोर",
+  "marketPosition": "बाजार स्थिति",
+  "retry": "पुनः प्रयास करें",
+  "noRevenueData": "अभी तक कोई राजस्व डेटा उपलब्ध नहीं है",
+  "revenueDataHint": "राजस्व गणना होने पर डेटा यहां दिखेगा"
 }

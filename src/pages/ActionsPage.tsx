@@ -60,7 +60,7 @@ export default function ActionsPage() {
   if (loading) {
     return (
       <AppLayout>
-        <LoadingPage message="Loading your to-do list..." />
+        <LoadingPage message={t('actions.loadingTodo')} />
       </AppLayout>
     );
   }
@@ -89,7 +89,7 @@ export default function ActionsPage() {
               className="gap-2"
             >
               <Download className="h-4 w-4" />
-              Export CSV
+              {t('actions.exportCSV')}
             </Button>
           )}
         </div>
@@ -98,15 +98,15 @@ export default function ActionsPage() {
         <div className="grid grid-cols-3 gap-4 mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           <div className="premium-card rounded-2xl p-4 text-center">
             <p className="text-2xl font-semibold text-foreground">{recommendations.length}</p>
-            <p className="text-sm text-muted-foreground">Total</p>
+            <p className="text-sm text-muted-foreground">{t('actions.total')}</p>
           </div>
           <div className="premium-card rounded-2xl p-4 text-center">
             <p className="text-2xl font-semibold text-warning">{pendingCount}</p>
-            <p className="text-sm text-muted-foreground">To Do</p>
+            <p className="text-sm text-muted-foreground">{t('actions.toDo')}</p>
           </div>
           <div className="premium-card rounded-2xl p-4 text-center">
             <p className="text-2xl font-semibold text-success">{doneCount}</p>
-            <p className="text-sm text-muted-foreground">Done</p>
+            <p className="text-sm text-muted-foreground">{t('actions.done')}</p>
           </div>
         </div>
 
@@ -178,9 +178,11 @@ export default function ActionsPage() {
             <div className="flex items-start gap-3">
               <TrendingUp className="w-5 h-5 text-success mt-0.5" />
               <div>
-                <h3 className="font-medium text-foreground mb-1">Your Impact</h3>
+                <h3 className="font-medium text-foreground mb-1">{t('actions.yourImpact')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  You've completed {doneCount} action{doneCount > 1 ? 's' : ''}. Keep it up!
+                  {t('actions.completedActions')
+                    .replace('{count}', doneCount.toString())
+                    .replace('{plural}', doneCount > 1 ? t('actions.pluralSuffix') : '')}
                 </p>
               </div>
             </div>

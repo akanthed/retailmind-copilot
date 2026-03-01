@@ -1,23 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, Sparkles } from "lucide-react";
-
-const inspirationalQuotes = [
-  "Smart pricing wins customers...",
-  "Data beats guesswork every time...",
-  "Your competitors are just one click away...",
-  "Every price tells a story...",
-  "Knowledge is your competitive edge...",
-  "Stay ahead of market trends...",
-  "Price right, profit more...",
-  "AI is analyzing thousands of data points...",
-  "Your success starts with smart decisions...",
-  "Market intelligence at your fingertips...",
-  "Turning data into profits...",
-  "Small changes, big impact...",
-  "Compete smarter, not harder...",
-  "Your business deserves better insights...",
-  "Price optimization in progress...",
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -26,15 +9,25 @@ interface LoadingSpinnerProps {
 }
 
 export function LoadingSpinner({ 
-  message = "Loading...", 
+  message = "loading.default", 
   showQuote = true,
   size = "md" 
 }: LoadingSpinnerProps) {
+  const { t } = useLanguage();
   const [quote, setQuote] = useState("");
   const [quoteIndex, setQuoteIndex] = useState(0);
 
+  // Generate quote keys array
+  const quoteKeys = Array.from({ length: 15 }, (_, i) => `loading.quote${i + 1}`);
+
+  // Get translated quotes
+  const inspirationalQuotes = quoteKeys.map(key => t(key));
+  
+  // Get translated message
+  const displayMessage = message.startsWith('loading.') ? t(message) : message;
+
   useEffect(() => {
-    if (showQuote) {
+    if (showQuote && inspirationalQuotes.length > 0) {
       // Pick random quote on mount
       const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
       setQuoteIndex(randomIndex);
@@ -51,7 +44,7 @@ export function LoadingSpinner({
 
       return () => clearInterval(interval);
     }
-  }, [showQuote]);
+  }, [showQuote, inspirationalQuotes]);
 
   const sizeClasses = {
     sm: "w-8 h-8",
@@ -60,7 +53,7 @@ export function LoadingSpinner({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 animate-fade-in" role="status" aria-live="polite" aria-label={message}>
+    <div className="flex flex-col items-center justify-center gap-4 animate-fade-in" role="status" aria-live="polite" aria-label={displayMessage}>
       <div className="relative">
         <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} aria-hidden="true" />
         <div className="absolute inset-0 rounded-full animate-pulse-soft">
@@ -69,7 +62,7 @@ export function LoadingSpinner({
       </div>
       
       <div className="text-center space-y-2 max-w-md">
-        <p className="text-muted-foreground font-medium">{message}</p>
+        <p className="text-muted-foreground font-medium">{displayMessage}</p>
         
         {showQuote && quote && (
           <div className="flex items-center justify-center gap-2 animate-fade-in">
@@ -85,7 +78,7 @@ export function LoadingSpinner({
 }
 
 // Full page loading component
-export function LoadingPage({ message, showQuote = true }: LoadingSpinnerProps) {
+export function LoadingPage({ message = "loading.default", showQuote = true }: LoadingSpinnerProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <LoadingSpinner message={message} showQuote={showQuote} size="lg" />
@@ -94,7 +87,7 @@ export function LoadingPage({ message, showQuote = true }: LoadingSpinnerProps) 
 }
 
 // Inline loading component (for cards, sections)
-export function LoadingInline({ message, showQuote = false }: LoadingSpinnerProps) {
+export function LoadingInline({ message = "loading.default", showQuote = false }: LoadingSpinnerProps) {
   return (
     <div className="flex items-center justify-center p-8">
       <LoadingSpinner message={message} showQuote={showQuote} size="sm" />

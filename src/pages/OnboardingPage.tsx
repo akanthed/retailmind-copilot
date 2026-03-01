@@ -116,6 +116,11 @@ export default function OnboardingPage() {
     navigate("/dashboard");
   }
 
+  function handleAddManually() {
+    localStorage.setItem("onboarding_completed", "true");
+    navigate("/products");
+  }
+
   if (step === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-sage-50 flex items-center justify-center p-6">
@@ -221,7 +226,7 @@ export default function OnboardingPage() {
               </div>
             </Card>
 
-            <Card className="p-6 hover-lift cursor-pointer border-2 hover:border-primary transition-all" onClick={() => navigate("/products")}>
+            <Card className="p-6 hover-lift cursor-pointer border-2 hover:border-primary transition-all" onClick={handleAddManually}>
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">

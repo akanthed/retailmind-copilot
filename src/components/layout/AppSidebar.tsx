@@ -140,9 +140,9 @@ export function AppSidebar() {
               />
               {!collapsed && (
                 <div className="flex flex-col min-w-0">
-                  <span className="truncate">{item.title}</span>
+                  <span className="line-clamp-1 break-words">{item.title}</span>
                   {!isActive && (
-                    <span className="text-xs text-sidebar-foreground/50 truncate">
+                    <span className="text-xs text-sidebar-foreground/50 line-clamp-1 break-words">
                       {item.description}
                     </span>
                   )}

@@ -7,23 +7,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const shortcuts = [
-  { key: "?", description: "Show keyboard shortcuts" },
-  { key: "Alt + D", description: "Go to Dashboard" },
-  { key: "Alt + P", description: "Go to Products" },
-  { key: "Alt + A", description: "Go to Actions" },
-  { key: "Alt + H", description: "Go to Help" },
-  { key: "Esc", description: "Close dialogs" },
-  { key: "Tab", description: "Navigate forward" },
-  { key: "Shift + Tab", description: "Navigate backward" },
-  { key: "Enter / Space", description: "Activate buttons and links" },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export function KeyboardShortcuts() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const shortcuts = [
+    { key: "?", description: t('common.keyboard.show') },
+    { key: "Alt + D", description: t('common.keyboard.dashboard') },
+    { key: "Alt + P", description: t('common.keyboard.products') },
+    { key: "Alt + A", description: t('common.keyboard.actions') },
+    { key: "Alt + H", description: t('common.keyboard.help') },
+    { key: "Esc", description: t('common.keyboard.close') },
+    { key: "Tab", description: t('common.keyboard.forward') },
+    { key: "Shift + Tab", description: t('common.keyboard.backward') },
+    { key: "Enter / Space", description: t('common.keyboard.activate') },
+  ];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,7 +72,7 @@ export function KeyboardShortcuts() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Command className="w-5 h-5" />
-            Keyboard Shortcuts
+            {t('common.keyboard.title')}
           </DialogTitle>
         </DialogHeader>
         <div id="keyboard-shortcuts-description" className="space-y-3">
@@ -84,7 +86,7 @@ export function KeyboardShortcuts() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-4">
-          Press <kbd className="px-1 py-0.5 text-xs bg-muted border border-border rounded">?</kbd> anytime to see this help
+          {t('common.keyboard.pressHelpPrefix')} <kbd className="px-1 py-0.5 text-xs bg-muted border border-border rounded">?</kbd> {t('common.keyboard.pressHelpSuffix')}
         </p>
       </DialogContent>
     </Dialog>

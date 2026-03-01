@@ -24,9 +24,22 @@ interface SimpleProductFormProps {
 }
 
 const categories = [
-  "Electronics", "Mobile Phones", "Laptops", "Accessories", "Home Appliances",
-  "Fashion", "Grocery", "Health & Beauty", "Sports", "Books", "Toys & Games",
-  "Kitchen & Dining", "Furniture", "Stationery", "Automotive", "Other"
+  { value: "Electronics", labelKey: "products.categories.electronics" },
+  { value: "Mobile Phones", labelKey: "products.categories.mobilePhones" },
+  { value: "Laptops", labelKey: "products.categories.laptops" },
+  { value: "Accessories", labelKey: "products.categories.accessories" },
+  { value: "Home Appliances", labelKey: "products.categories.homeAppliances" },
+  { value: "Fashion", labelKey: "products.categories.fashion" },
+  { value: "Grocery", labelKey: "products.categories.grocery" },
+  { value: "Health & Beauty", labelKey: "products.categories.healthBeauty" },
+  { value: "Sports", labelKey: "products.categories.sports" },
+  { value: "Books", labelKey: "products.categories.books" },
+  { value: "Toys & Games", labelKey: "products.categories.toysGames" },
+  { value: "Kitchen & Dining", labelKey: "products.categories.kitchenDining" },
+  { value: "Furniture", labelKey: "products.categories.furniture" },
+  { value: "Stationery", labelKey: "products.categories.stationery" },
+  { value: "Automotive", labelKey: "products.categories.automotive" },
+  { value: "Other", labelKey: "products.categories.other" },
 ];
 
 export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }: SimpleProductFormProps) {
@@ -64,8 +77,6 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
       keywords: (keywords.trim() || name.trim()), // Use name as default keywords
       validUntil: validUntil.trim() || null, // Product validity/expiry date
     };
-    
-    console.log('Form submitting data:', data);
     
     try {
       await onSubmit(data);
@@ -189,8 +200,8 @@ export function SimpleProductForm({ initialData, onSubmit, onCancel, isEditing }
               aria-describedby="category-hint"
             >
               {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+                <option key={cat.value} value={cat.value}>
+                  {t(cat.labelKey)}
                 </option>
               ))}
             </select>

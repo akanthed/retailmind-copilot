@@ -52,5 +52,23 @@
   "deleteConfirm": "Are you sure you want to delete",
   "deleteWarning": "This action cannot be undone.",
   "cancel": "Cancel",
-  "delete": "Delete"
+  "delete": "Delete",
+  "categories": {
+    "electronics": "Electronics",
+    "mobilePhones": "Mobile Phones",
+    "laptops": "Laptops",
+    "accessories": "Accessories",
+    "homeAppliances": "Home Appliances",
+    "fashion": "Fashion",
+    "grocery": "Grocery",
+    "healthBeauty": "Health & Beauty",
+    "sports": "Sports",
+    "books": "Books",
+    "toysGames": "Toys & Games",
+    "kitchenDining": "Kitchen & Dining",
+    "furniture": "Furniture",
+    "stationery": "Stationery",
+    "automotive": "Automotive",
+    "other": "Other"
+  }
 }

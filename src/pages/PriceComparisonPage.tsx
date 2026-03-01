@@ -76,6 +76,16 @@ interface SearchDebugInfo {
   strictFilteringEnabled?: boolean;
 }
 
+function isLiveSource(source: string) {
+  return source === "live" || source === "playwright_fallback" || source === "direct_url";
+}
+
+function getSourceLabel(source: string, t: (key: string) => string) {
+  if (isLiveSource(source)) return t('priceComparison.live');
+  if (source === 'synthetic') return 'Demo';
+  return t('priceComparison.cache');
+}
+
 export default function PriceComparisonPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
@@ -124,10 +134,16 @@ export default function PriceComparisonPage() {
         });
         setCompetitorPrices(filteredComparisons);
         
-        // Auto-search if no prices found and not searched recently
+        // Auto-search if no prices found OR explicit URLs exist but current rows are stale/non-direct
         const now = Date.now();
         const fiveMinutes = 5 * 60 * 1000;
-        if (filteredComparisons.length === 0 && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
+        const hasExplicitUrl = Boolean(productResult.data?.amazonUrl || productResult.data?.flipkartUrl);
+        const hasDirectRows = filteredComparisons.some((comp: CompetitorPrice) => comp.source === 'direct_url');
+        const shouldAutoRefresh =
+          filteredComparisons.length === 0 ||
+          (hasExplicitUrl && !hasDirectRows);
+
+        if (shouldAutoRefresh && (!lastSearchTime || now - lastSearchTime > fiveMinutes)) {
           // Auto-search in background after 1 second
           setAutoSearching(true);
           setTimeout(() => {
@@ -194,18 +210,24 @@ export default function PriceComparisonPage() {
 
         // Show data source notification only for manual search
         if (!isAutoSearch) {
-          const liveCount = filteredResults.filter((r: any) => r.source === 'live').length;
+          const liveCount = filteredResults.filter((r: any) => isLiveSource(r.source)).length;
           const syntheticCount = filteredResults.filter((r: any) => r.source === 'synthetic').length;
 
           if (liveCount > 0) {
             toast({
               title: "Live Data Retrieved",
-              description: `Found ${liveCount} live prices`,
+              description: `Found ${liveCount} real competitor prices`,
             });
           } else if (syntheticCount > 0) {
             toast({
               title: "Using Demo Data",
               description: "Showing sample prices",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "No Live Data Found",
+              description: "Add valid Amazon/Flipkart product URLs for better results",
               variant: "default",
             });
           }
@@ -421,21 +443,31 @@ export default function PriceComparisonPage() {
             <div className="p-12 text-center">
               <ShoppingCart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
-                {autoSearching ? "Searching for prices..." : "Finding competitor prices..."}
+                {autoSearching ? "Searching for prices..." : "No competitor prices found"}
               </h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-6">
                 {autoSearching 
                   ? "AI is analyzing Amazon, Flipkart, and other platforms..."
-                  : "AI is searching Amazon, Flipkart, and other platforms for this product"
+                  : "We couldn't find competitor prices for this product."
                 }
               </p>
               {autoSearching && (
                 <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
               )}
               {!autoSearching && (
-                <p className="text-sm text-muted-foreground">
-                  This happens automatically. Prices will appear here shortly.
-                </p>
+                <div className="flex flex-col gap-3 items-center">
+                  <Button 
+                    onClick={() => handleSearchPrices(false)}
+                    disabled={searching}
+                    className="gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    {searching ? "Searching..." : "Search Now"}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Make sure Amazon/Flipkart product URLs are added in product details.
+                  </p>
+                </div>
               )}
             </div>
           ) : (
@@ -498,7 +530,7 @@ export default function PriceComparisonPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="min-w-[200px]">
-                      <p className="max-w-[250px] truncate text-sm" title={comp.title}>{comp.title}</p>
+                      <p className="line-clamp-2 text-sm break-words" title={comp.title}>{comp.title}</p>
                     </TableCell>
                     <TableCell className="w-[140px]">
                       <MatchQualityBadge
@@ -543,12 +575,12 @@ export default function PriceComparisonPage() {
                       <Badge
                         variant="outline"
                         className={`h-6 whitespace-nowrap text-xs ${
-                          comp.source === "live"
+                          isLiveSource(comp.source)
                             ? "text-green-500 border-green-500/30"
                             : "text-muted-foreground"
                         }`}
                       >
-                        {comp.source === "live" ? t('priceComparison.live') : t('priceComparison.cache')}
+                        {getSourceLabel(comp.source, t)}
                       </Badge>
                     </TableCell>
                     <TableCell className="w-[50px]">

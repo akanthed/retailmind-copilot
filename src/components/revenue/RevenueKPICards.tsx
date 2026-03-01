@@ -1,5 +1,6 @@
 import { IndianRupee, TrendingUp, Target } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface RevenueKPICardsProps {
   revenueProtected: number;
@@ -22,6 +23,8 @@ export function RevenueKPICards({
   error,
   onRetry,
 }: RevenueKPICardsProps) {
+  const { t } = useLanguage();
+
   if (error) {
     return (
       <div className="premium-card rounded-2xl p-6 text-center">
@@ -31,7 +34,7 @@ export function RevenueKPICards({
             onClick={onRetry}
             className="text-primary hover:underline"
           >
-            Retry
+            {t('dashboard.retry')}
           </button>
         )}
       </div>
@@ -42,25 +45,25 @@ export function RevenueKPICards({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <KPICard
         icon={<IndianRupee className="w-5 h-5" />}
-        title="Revenue Protected"
+        title={t('dashboard.revenueProtected')}
         value={formatCurrency(revenueProtected)}
-        subtitle="This month"
+        subtitle={t('dashboard.thisMonth')}
         loading={loading}
         color="text-primary"
       />
       <KPICard
         icon={<TrendingUp className="w-5 h-5" />}
-        title="Alert Response"
+        title={t('dashboard.alertResponse')}
         value={`${Math.round(responseRate)}%`}
-        subtitle={`${alertsResponded}/${alertsTotal} alerts`}
+        subtitle={`${alertsResponded}/${alertsTotal} ${t('dashboard.alerts')}`}
         loading={loading}
         color="text-success"
       />
       <KPICard
         icon={<Target className="w-5 h-5" />}
-        title="Competitive Score"
+        title={t('dashboard.competitiveScore')}
         value={`${competitiveScore.toFixed(1)}/10`}
-        subtitle="Market position"
+        subtitle={t('dashboard.marketPosition')}
         loading={loading}
         color="text-primary"
       />

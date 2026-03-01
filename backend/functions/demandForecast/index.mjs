@@ -14,19 +14,60 @@ const PRODUCTS_TABLE = "RetailMind-Products";
 const FORECASTS_TABLE = "RetailMind-Forecasts";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 
-// Indian festival calendar for 2026
+// Indian festival calendar for 2026 with research-backed peak periods
+// Peaks are 7-14 days before the main festival for maximum demand
 const INDIAN_FESTIVALS = {
-  "2026-01-14": { name: "Makar Sankranti", impact: 1.3, categories: ["Food", "Clothing"] },
-  "2026-01-26": { name: "Republic Day", impact: 1.2, categories: ["Electronics", "Fashion"] },
-  "2026-03-14": { name: "Holi", impact: 1.5, categories: ["Food", "Colors", "Sweets"] },
-  "2026-04-02": { name: "Ram Navami", impact: 1.2, categories: ["Food", "Religious Items"] },
-  "2026-08-15": { name: "Independence Day", impact: 1.3, categories: ["Electronics", "Fashion"] },
-  "2026-08-27": { name: "Janmashtami", impact: 1.4, categories: ["Food", "Sweets", "Religious Items"] },
-  "2026-09-17": { name: "Ganesh Chaturthi", impact: 1.6, categories: ["Food", "Sweets", "Religious Items"] },
-  "2026-10-15": { name: "Dussehra", impact: 1.5, categories: ["Electronics", "Clothing", "Jewelry"] },
-  "2026-11-04": { name: "Diwali", impact: 2.0, categories: ["Electronics", "Jewelry", "Sweets", "Clothing"] },
-  "2026-11-19": { name: "Guru Nanak Jayanti", impact: 1.2, categories: ["Food", "Religious Items"] },
-  "2026-12-25": { name: "Christmas", impact: 1.4, categories: ["Electronics", "Toys", "Food"] }
+  // Winter holidays & New Year (Dec 25 - Jan 2)
+  "2025-12-20": { name: "Before Christmas Peak", impact: 1.8, categories: ["Electronics", "Toys", "Clothing", "Food"] },
+  "2025-12-25": { name: "Christmas", impact: 2.2, categories: ["Electronics", "Toys", "Food", "Gifts"] },
+  "2026-01-01": { name: "New Year Peak", impact: 1.6, categories: ["Electronics", "Fashion", "Food", "Gifts"] },
+  
+  // Makar Sankranti & Wedding Season Peak (Jan)
+  "2026-01-08": { name: "Wedding Season Peak", impact: 1.7, categories: ["Clothing", "Jewelry", "Accessories", "Gifts"] },
+  "2026-01-14": { name: "Makar Sankranti", impact: 1.4, categories: ["Food", "Clothing", "Sweets"] },
+  "2026-01-26": { name: "Republic Day", impact: 1.3, categories: ["Electronics", "Fashion", "Clothing"] },
+  
+  // Spring Sales & Back to School Peak (Feb-Mar)
+  "2026-02-01": { name: "Spring Sales Peak", impact: 1.5, categories: ["Electronics", "Clothing", "Fashion"] },
+  "2026-03-01": { name: "Holi Pre-Festival Peak", impact: 1.9, categories: ["Colors", "Food", "Clothing", "Festival Items"] },
+  "2026-03-14": { name: "Holi", impact: 2.1, categories: ["Food", "Colors", "Sweets", "Clothing", "Gifts"] },
+  
+  // Ram Navami
+  "2026-04-02": { name: "Ram Navami", impact: 1.3, categories: ["Food", "Religious Items", "Sweets"] },
+  
+  // Summer Offers & Back to School (Apr-May)
+  "2026-04-15": { name: "Summer Offers Peak", impact: 1.4, categories: ["Electronics", "Clothing", "Fashion"] },
+  "2026-05-15": { name: "Back to School Peak", impact: 1.6, categories: ["Electronics", "Books", "Stationery", "Clothing"] },
+  
+  // Wedding & Engagement Season Peak (May-Jun)
+  "2026-05-20": { name: "Wedding Season Peak-2", impact: 1.8, categories: ["Jewelry", "Clothing", "Fashion", "Home Decor"] },
+  
+  // Monsoon Offers (Jun-Jul)
+  "2026-06-15": { name: "Monsoon Season Peak", impact: 1.3, categories: ["Clothing", "Footwear", "Home Appliances"] },
+  
+  // Rakhi/Raksha Bandhan (Aug)
+  "2026-08-01": { name: "Rakhi Pre-Peak", impact: 1.5, categories: ["Jewelry", "Clothing", "Gifts", "Sweets"] },
+  "2026-08-15": { name: "Independence Day", impact: 1.4, categories: ["Electronics", "Fashion", "Clothing", "Flags"] },
+  
+  // Janmashtami
+  "2026-08-27": { name: "Janmashtami", impact: 1.3, categories: ["Food", "Sweets", "Religious Items"] },
+  
+  // Ganesh Chaturthi & Navratri Season
+  "2026-09-01": { name: "Navratri Pre-Peak", impact: 1.7, categories: ["Clothing", "Jewelry", "Home Decor", "Religious Items"] },
+  "2026-09-17": { name: "Ganesh Chaturthi Peak", impact: 1.8, categories: ["Food", "Sweets", "Religious Items", "Home Decor"] },
+  
+  // Dussehra & Diwali Season (Sep-Nov) - STRONGEST PEAK
+  "2026-10-01": { name: "Diwali Season Starts", impact: 1.6, categories: ["Electronics", "Clothing", "Jewelry", "Home Decor"] },
+  "2026-10-15": { name: "Dussehra", impact: 1.7, categories: ["Electronics", "Clothing", "Jewelry", "Fashion"] },
+  "2026-10-21": { name: "Diwali Peak Starts (2 weeks before)", impact: 1.9, categories: ["Electronics", "Jewelry", "Clothing", "Home", "Gifts"] },
+  "2026-11-04": { name: "Diwali", impact: 2.5, categories: ["Electronics", "Jewelry", "Sweets", "Clothing", "Home Decor", "Gifts"] },
+  
+  // Guru Nanak Jayanti
+  "2026-11-19": { name: "Guru Nanak Jayanti", impact: 1.4, categories: ["Food", "Clothing", "Religious Items"] },
+  
+  // Year-End Sales & Festive Season (Nov-Dec)
+  "2026-11-25": { name: "Black Friday / Year-End Sales Peak", impact: 1.8, categories: ["Electronics", "Fashion", "Home", "Everything"] },
+  "2026-12-01": { name: "Christmas Pre-Season Peak", impact: 1.7, categories: ["Electronics", "Toys", "Clothing", "Home", "Gifts"] }
 };
 
 export const handler = async (event) => {

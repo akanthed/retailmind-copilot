@@ -124,12 +124,16 @@ const translations: Record<Language, Translations> = {
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('language');
-    return (saved === 'en' ? 'en' : 'hi') as Language;
+    return saved === 'hi' ? 'hi' : 'en';
   });
 
   useEffect(() => {
     localStorage.setItem('language', language);
-    document.documentElement.lang = language;
+    const htmlElement = document.documentElement;
+    htmlElement.lang = language;
+    
+    // Dispatch custom event for font updates
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: { language } }));
   }, [language]);
 
   const setLanguage = (lang: Language) => {

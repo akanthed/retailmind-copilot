@@ -25,18 +25,38 @@ export default function AlertsPage() {
     const response = await apiClient.getAlerts();
     if (response.data) {
       setAlerts(response.data.alerts);
+      
+      // Calculate stats from alerts directly if available
+      const calculatedStats = {
+        price_drop: 0,
+        stock_risk: 0,
+        opportunity: 0
+      };
+      
+      response.data.alerts.forEach(alert => {
+        if (alert.type === 'price_drop') calculatedStats.price_drop++;
+        else if (alert.type === 'stock_risk') calculatedStats.stock_risk++;
+        else if (alert.type === 'opportunity') calculatedStats.opportunity++;
+      });
+      
+      setStats(calculatedStats);
     }
     setLoading(false);
   };
 
   const loadStats = async () => {
-    const response = await apiClient.getAlertStats();
-    if (response.data && response.data.byType) {
-      setStats({
-        price_drop: response.data.byType.price_drop || 0,
-        stock_risk: response.data.byType.stock_risk || 0,
-        opportunity: response.data.byType.opportunity || 0
-      });
+    try {
+      const response = await apiClient.getAlertStats();
+      if (response.data && response.data.byType) {
+        setStats({
+          price_drop: response.data.byType.price_drop || 0,
+          stock_risk: response.data.byType.stock_risk || 0,
+          opportunity: response.data.byType.opportunity || 0
+        });
+      }
+    } catch {
+      // If stats endpoint fails, stats will be populated from loaded alerts
+      return;
     }
   };
 

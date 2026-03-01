@@ -20,5 +20,20 @@
   "optional": "optional",
   "yes": "Yes",
   "no": "No",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "offlineNotice": "You're offline. Some features may not work.",
+  "keyboard": {
+    "title": "Keyboard Shortcuts",
+    "show": "Show keyboard shortcuts",
+    "dashboard": "Go to Dashboard",
+    "products": "Go to Products",
+    "actions": "Go to Actions",
+    "help": "Go to Help",
+    "close": "Close dialogs",
+    "forward": "Navigate forward",
+    "backward": "Navigate backward",
+    "activate": "Activate buttons and links",
+    "pressHelpPrefix": "Press",
+    "pressHelpSuffix": "anytime to see this help"
+  }
 }

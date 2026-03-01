@@ -32,5 +32,16 @@
   "totalInventoryValue": "Total value of all your stock",
   "totalProductsTracking": "Total products you're tracking",
   "revenueImpact": "Revenue Impact",
-  "thirtyDayTrend": "30-Day Trend"
+  "thirtyDayTrend": "30-Day Trend",
+  "enterQuestion": "Please enter a question",
+  "loadingDashboard": "Loading your dashboard...",
+  "aiResponse": "AI Response",
+  "revenueProtected": "Revenue Protected",
+  "thisMonth": "This month",
+  "alertResponse": "Alert Response",
+  "competitiveScore": "Competitive Score",
+  "marketPosition": "Market position",
+  "retry": "Retry",
+  "noRevenueData": "No revenue data available yet",
+  "revenueDataHint": "Data will appear once revenue calculations are performed"
 }

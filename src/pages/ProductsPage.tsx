@@ -31,7 +31,7 @@ import {
   IndianRupee,
   BarChart3,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient, Product } from "@/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessages, getUserFriendlyError } from "@/lib/errorMessages";
@@ -47,12 +47,42 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
 
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (loading || products.length === 0) return;
+
+    const editProductId = searchParams.get("editProductId");
+    if (!editProductId) return;
+
+    const targetProduct = products.find((product) => product.id === editProductId);
+
+    if (targetProduct) {
+      setEditingProduct(targetProduct);
+      setShowAddDialog(true);
+      toast({
+        title: "Edit Product",
+        description: `Updating ${targetProduct.name}`,
+      });
+    } else {
+      toast({
+        title: "Product Not Found",
+        description: "Could not open the selected product.",
+        variant: "destructive",
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("editProductId");
+    nextParams.delete("from");
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, products, searchParams, setSearchParams, toast]);
 
   async function loadProducts() {
     setLoading(true);
@@ -83,6 +113,7 @@ export default function ProductsPage() {
   async function handleSaveProduct(productData: any) {
     try {
       let result;
+      let pendingModules: string[] = [];
       if (editingProduct) {
         result = await apiClient.updateProduct(editingProduct.id, productData);
       } else {
@@ -101,9 +132,24 @@ export default function ProductsPage() {
         throw new Error(result.error);
       }
 
+      if (!editingProduct && result.data?.id) {
+        const forecastResult = await apiClient.generateForecasts(result.data.id);
+        if (forecastResult.error) pendingModules.push("Forecast");
+
+        const recommendationsResult = await apiClient.generateRecommendations();
+        if (recommendationsResult.error) pendingModules.push("Actions");
+
+        const alertsResult = await apiClient.generateAlerts();
+        if (alertsResult.error) pendingModules.push("Alerts");
+      }
+
       toast({
         title: editingProduct ? "Product Updated" : "Product Added",
-        description: `${productData.name} has been ${editingProduct ? "updated" : "added"} successfully`,
+        description: editingProduct
+          ? `${productData.name} has been updated successfully`
+          : pendingModules.length > 0
+            ? `${productData.name} was added. Pending sync: ${pendingModules.join(", ")}.`
+            : `${productData.name} has been added successfully`,
       });
 
       setShowAddDialog(false);
@@ -296,7 +342,7 @@ export default function ProductsPage() {
                 <div key={product.id} className="premium-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
+                      <h3 className="font-semibold text-foreground break-words line-clamp-2">{product.name}</h3>
                       <p className="text-sm text-muted-foreground">{product.category}</p>
                     </div>
                     <Badge 
@@ -382,18 +428,18 @@ export default function ProductsPage() {
               <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
                 {products.length === 0
-                  ? "No products yet"
-                  : "No matching products"}
+                  ? t('products.noProducts')
+                  : t('products.noMatchingProducts')}
               </h3>
               <p className="text-muted-foreground mb-4">
                 {products.length === 0
-                  ? "Add your first product to start tracking competitor prices"
-                  : "Try a different search term"}
+                  ? t('products.noProductsDesc')
+                  : t('products.tryDifferentSearch')}
               </p>
               {products.length === 0 && (
                 <Button onClick={openAddDialog} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Add Your First Product
+                  {t('products.addFirstProduct')}
                 </Button>
               )}
             </div>

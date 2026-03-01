@@ -3,28 +3,29 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, TrendingUp, Bell, BarChart3, Check, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { apiClient } from "@/api/client";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { t, language, setLanguage } = useLanguage();
-  const [checkingProducts, setCheckingProducts] = useState(true);
 
   useEffect(() => {
     checkForProducts();
   }, []);
 
   async function checkForProducts() {
-    const result = await apiClient.getProducts();
-    setCheckingProducts(false);
-    
-    // If no products exist and user hasn't completed onboarding, redirect
-    if (result.data && result.data.products.length === 0) {
-      const onboardingCompleted = localStorage.getItem("onboarding_completed");
-      if (!onboardingCompleted) {
-        navigate("/onboarding");
+    try {
+      const result = await apiClient.getProducts();
+
+      if (result.data && result.data.products.length === 0) {
+        const onboardingCompleted = localStorage.getItem("onboarding_completed");
+        if (!onboardingCompleted) {
+          navigate("/onboarding");
+        }
       }
+    } catch {
+      // Keep landing accessible if products API is unavailable.
     }
   }
 
@@ -44,132 +45,153 @@ export default function Landing() {
     t('landing.benefit4')
   ];
 
+  const headline = t('landing.mainHeadline');
+  const [headlinePrimary, headlineAccent] = headline.includes(' - ')
+    ? headline.split(' - ')
+    : [headline, ''];
+
+  const featureCards = [
+    {
+      title: t('landing.smartRecommendations'),
+      description: t('landing.smartRecommendationsDesc'),
+      icon: TrendingUp
+    },
+    {
+      title: t('landing.instantAlerts'),
+      description: t('landing.instantAlertsDesc'),
+      icon: Bell
+    },
+    {
+      title: t('landing.trackResults'),
+      description: t('landing.trackResultsDesc'),
+      icon: BarChart3
+    }
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-accent/20">
-      {/* Header */}
-      <header className="h-16 flex items-center justify-between px-4 md:px-12 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+
+      <header className="relative h-16 flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-border/60 bg-background/85 backdrop-blur">
         <Logo size="md" />
         <div className="flex items-center gap-2 md:gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-            className="rounded-lg text-xs md:text-sm"
+            className="rounded-lg"
           >
-            <Languages className="w-4 h-4 mr-1 md:mr-2" />
+            <Languages className="w-4 h-4 mr-2" />
             {language === 'en' ? 'हिंदी' : 'English'}
           </Button>
-          <Button 
-            onClick={handleGetStarted}
-            size="sm"
-            className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs md:text-sm"
-          >
+          <Button onClick={handleGetStarted} size="sm" className="rounded-xl px-5">
             {t('landing.getStarted')}
           </Button>
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 md:py-24">
-        <div className="max-w-3xl mx-auto text-center animate-fade-in">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
-            {t('landing.poweredByAI')}
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-relaxed mb-4">
-            {t('landing.headline')}
-          </h1>
-          
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold gradient-text leading-relaxed mb-6">
-            {t('landing.smarterPricing')}
-          </h2>
-
-          {/* Subheadline */}
-          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed px-4">
-            {t('landing.subheadline1')}
-            {' '}
-            {t('landing.subheadline2')}
-          </p>
-
-          {/* Benefits */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-10">
-            {benefits.map((benefit) => (
-              <div key={benefit} className="flex items-start gap-3 text-left">
-                <div className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="w-3 h-3 text-success" />
-                </div>
-                <span className="text-sm md:text-base text-foreground leading-snug">{benefit}</span>
+      <main className="relative flex-1">
+        <section className="px-4 md:px-8 lg:px-12 pt-14 md:pt-20 pb-12">
+          <div className="mx-auto max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-12 items-start">
+            <div className="animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <Sparkles className="w-4 h-4 flex-shrink-0" />
+                {t('landing.poweredByAI')}
               </div>
-            ))}
-          </div>
 
-          {/* CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <Button
-              onClick={handleGetStarted}
-              size="lg"
-              className="rounded-xl px-8 py-6 text-base md:text-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg group"
-            >
-              {t('landing.getStartedFree')}
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              onClick={() => navigate("/help")}
-              variant="outline"
-              size="lg"
-              className="rounded-xl px-8 py-6 text-base md:text-lg"
-            >
-              {t('landing.seeHowItWorks')}
-            </Button>
-          </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground leading-[1.1] mb-6">
+                <span>{headlinePrimary}</span>
+                {headlineAccent && (
+                  <>
+                    <br />
+                    <span className="gradient-text">{headlineAccent}</span>
+                  </>
+                )}
+              </h1>
 
-          <p className="text-xs md:text-sm text-muted-foreground mt-4 px-4">
-            {t('landing.noCreditCard')}
-          </p>
-        </div>
+              <p className="text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed mb-8">
+                {t('landing.subheadline1')} {t('landing.subheadline2')}
+              </p>
 
-        {/* Simple Features */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto mt-16 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          <div className="text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-7 h-7 text-primary" />
+              <div className="grid sm:grid-cols-2 gap-3 mb-9 max-w-2xl">
+                {benefits.map((benefit) => (
+                  <div key={benefit} className="flex items-start gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+                    <span className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 text-success" />
+                    </span>
+                    <span className="text-sm md:text-base text-foreground leading-snug">{benefit}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mb-4">
+                <Button
+                  onClick={handleGetStarted}
+                  size="lg"
+                  className="w-full sm:w-auto rounded-xl px-8 group"
+                >
+                  {t('landing.getStartedFree')}
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <Button
+                  onClick={() => navigate('/help')}
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto rounded-xl px-8"
+                >
+                  {t('landing.seeHowItWorks')}
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground">{t('landing.noCreditCard')}</p>
             </div>
-            <h3 className="font-semibold text-base text-foreground mb-2">{t('landing.smartRecommendations')}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t('landing.smartRecommendationsDesc')}
-            </p>
-          </div>
 
-          <div className="text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Bell className="w-7 h-7 text-primary" />
+            <div className="animate-fade-in [animation-delay:120ms]">
+              <div className="rounded-2xl border border-border/80 bg-card/90 p-6 md:p-7 shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground mb-4">RetailMind AI</p>
+                <div className="space-y-4">
+                  {featureCards.map((feature) => {
+                    const Icon = feature.icon;
+                    return (
+                      <div key={feature.title} className="rounded-xl border border-border/70 bg-background/80 p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <h3 className="font-semibold text-foreground">{feature.title}</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <h3 className="font-semibold text-base text-foreground mb-2">{t('landing.instantAlerts')}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t('landing.instantAlertsDesc')}
-            </p>
           </div>
+        </section>
 
-          <div className="text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <BarChart3 className="w-7 h-7 text-primary" />
+        <section className="px-4 md:px-8 lg:px-12 pb-14 md:pb-20">
+          <div className="mx-auto max-w-6xl rounded-2xl border border-border/70 bg-card/60 p-6 md:p-8">
+            <div className="grid gap-4 md:grid-cols-3">
+              {featureCards.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={`${feature.title}-detail`} className="rounded-xl border border-border/60 bg-background/80 p-5">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
+                );
+              })}
             </div>
-            <h3 className="font-semibold text-base text-foreground mb-2">{t('landing.trackResults')}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t('landing.trackResultsDesc')}
-            </p>
           </div>
-        </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="py-6 px-6 text-center border-t border-border/50 bg-background/80">
-        <p className="text-sm text-muted-foreground">
-          {t('landing.footerText')}
-        </p>
+      <footer className="py-6 px-4 md:px-6 text-center border-t border-border/60 bg-background/90">
+        <p className="text-sm text-muted-foreground">{t('landing.footerText')}</p>
       </footer>
     </div>
   );
