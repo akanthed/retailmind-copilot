@@ -1,8 +1,12 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: "us-east-1" }));
+const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
 const ALLOW_SYNTHETIC_FALLBACK = process.env.ALLOW_SYNTHETIC_FALLBACK === "true";
+const USE_AI_EXTRACTION = process.env.USE_AI_EXTRACTION !== "false"; // Default: enabled
+const BEDROCK_MODEL = process.env.BEDROCK_MODEL || "us.amazon.nova-lite-v1:0"; // Use Lite for cost savings!
 
 export const handler = async (event) => {
   console.log("Price scraper invoked:", JSON.stringify(event));
@@ -142,12 +146,22 @@ async function scrapePrice(competitor, url) {
     // Extract price based on competitor
     let price = null;
 
-    if (competitor.toLowerCase().includes("amazon")) {
-      price = extractAmazonPrice(html);
-    } else if (competitor.toLowerCase().includes("flipkart")) {
-      price = extractFlipkartPrice(html);
-    } else {
-      price = extractGenericPrice(html);
+    // Try AI extraction first (more accurate)
+    if (USE_AI_EXTRACTION) {
+      console.log(`Attempting AI-powered price extraction for ${competitor}`);
+      price = await extractPriceWithAI(html, competitor, url);
+    }
+
+    // Fallback to regex if AI fails
+    if (!price) {
+      console.log(`AI extraction failed, falling back to regex for ${competitor}`);
+      if (competitor.toLowerCase().includes("amazon")) {
+        price = extractAmazonPrice(html);
+      } else if (competitor.toLowerCase().includes("flipkart")) {
+        price = extractFlipkartPrice(html);
+      } else {
+        price = extractGenericPrice(html);
+      }
     }
 
     // If extraction failed, use demo price only if enabled
@@ -167,6 +181,81 @@ async function scrapePrice(competitor, url) {
       console.log(`Using demo price for ${competitor}`);
       return generateDemoPrice(competitor);
     }
+    return null;
+  }
+}
+
+// AI-powered price extraction using Amazon Bedrock
+async function extractPriceWithAI(html, competitor, url) {
+  try {
+    // Truncate HTML to first 8000 chars to stay within token limits
+    const truncatedHtml = html.substring(0, 8000);
+    
+    const prompt = `You are a price extraction expert. Extract the current selling price from this e-commerce page HTML.
+
+Competitor: ${competitor}
+URL: ${url}
+
+HTML snippet:
+${truncatedHtml}
+
+Instructions:
+- Find the CURRENT SELLING PRICE (not MRP/original price)
+- Look for discounted price, offer price, or deal price
+- Return ONLY the numeric value in INR (no currency symbols)
+- If multiple prices exist, return the lowest/offer price
+- If price not found, return "NOT_FOUND"
+
+Example responses:
+- "79999"
+- "1299"
+- "NOT_FOUND"
+
+Price:`;
+
+    const command = new InvokeModelCommand({
+      modelId: BEDROCK_MODEL, // Nova Lite: 13x cheaper than Pro!
+      contentType: "application/json",
+      accept: "application/json",
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content: [{ text: prompt }]
+          }
+        ],
+        inferenceConfig: {
+          max_new_tokens: 50,
+          temperature: 0.1,
+          top_p: 0.9
+        }
+      })
+    });
+
+    const response = await bedrockClient.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    const aiResponse = responseBody.output.message.content[0].text.trim();
+
+    console.log(`AI extraction response for ${competitor}: ${aiResponse}`);
+
+    // Parse the response
+    if (aiResponse === "NOT_FOUND" || aiResponse.includes("NOT_FOUND")) {
+      return null;
+    }
+
+    // Extract numeric value
+    const priceMatch = aiResponse.match(/(\d+(?:,\d+)*(?:\.\d+)?)/);
+    if (priceMatch) {
+      const price = parseFloat(priceMatch[1].replace(/,/g, ""));
+      if (!isNaN(price) && price > 0 && price < 10000000) {
+        console.log(`AI successfully extracted price for ${competitor}: ₹${price}`);
+        return price;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`AI price extraction error for ${competitor}:`, error.message);
     return null;
   }
 }

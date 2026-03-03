@@ -13,6 +13,7 @@ const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
 const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 const RECOMMENDATIONS_TABLE = "RetailMind-Recommendations";
+const BEDROCK_MODEL = process.env.BEDROCK_MODEL || "us.amazon.nova-lite-v1:0"; // Use Lite for cost savings!
 
 // GST rates by category (India)
 const GST_RATES = {
@@ -207,7 +208,7 @@ async function generateRecommendations() {
     };
 }
 
-// Analyze product and generate recommendations
+// Analyze product and generate recommendations using AI
 async function analyzeProduct(product, priceHistory) {
     const recommendations = [];
     
@@ -221,7 +222,159 @@ async function analyzeProduct(product, priceHistory) {
     const minCompetitorPrice = Math.min(...competitorPrices.map(p => p.price));
     const maxCompetitorPrice = Math.max(...competitorPrices.map(p => p.price));
     
+    // Use AI to generate intelligent recommendations
+    const aiRecommendations = await generateAIRecommendations(product, {
+        avgCompetitorPrice,
+        minCompetitorPrice,
+        maxCompetitorPrice,
+        competitorPrices,
+        priceHistory
+    });
+    
+    if (aiRecommendations.length > 0) {
+        recommendations.push(...aiRecommendations);
+    }
+    
+    // Fallback to rule-based if AI fails
+    if (recommendations.length === 0) {
+        console.log(`AI recommendations failed for ${product.id}, using rule-based fallback`);
+        return generateRuleBasedRecommendations(product, avgCompetitorPrice, minCompetitorPrice, maxCompetitorPrice, competitorPrices);
+    }
+    
+    return recommendations;
+}
+
+// AI-powered recommendation generation
+async function generateAIRecommendations(product, marketData) {
+    try {
+        const { avgCompetitorPrice, minCompetitorPrice, maxCompetitorPrice, competitorPrices } = marketData;
+        
+        const prompt = `You are a retail pricing strategist. Analyze this product and market data to generate actionable pricing recommendations.
+
+Product Details:
+- Name: ${product.name}
+- SKU: ${product.sku}
+- Category: ${product.category}
+- Current Price: ₹${product.currentPrice}
+- Stock: ${product.stock} units
+- Stock Days: ${product.stockDays} days
+- Cost Price: ₹${product.costPrice || 'unknown'}
+
+Market Intelligence:
+- Average Competitor Price: ₹${Math.round(avgCompetitorPrice)}
+- Lowest Competitor Price: ₹${minCompetitorPrice}
+- Highest Competitor Price: ₹${maxCompetitorPrice}
+- Competitors In Stock: ${competitorPrices.length}
+- Competitor Prices: ${competitorPrices.map(p => `₹${p.price} (${p.competitor})`).join(', ')}
+
+Generate 1-3 specific, actionable recommendations. For each recommendation, provide:
+1. Type: "price_increase", "price_decrease", "restock", or "promotion"
+2. Title: Short action-oriented title
+3. Reason: Why this action makes business sense (2-3 sentences)
+4. Suggested Price: Specific price recommendation (if applicable)
+5. Estimated Monthly Impact: Revenue impact in INR
+6. Confidence: 0-100 score
+
+Return ONLY valid JSON array format:
+[
+  {
+    "type": "price_decrease",
+    "title": "Lower price on iPhone 15 Pro",
+    "reason": "You're 18% above market average. Competitors range from ₹125,000 to ₹135,000. Lowering to ₹127,000 will increase sales velocity.",
+    "suggestedPrice": 127000,
+    "estimatedImpact": 15000,
+    "confidence": 87
+  }
+]`;
+
+        const command = new InvokeModelCommand({
+            modelId: BEDROCK_MODEL, // Nova Lite: 13x cheaper!
+            contentType: "application/json",
+            accept: "application/json",
+            body: JSON.stringify({
+                messages: [
+                    {
+                        role: "user",
+                        content: [{ text: prompt }]
+                    }
+                ],
+                inferenceConfig: {
+                    max_new_tokens: 1500,
+                    temperature: 0.3,
+                    top_p: 0.9
+                }
+            })
+        });
+
+        const response = await bedrockClient.send(command);
+        const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+        const aiResponse = responseBody.output.message.content[0].text;
+
+        console.log(`AI recommendation response for ${product.id}:`, aiResponse);
+
+        // Parse JSON response
+        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+            console.warn(`AI response not in JSON format for ${product.id}`);
+            return [];
+        }
+
+        const aiRecs = JSON.parse(jsonMatch[0]);
+        
+        // Convert AI recommendations to our format
+        return aiRecs.map(rec => {
+            const baseRec = {
+                id: randomUUID(),
+                productId: product.id,
+                type: rec.type,
+                title: rec.title,
+                product: `${product.sku} • ${product.category}`,
+                reason: rec.reason,
+                confidence: rec.confidence || 85,
+                status: 'pending',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+
+            // Add price-specific fields
+            if (rec.suggestedPrice) {
+                const currentGST = calculateGST(product.currentPrice, product.category);
+                const suggestedGST = calculateGST(rec.suggestedPrice, product.category);
+                
+                baseRec.suggestedPrice = rec.suggestedPrice;
+                baseRec.currentPrice = product.currentPrice;
+                baseRec.gst = {
+                    current: currentGST,
+                    suggested: suggestedGST
+                };
+            }
+
+            // Add impact
+            baseRec.impact = rec.estimatedImpact 
+                ? `+₹${rec.estimatedImpact}/month estimated`
+                : `Estimated impact: ${rec.confidence}% confidence`;
+
+            // Add action for non-price recommendations
+            if (rec.type === 'restock' || rec.type === 'promotion') {
+                baseRec.suggestedAction = rec.suggestedAction || rec.reason.split('.')[0];
+                baseRec.currentStock = product.stock;
+            }
+
+            return baseRec;
+        });
+
+    } catch (error) {
+        console.error(`AI recommendation generation failed for ${product.id}:`, error.message);
+        return [];
+    }
+}
+
+// Rule-based fallback recommendations
+function generateRuleBasedRecommendations(product, avgCompetitorPrice, minCompetitorPrice, maxCompetitorPrice, competitorPrices) {
+    const recommendations = [];
+    
     // Rule 1: Price too high (>15% above average)
+    
     if (product.currentPrice > avgCompetitorPrice * 1.15) {
         const suggestedPrice = Math.round(avgCompetitorPrice * 0.98 / 10) * 10; // Round to nearest 10
         const priceDiff = product.currentPrice - suggestedPrice;

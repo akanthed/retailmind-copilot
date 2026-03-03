@@ -4,15 +4,19 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand, PutCommand, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { randomUUID } from "crypto";
 
 const dynamoClient = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const snsClient = new SNSClient({ region: "us-east-1" });
+const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
 
 const PRODUCTS_TABLE = "RetailMind-Products";
 const PRICE_HISTORY_TABLE = "RetailMind-PriceHistory";
 const ALERTS_TABLE = "RetailMind-Alerts";
+const USE_AI_ALERTS = process.env.USE_AI_ALERTS !== "false"; // Default: enabled
+const BEDROCK_MODEL = process.env.BEDROCK_MODEL || "us.amazon.nova-lite-v1:0"; // Use Lite for cost savings!
 
 // SNS Topic ARN (we'll create this)
 const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN || "";
@@ -168,8 +172,142 @@ async function generateAlerts() {
     };
 }
 
-// Analyze product and generate alerts
+// Analyze product and generate alerts using AI
 async function analyzeProduct(product, priceHistory) {
+    // Try AI-powered alert generation first
+    if (USE_AI_ALERTS) {
+        try {
+            const aiAlerts = await generateAIAlerts(product, priceHistory);
+            if (aiAlerts.length > 0) {
+                console.log(`Generated ${aiAlerts.length} AI-powered alerts for ${product.id}`);
+                return aiAlerts;
+            }
+        } catch (error) {
+            console.error(`AI alert generation failed for ${product.id}, falling back to rules:`, error.message);
+        }
+    }
+    
+    // Fallback to rule-based alerts
+    return generateRuleBasedAlerts(product, priceHistory);
+}
+
+// AI-powered alert generation
+async function generateAIAlerts(product, priceHistory) {
+    if (priceHistory.length === 0) {
+        return [];
+    }
+    
+    // Get latest prices for each competitor
+    const latestPrices = {};
+    priceHistory.forEach(p => {
+        if (!latestPrices[p.competitorId] || p.timestamp > latestPrices[p.competitorId].timestamp) {
+            latestPrices[p.competitorId] = p;
+        }
+    });
+    
+    const competitorData = Object.values(latestPrices).map(p => ({
+        competitor: p.competitorName,
+        price: p.price,
+        inStock: p.inStock
+    }));
+    
+    const prompt = `You are a retail market intelligence analyst. Analyze this product and market data to identify critical business alerts.
+
+Product Details:
+- Name: ${product.name}
+- SKU: ${product.sku}
+- Category: ${product.category}
+- Your Price: ₹${product.currentPrice}
+- Cost Price: ₹${product.costPrice || 'unknown'}
+- Stock: ${product.stock} units
+- Stock Days: ${product.stockDays} days
+
+Competitor Prices:
+${competitorData.map(c => `- ${c.competitor}: ₹${c.price} ${c.inStock ? '(In Stock)' : '(Out of Stock)'}`).join('\n')}
+
+Generate 1-3 actionable alerts. For each alert, provide:
+1. Type: "price_drop", "stock_risk", or "opportunity"
+2. Severity: "critical", "warning", or "info"
+3. Title: Short, urgent title (max 60 chars)
+4. Description: What's happening (2-3 sentences)
+5. Suggestion: Specific action to take
+
+Focus on:
+- Competitor price changes that threaten sales
+- Stock risks that could cause stockouts
+- Market opportunities (competitors out of stock, demand spikes)
+- Profitability concerns
+
+Return ONLY valid JSON array:
+[
+  {
+    "type": "price_drop",
+    "severity": "critical",
+    "title": "Amazon dropped iPhone 15 Pro price by 18%",
+    "description": "Amazon reduced price to ₹125,000 (18% below yours at ₹152,000). This threatens your market share.",
+    "suggestion": "Match price to ₹127,000 to stay competitive while maintaining 12% margin"
+  }
+]`;
+
+    const command = new InvokeModelCommand({
+        modelId: BEDROCK_MODEL, // Nova Lite: 13x cheaper!
+        contentType: "application/json",
+        accept: "application/json",
+        body: JSON.stringify({
+            messages: [
+                {
+                    role: "user",
+                    content: [{ text: prompt }]
+                }
+            ],
+            inferenceConfig: {
+                max_new_tokens: 1500,
+                temperature: 0.2,
+                top_p: 0.9
+            }
+        })
+    });
+
+    const response = await bedrockClient.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    const aiResponse = responseBody.output.message.content[0].text;
+
+    console.log(`AI alert response for ${product.id}:`, aiResponse);
+
+    // Parse JSON response
+    const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+        console.warn(`AI response not in JSON format for ${product.id}`);
+        return [];
+    }
+
+    const aiAlerts = JSON.parse(jsonMatch[0]);
+    
+    // Convert to our format
+    return aiAlerts.map(alert => ({
+        id: randomUUID(),
+        type: alert.type,
+        severity: alert.severity,
+        title: alert.title,
+        description: alert.description,
+        productId: product.id,
+        productName: product.name,
+        suggestion: alert.suggestion,
+        data: {
+            yourPrice: product.currentPrice,
+            costPrice: product.costPrice,
+            stock: product.stock,
+            stockDays: product.stockDays,
+            competitors: competitorData
+        },
+        acknowledged: false,
+        createdAt: Date.now(),
+        source: 'ai'
+    }));
+}
+
+// Rule-based fallback alerts
+function generateRuleBasedAlerts(product, priceHistory) {
     const alerts = [];
     
     // Skip if product is expired/invalid
