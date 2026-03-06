@@ -6,6 +6,8 @@ An intelligent platform that helps small retailers make smarter pricing and inve
 
 [![AWS](https://img.shields.io/badge/AWS-Powered-orange)](https://aws.amazon.com/)
 [![Bedrock](https://img.shields.io/badge/Amazon-Bedrock-blue)](https://aws.amazon.com/bedrock/)
+[![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -103,10 +105,10 @@ Frontend (React + TypeScript)
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+
-- AWS Account with admin access
-- AWS CLI installed and configured (`aws configure`)
-- PowerShell (Windows)
+- Node.js 20+ ([Download](https://nodejs.org/))
+- AWS Account with admin access ([Sign up](https://aws.amazon.com/))
+- AWS CLI installed and configured ([Install Guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html))
+- PowerShell (Windows) or Bash (Linux/Mac)
 
 ### One-Command Deployment
 
@@ -153,14 +155,19 @@ npm run dev
 
 ### Optional: Real Price Data
 
-By default, the system uses synthetic prices. For real competitor prices:
+By default, the system uses synthetic prices for demo purposes. For real competitor prices:
 
-1. Get a free API key at https://serpapi.com (100 searches/month)
-2. Add to `.env.local`: `SERPAPI_KEY=your_key`
-3. Update Lambda: 
+1. Get a free API key at [SerpAPI](https://serpapi.com) (100 searches/month free tier)
+2. Add to `.env.local`: `SERPAPI_KEY=your_api_key_here`
+3. Update Lambda environment: 
    ```powershell
-   aws lambda update-function-configuration --function-name retailmind-price-comparison --environment "Variables={SERPAPI_KEY=your_key}" --region us-east-1
+   aws lambda update-function-configuration `
+     --function-name retailmind-price-comparison `
+     --environment "Variables={SERPAPI_KEY=your_api_key_here}" `
+     --region us-east-1
    ```
+
+Note: Real price scraping requires active monitoring and may incur additional costs.
 
 ### Detailed Setup Guide
 
@@ -356,11 +363,25 @@ Built for AWS AI Hackathon 2026
 
 ---
 
+## 🔒 Security Note
+
+This repository is configured for public sharing:
+- ✅ All sensitive credentials are in `.env.local` (gitignored)
+- ✅ No AWS credentials or API keys committed
+- ✅ Example files use placeholder values
+- ✅ API Gateway URLs are environment-specific
+
+Before deploying, ensure you:
+1. Never commit `.env.local` or `.env` files
+2. Use your own AWS account and credentials
+3. Rotate any exposed API keys immediately
+4. Review `.gitignore` before committing
+
+---
+
 ## 📞 Contact
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
-- LinkedIn: [Your Name](https://linkedin.com/in/yourprofile)
+For questions about this project, please open an issue on GitHub.
 
 ---
 

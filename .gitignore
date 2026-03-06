@@ -57,6 +57,137 @@ cdk.out/
 *.backup
 *~
 
-*.ps1
-*.sh
+# Test and temporary scripts
+test-*.ps1
+test-*.sh
+*-temp.ps1
+*-temp.sh
+
+# Temporary test outputs
+test-*.json
+*-response.json
+*-payload.json
+
+# Development-only root scripts
+check-config.ps1
+check-security.ps1
+check-public-repo-safety.ps1
+check-s3-status.ps1
+add-s3-permissions.ps1
+add-demo-products.ps1
+pre-demo-checklist.ps1
+START-REAL-MONITORING.ps1
+deploy-real-monitoring.ps1
+deploy-price-monitor-update.ps1
+deploy-query-parser-fix.ps1
+HACKATHON-SETUP.ps1
+deploy-manual.ps1
+configure-api-gateway.ps1
+deploy-lambdas-simple.ps1
+
+# Backend development scripts (keep main deploy scripts)
+backend/add-*.ps1
+backend/configure-*.ps1
+backend/create-*.ps1
+backend/wire-*.ps1
+backend/setup-*.ps1
+backend/deploy-alerts-fixed.ps1
+backend/deploy-alerts-windows.ps1
+backend/deploy-analytics-windows.ps1
+backend/deploy-copilot-windows.ps1
+backend/deploy-copilot.sh
+backend/deploy-forecast-windows.ps1
+backend/deploy-price-comparison-enhanced.ps1
+backend/deploy-price-comparison-simple.ps1
+backend/deploy-price-comparison-windows.ps1
+backend/deploy-price-monitor-windows.ps1
+backend/deploy-price-monitor.sh
+backend/deploy-price-scraper-fixed.ps1
+backend/deploy-price-scraper-windows.ps1
+backend/deploy-products-windows.ps1
+backend/deploy-products.sh
+backend/deploy-recommendations-fixed.ps1
+backend/deploy-recommendations-windows.ps1
+
+# Deployment packages
 function.zip
+*.zip
+
+# Temporary/backup package files
+package.json.update
+package.json.backup
+
+# Unused deployment configs
+vercel.json
+bedrock-policy.json
+dynamodb-policy.json
+
+# Development-only documentation
+HACKATHON-README.md
+SUBMISSION-CHECKLIST.md
+GETTING-STARTED.md
+HINDI-TEXT-FIX-SUMMARY.md
+TESTING-SUMMARY.md
+TEST-PLAN.md
+DEPLOY-README.md
+
+# Backend development docs
+backend/ADD-COGNITO-PERMISSIONS.md
+backend/COST-OPTIMIZATION.md
+backend/DEPLOY-AI-UPDATES.md
+backend/README-AI-DEPLOYMENT.md
+backend/SETUP-AUTH.md
+backend/setup-cognito-manual.md
+
+# Docs folder - keep only essential docs
+docs/7-DAY-*.md
+docs/DAY-*.md
+docs/*-COMPLETE.md
+docs/*-SUMMARY.md
+docs/*-STATUS.md
+docs/IMPLEMENTATION-*.md
+docs/DEBUGGING-GUIDE.md
+docs/FINAL-*.md
+docs/HACKATHON-*.md
+docs/HOW-TO-*.md
+docs/QUICK-*.md
+docs/REAL-DATA-*.md
+docs/REAL-PRICE-*.md
+docs/SAFE-COMMIT-GUIDE.md
+docs/SEARCH-*.md
+docs/TEST-*.md
+docs/UI-FIXES-*.md
+docs/VERIFICATION-*.md
+docs/VISUAL-*.md
+docs/WEBAPP-*.md
+docs/WHAT-WE-BUILT-*.md
+docs/WIRE-*.md
+docs/implementation-gap-analysis.md
+docs/PRICE-MONITORING-IMPLEMENTATION.md
+docs/PROJECT-SUMMARY.md
+docs/CONNECT-FRONTEND.md
+docs/DEPLOY-*.md
+docs/FILE-STRUCTURE.md
+docs/GET-STARTED-WITH-REAL-DATA.md
+docs/GETTING-STARTED.md
+
+# Keep only essential docs, ignore development notes
+docs/DEMAND-PEAKS-VISUAL-TIMELINE.md
+docs/FESTIVAL-PEAKS-GUIDE.md
+docs/FULL-PRODUCT-ROADMAP.md
+docs/AWS-HACKATHON-WINNING-PLAN.md
+
+# Kiro AI folder (development only)
+.kiro/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Development scripts and docs folders
+scripts/
+docs-dev/
+docs/
+backend/*.ps1
+backend/*.sh
+backend/*.md
