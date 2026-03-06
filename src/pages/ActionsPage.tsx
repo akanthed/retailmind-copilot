@@ -20,8 +20,49 @@ export default function ActionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRecommendations();
+    loadRecommendationsAndAutoGenerate();
   }, []);
+
+  async function loadRecommendationsAndAutoGenerate() {
+    setLoading(true);
+    try {
+      const result = await apiClient.getRecommendations();
+      
+      if (result.error) {
+        toast({
+          title: errorMessages.recommendationsFailed.title,
+          description: errorMessages.recommendationsFailed.description,
+          variant: "destructive"
+        });
+      } else if (result.data) {
+        const recs = result.data.recommendations;
+        setRecommendations(recs);
+        
+        // Auto-generate recommendations if none exist or if they're old (>24 hours)
+        const hasRecentRecs = recs.length > 0 && recs.some(rec => {
+          const hoursSinceCreated = (Date.now() - rec.createdAt) / (1000 * 60 * 60);
+          return hoursSinceCreated < 24;
+        });
+        
+        if (!hasRecentRecs) {
+          console.log('No recent recommendations found, auto-generating...');
+          const genResult = await apiClient.generateRecommendations();
+          if (genResult.data?.recommendations) {
+            setRecommendations(genResult.data.recommendations);
+          }
+        }
+      }
+    } catch (error) {
+      const friendlyError = getUserFriendlyError(error);
+      toast({
+        title: friendlyError.title,
+        description: friendlyError.description,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadRecommendations() {
     setLoading(true);

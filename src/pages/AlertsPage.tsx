@@ -16,9 +16,47 @@ export default function AlertsPage() {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    loadAlerts();
-    loadStats();
+    loadAlertsAndAutoGenerate();
   }, []);
+
+  const loadAlertsAndAutoGenerate = async () => {
+    setLoading(true);
+    const response = await apiClient.getAlerts();
+    
+    if (response.data) {
+      const alerts = response.data.alerts;
+      setAlerts(alerts);
+      
+      // Calculate stats from alerts
+      const calculatedStats = {
+        price_drop: 0,
+        stock_risk: 0,
+        opportunity: 0
+      };
+      
+      alerts.forEach(alert => {
+        if (alert.type === 'price_drop') calculatedStats.price_drop++;
+        else if (alert.type === 'stock_risk') calculatedStats.stock_risk++;
+        else if (alert.type === 'opportunity') calculatedStats.opportunity++;
+      });
+      
+      setStats(calculatedStats);
+      
+      // Auto-generate alerts if none exist or if they're old (>24 hours)
+      const hasRecentAlerts = alerts.length > 0 && alerts.some(alert => {
+        const hoursSinceCreated = (Date.now() - alert.createdAt) / (1000 * 60 * 60);
+        return hoursSinceCreated < 24;
+      });
+      
+      if (!hasRecentAlerts) {
+        console.log('No recent alerts found, auto-generating...');
+        await handleGenerateAlerts();
+      }
+    }
+    
+    setLoading(false);
+    await loadStats();
+  };
 
   const loadAlerts = async () => {
     setLoading(true);
