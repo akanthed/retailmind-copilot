@@ -59,6 +59,8 @@ export default function DashboardPage() {
         // Silent background generation
         apiClient.generateRecommendations().then(() => {
           loadRecommendations();
+        }).catch((err) => {
+          console.warn('Background recommendation generation failed:', err);
         });
       } else {
         setRecommendations(recsList.filter(r => r.status === 'pending').slice(0, 3));
@@ -100,6 +102,7 @@ export default function DashboardPage() {
         setRevenueSummary(summaryResult.data);
       } else if (summaryResult.error) {
         // Use mock data if API not available
+        setRevenueError("Using demo data - revenue calculator not deployed");
         setRevenueSummary({
           period: { start: '', end: '' },
           revenue_protected: 42000,
@@ -113,15 +116,15 @@ export default function DashboardPage() {
       if (historyResult.data) {
         setRevenueHistory(historyResult.data.history);
       } else if (historyResult.error) {
-        // Generate mock history data
+        // Generate deterministic mock history data
         const mockHistory = [];
         for (let i = 29; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
           mockHistory.push({
             date: date.toISOString().split('T')[0],
-            revenue_protected: Math.round(1200 + Math.random() * 400),
-            competitive_score: Math.round((7.0 + Math.random() * 1.5) * 10) / 10,
+            revenue_protected: 1200 + ((i * 137) % 400),
+            competitive_score: Math.round((7.0 + ((i * 53) % 150) / 100) * 10) / 10,
           });
         }
         setRevenueHistory(mockHistory);
@@ -144,8 +147,8 @@ export default function DashboardPage() {
         date.setDate(date.getDate() - i);
         mockHistory.push({
           date: date.toISOString().split('T')[0],
-          revenue_protected: Math.round(1200 + Math.random() * 400),
-          competitive_score: Math.round((7.0 + Math.random() * 1.5) * 10) / 10,
+          revenue_protected: 1200 + ((i * 137) % 400),
+          competitive_score: Math.round((7.0 + ((i * 53) % 150) / 100) * 10) / 10,
         });
       }
       setRevenueHistory(mockHistory);

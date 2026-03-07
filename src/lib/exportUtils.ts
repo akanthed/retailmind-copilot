@@ -30,7 +30,7 @@ export function exportRecommendationsToCSV(recommendations: Recommendation[]): v
     r.currentPrice || "",
     r.suggestedPrice || "",
     r.impact || "",
-    `${Math.round((r.confidence || 0) * 100)}%`,
+    `${Math.round(r.confidence || 0)}%`,
     r.status || "pending",
     new Date(r.createdAt).toLocaleDateString()
   ]);
@@ -188,7 +188,7 @@ export function exportRecommendationsToPDF(recommendations: Recommendation[]): v
           <div>
             <span class="badge badge-${r.type}">${r.type.replace(/_/g, " ").toUpperCase()}</span>
             <span class="badge" style="background: #f3f4f6; color: #374151;">
-              ${Math.round((r.confidence || 0) * 100)}% Confidence
+              ${Math.round(r.confidence || 0)}% Confidence
             </span>
           </div>
           <div class="detail"><strong>Product:</strong> ${r.product}</div>

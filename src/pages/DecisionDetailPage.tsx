@@ -105,7 +105,7 @@ export default function DecisionDetailPage() {
         <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto flex items-center justify-center">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">{t('decisions.notFound')}</p>
-            <Button onClick={() => navigate("/decisions")}>{t('decisions.backToDecisions')}</Button>
+            <Button onClick={() => navigate("/actions")}>{t('decisions.backToDecisions')}</Button>
           </div>
         </div>
       </AppLayout>

@@ -73,7 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Decode ID token to get user info (basic JWT decode)
-      const idTokenPayload = JSON.parse(atob(authResult.IdToken.split('.')[1]));
+      let idTokenPayload;
+      try {
+        const base64Url = authResult.IdToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        idTokenPayload = JSON.parse(atob(base64));
+      } catch {
+        throw new Error('Failed to decode authentication token');
+      }
       
       const userData: User = {
         userId: idTokenPayload.sub,

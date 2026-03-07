@@ -78,9 +78,16 @@ export default function ForecastPage() {
     }));
 
     const headers = Object.keys(csvData[0]);
+    const escapeCsvValue = (val: any) => {
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
     const csv = [
       headers.join(','),
-      ...csvData.map(row => headers.map(h => row[h as keyof typeof row]).join(','))
+      ...csvData.map(row => headers.map(h => escapeCsvValue(row[h as keyof typeof row])).join(','))
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });

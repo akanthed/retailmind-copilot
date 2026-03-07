@@ -153,7 +153,7 @@ export default function PriceComparisonPage() {
       if (!isAutoSearch) {
         toast({
           title: "Searching...",
-          description: "Finding competitor prices",
+          description: "Finding competitor prices on Amazon & Flipkart",
         });
       }
 
@@ -171,23 +171,46 @@ export default function PriceComparisonPage() {
           debugAttempts: result.data?.debugAttempts || [],
         });
 
-        if (result.error) {
-          toast({
-            title: errorMessages.priceSearchFailed.title,
-            description: errorMessages.priceSearchFailed.description,
-            variant: "destructive",
-          });
-          return;
-        }
-
+        // Even if there's an error field, check if data.results has content
         const results = result.data?.results || [];
         // Filter to only show Amazon and Flipkart
         const filteredResults = results.filter((r: any) => {
           const platform = r.platform.toLowerCase();
           return platform.includes('amazon') || platform.includes('flipkart');
         });
-        setCompetitorPrices(filteredResults);
-        setLastSearchTime(Date.now());
+
+        if (filteredResults.length > 0) {
+          setCompetitorPrices(filteredResults);
+          setLastSearchTime(Date.now());
+        } else if (result.error) {
+          // Search failed AND no results — try to load cached data
+          const cachedResult = await apiClient.getProductPriceComparison(productId!);
+          if (cachedResult.data) {
+            const cached = (cachedResult.data.comparisons || []).filter((comp: CompetitorPrice) => {
+              const platform = comp.platform.toLowerCase();
+              return platform.includes('amazon') || platform.includes('flipkart');
+            });
+            if (cached.length > 0) {
+              setCompetitorPrices(cached);
+              if (!isAutoSearch) {
+                toast({
+                  title: "Using Cached Prices",
+                  description: "Live search failed. Showing previously saved prices.",
+                  variant: "default",
+                });
+              }
+              return;
+            }
+          }
+          if (!isAutoSearch) {
+            toast({
+              title: errorMessages.priceSearchFailed.title,
+              description: errorMessages.priceSearchFailed.description,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
 
         // Show data source notification only for manual search
         if (!isAutoSearch) {
@@ -197,31 +220,45 @@ export default function PriceComparisonPage() {
           if (liveCount > 0) {
             toast({
               title: "Live Data Retrieved",
-              description: `Found ${liveCount} real competitor prices`,
+              description: `Found ${liveCount} real competitor price${liveCount > 1 ? 's' : ''}`,
             });
           } else if (syntheticCount > 0) {
             toast({
               title: "Using Demo Data",
-              description: "Showing sample prices",
+              description: "Showing sample prices — add Amazon/Flipkart URLs for real data",
               variant: "default",
             });
-          } else {
-            toast({
-              title: "No Live Data Found",
-              description: "Add valid Amazon/Flipkart product URLs for better results",
-              variant: "default",
-            });
-          }
-
-          if (filteredResults.length === 0) {
+          } else if (filteredResults.length === 0) {
             toast({
               title: errorMessages.noPricesFound.title,
-              description: errorMessages.noPricesFound.description,
+              description: "Try adding Amazon or Flipkart product URLs in product details for better results.",
             });
           }
         }
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Price search error:", error);
+        // On network/unexpected error, try to load cached data
+        try {
+          const cachedResult = await apiClient.getProductPriceComparison(productId!);
+          if (cachedResult.data) {
+            const cached = (cachedResult.data.comparisons || []).filter((comp: CompetitorPrice) => {
+              const platform = comp.platform.toLowerCase();
+              return platform.includes('amazon') || platform.includes('flipkart');
+            });
+            if (cached.length > 0) {
+              setCompetitorPrices(cached);
+              if (!isAutoSearch) {
+                toast({
+                  title: "Using Cached Prices",
+                  description: "Live search failed. Showing previously saved prices.",
+                });
+              }
+              return;
+            }
+          }
+        } catch {
+          // Cache load also failed — nothing more we can do
+        }
         if (!isAutoSearch) {
           const friendlyError = getUserFriendlyError(error);
           toast({

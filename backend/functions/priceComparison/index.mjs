@@ -166,7 +166,11 @@ async function getStoredComparisons(productId) {
             lastChecked: item.createdAt || new Date(item.timestamp).toISOString(),
             priceDiff: item.priceDiff || 0,
             priceDiffPercent: item.priceDiffPercent || 0,
-            source: item.source || 'cached'
+            source: item.source || 'cached',
+            matchScore: item.matchScore || null,
+            matchType: item.matchType || null,
+            aiScore: item.aiScore || null,
+            aiRank: item.aiRank || null
         }));
 
         return {
@@ -287,6 +291,34 @@ async function searchCompetitorPrices(productId, searchParams) {
         }
         }
 
+        // If strict filtering yielded nothing, retry with relaxed filtering
+        if (results.length === 0 && !useProvidedUrlOnly && queryCandidates.length > 0) {
+            console.log('[PRICE-COMPARE] No results with strict filtering, retrying with relaxed filters');
+            const relaxedQuery = queryCandidates[0];
+            try {
+                const relaxedResult = await priceService.fetchCompetitorPrices(relaxedQuery, {
+                    strictCapacity: false,
+                    allowTolerance: true,
+                    minScore: 30
+                });
+                if (relaxedResult.results.length > 0) {
+                    results = dedupeResultsByPlatformAndPrice([...results, ...relaxedResult.results]);
+                    selectedQuery = relaxedResult.selectedQuery || relaxedQuery;
+                    queryAttempts.push({
+                        query: relaxedQuery,
+                        source: 'serpapi_relaxed',
+                        selectedQuery: relaxedResult.selectedQuery,
+                        attempts: relaxedResult.attemptedQueries,
+                        finalResults: relaxedResult.results.length,
+                        filteringApplied: true,
+                        parsedQuery: relaxedResult.parsedQuery
+                    });
+                }
+            } catch (relaxedErr) {
+                console.warn('[PRICE-COMPARE] Relaxed search also failed:', relaxedErr.message);
+            }
+        }
+
         console.log('[PRICE-COMPARE] SerpAPI attempt summary', {
             productId,
             selectedQuery: selectedQuery || null,
@@ -294,17 +326,12 @@ async function searchCompetitorPrices(productId, searchParams) {
             parsedQuery
         });
     } catch (error) {
-        console.error('[PRICE-COMPARE] SerpAPI search failed', {
+        console.error('[PRICE-COMPARE] SerpAPI search failed, continuing with direct URL results', {
             productId,
-            message: error.message
+            message: error.message,
+            directUrlResultsCount: results.length
         });
-        return {
-            statusCode: 502,
-            body: {
-                error: 'SerpAPI search failed',
-                message: error.message
-            }
-        };
+        // Don't return 502 — fall through to use any direct URL results we already have
     }
 
     if (!results.length && !useProvidedUrlOnly && ALLOW_SYNTHETIC_FALLBACK) {
@@ -391,6 +418,10 @@ async function searchCompetitorPrices(productId, searchParams) {
                     priceDiff: result.priceDiff,
                     priceDiffPercent: result.priceDiffPercent,
                     source: result.source,
+                    matchScore: result.matchScore || null,
+                    matchType: result.matchType || null,
+                    aiScore: result.aiScore || null,
+                    aiRank: result.aiRank || null,
                     timestamp,
                     createdAt: new Date().toISOString()
                 }
@@ -511,15 +542,22 @@ async function fetchDirectCompetitorPrices(product, searchParams = {}) {
     }
 
     const results = [];
+    const userAgents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+    ];
     for (const item of urls) {
         try {
+            const ua = userAgents[urls.indexOf(item) % userAgents.length];
             const response = await fetch(item.url, {
                 headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "User-Agent": ua,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "en-IN,en;q=0.9"
                 },
-                signal: AbortSignal.timeout(7000)
+                signal: AbortSignal.timeout(8000),
+                redirect: 'follow'
             });
 
             if (!response.ok) {
@@ -567,12 +605,18 @@ function extractPriceFromHtml(platform, html) {
     const amazonPatterns = [
         /<span class="a-price-whole">([0-9,]+)<\/span>/,
         /"priceAmount":\s*"?([0-9]+(?:\.[0-9]+)?)"?/,
+        /class="[^"]*a-price[^"]*"[^>]*>\s*<span[^>]*>₹<\/span>\s*<span[^>]*>([0-9,]+)<\/span>/,
+        /"price":"?([0-9,]+(?:\.[0-9]{1,2})?)"?/,
+        /data-a-color="price"[^>]*>.*?₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/s,
         /₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/
     ];
 
     const flipkartPatterns = [
         /<div class="[^"]*_30jeq3[^"]*">₹([0-9,]+)<\/div>/,
         /<div class="[^"]*Nx9bqj[^"]*">₹([0-9,]+)<\/div>/,
+        /<div class="[^"]*_16Jk6d[^"]*">₹([0-9,]+)<\/div>/,
+        /"sellingPrice":([0-9]+)/,
+        /"value":([0-9]+),"currency":"INR"/,
         /₹\s*([0-9,]+(?:\.[0-9]{1,2})?)/
     ];
 
@@ -786,30 +830,26 @@ async function searchAllProducts() {
 
 function generateSyntheticPrices(product) {
     const platforms = [
-        { name: 'Amazon.in', minDelta: -0.12, maxDelta: 0.08 },
-        { name: 'Flipkart', minDelta: -0.15, maxDelta: 0.06 },
-        { name: 'Croma', minDelta: -0.08, maxDelta: 0.1 },
-        { name: 'Reliance Digital', minDelta: -0.1, maxDelta: 0.12 },
-        { name: 'JioMart', minDelta: -0.2, maxDelta: 0.04 },
-        { name: 'Meesho', minDelta: -0.22, maxDelta: 0.03 }
+        { name: 'Amazon.in', delta: -0.05 },
+        { name: 'Flipkart', delta: -0.08 },
+        { name: 'Croma', delta: 0.02 },
+        { name: 'Reliance Digital', delta: 0.04 }
     ];
 
     const basePrice = Number(product.currentPrice) > 0 ? Number(product.currentPrice) : 1000;
-    const shuffled = [...platforms].sort(() => Math.random() - 0.5).slice(0, 4);
 
-    return shuffled.map((platform) => {
-        const delta = platform.minDelta + Math.random() * (platform.maxDelta - platform.minDelta);
-        const simulatedPrice = Math.max(1, Math.round(basePrice * (1 + delta)));
+    return platforms.map((platform) => {
+        const simulatedPrice = Math.max(1, Math.round(basePrice * (1 + platform.delta)));
 
         return {
             platform: platform.name,
             title: product.name,
             price: simulatedPrice,
             url: '',
-            inStock: Math.random() > 0.15,
+            inStock: true,
             source: 'synthetic',
-            rating: Number((3.5 + Math.random() * 1.5).toFixed(1)),
-            reviews: Math.floor(Math.random() * 5000),
+            rating: null,
+            reviews: null,
             thumbnail: null
         };
     });
@@ -819,4 +859,13 @@ function extractProductIdFromPath(path) {
     if (!path) return undefined;
     const match = path.match(/\/products\/([^/]+)\/compare(?:\/search)?/);
     return match?.[1];
+}
+
+function extractDomain(url) {
+    if (!url) return 'unknown';
+    try {
+        return new URL(url).hostname.replace('www.', '');
+    } catch {
+        return 'unknown';
+    }
 }

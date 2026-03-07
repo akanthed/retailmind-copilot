@@ -78,9 +78,9 @@ export default function InsightsPage() {
         // Fallback: compute metrics from real products
         setMetrics({
           productsTracked: realProducts.length,
-          competitorPrices: realProducts.length * 3,
-          pricingOpportunities: Math.max(1, Math.floor(realProducts.length * 0.3)),
-          riskAlerts: realProducts.filter(p => p.stock < 10).length
+          competitorPrices: 0,
+          pricingOpportunities: 0,
+          riskAlerts: realProducts.filter(p => (p as any).stockDays !== undefined ? (p as any).stockDays < 5 : p.stock < 10).length
         });
       }
 
@@ -88,14 +88,19 @@ export default function InsightsPage() {
       if (realProducts.length > 0) {
         const existingForecast = insightsResult.data ? (insightsResult.data as any).demandForecast : null;
         if (!existingForecast || existingForecast.length === 0) {
-          const forecastFromProducts = realProducts.slice(0, 5).map(product => ({
-            product: product.name,
-            trend: (product.stock < 15 ? "up" : "down") as "up" | "down",
-            change: product.stock < 15
-              ? `+${Math.floor(Math.random() * 30 + 10)}%`
-              : `-${Math.floor(Math.random() * 20 + 5)}%`,
-            period: t('insights.next7Days')
-          }));
+          const forecastFromProducts = realProducts.slice(0, 5).map((product, index) => {
+            const isHighDemand = product.stock < 15;
+            // Deterministic change based on product stock level
+            const changeValue = isHighDemand
+              ? Math.min(10 + (product.stock * 2), 40)
+              : Math.min(5 + ((product.stock - 15) % 20), 25);
+            return {
+              product: product.name,
+              trend: (isHighDemand ? "up" : "down") as "up" | "down",
+              change: isHighDemand ? `+${changeValue}%` : `-${changeValue}%`,
+              period: t('insights.next7Days')
+            };
+          });
           setDemandForecast(forecastFromProducts);
         }
       }
@@ -122,8 +127,8 @@ export default function InsightsPage() {
 
   const demandForecastDisplay = demandForecast.length > 0 ? demandForecast : products.slice(0, 3).map(product => ({
     product: product.name,
-    trend: Math.random() > 0.5 ? "up" as const : "down" as const,
-    change: `${Math.random() > 0.5 ? '+' : '-'}${Math.floor(Math.random() * 40 + 10)}%`,
+    trend: (product.stock < 15 ? "up" : "down") as "up" | "down",
+    change: product.stock < 15 ? `+${Math.min(10 + (product.stock * 2), 40)}%` : `-${Math.min(5 + ((product.stock - 15) % 20), 25)}%`,
     period: t('insights.next7Days')
   }));
 

@@ -181,16 +181,9 @@ export default function ReportsPage() {
     });
 
     try {
-      const data = await getPricingPerformanceData('30 days');
+      const reportData = await getReportData(reportName);
 
-      const reportData = {
-        title: reportName,
-        period: 'Historical',
-        generatedAt: new Date().toLocaleString('en-IN'),
-        data: data || [],
-      };
-
-      if (!reportData.data || reportData.data.length === 0) {
+      if (!reportData || !reportData.data || reportData.data.length === 0) {
         toast({
           title: t('errors.error'),
           description: 'No data available. Add products first.',
@@ -199,10 +192,11 @@ export default function ReportsPage() {
         return;
       }
 
+      const filename = `${reportName.replace(/\s+/g, '_')}.${type.toLowerCase()}`;
       if (type === 'PDF') {
-        generatePDF(reportData, `${reportName.replace(/\s+/g, '_')}.pdf`);
+        generatePDF(reportData, filename);
       } else {
-        generateCSV(reportData.data, `${reportName.replace(/\s+/g, '_')}.csv`);
+        generateCSV(reportData.data, filename);
       }
 
       toast({

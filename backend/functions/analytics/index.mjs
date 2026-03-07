@@ -174,11 +174,13 @@ async function getRevenueAnalytics() {
             const priceDiff = rec.suggestedPrice - rec.currentPrice;
             impact = Math.round(priceDiff * 3 * 4); // 3 units/week * 4 weeks
         } else if (rec.type === 'restock') {
-            // Prevented stockout revenue loss
-            impact = Math.round(Math.random() * 2000 + 1000);
+            // Prevented stockout revenue loss - estimate based on product price
+            const productPrice = rec.currentPrice || 500;
+            impact = Math.round(productPrice * 3); // ~3 units worth of prevented stockout
         } else if (rec.type === 'promotion') {
-            // Cleared slow-moving inventory
-            impact = Math.round(Math.random() * 1500 + 500);
+            // Cleared slow-moving inventory - estimate based on price difference
+            const productPrice = rec.currentPrice || 500;
+            impact = Math.round(productPrice * 1.5); // ~1.5 units cleared
         }
         
         totalRevenueImpact += impact;
@@ -321,9 +323,11 @@ async function getOutcomes() {
 
 // Get insights data (competitor intelligence and demand forecast)
 async function getInsights() {
-    const [products, priceHistory] = await Promise.all([
+    const [products, priceHistory, alerts, recommendations] = await Promise.all([
         getAllProducts(),
-        getAllPriceHistory()
+        getAllPriceHistory(),
+        getAllAlerts(),
+        getAllRecommendations()
     ]);
     
     // Group price history by competitor
@@ -375,15 +379,16 @@ async function getInsights() {
         };
     });
     
-    // Generate demand forecast for top 3 products
+    // Generate demand forecast for top 3 products using deterministic values
     const demandForecast = products
         .sort((a, b) => (b.currentPrice * b.stock) - (a.currentPrice * a.stock))
         .slice(0, 3)
         .map(product => {
             const trend = product.stockDays < 10 ? 'up' : 'down';
+            // Deterministic change based on stockDays
             const change = trend === 'up' 
-                ? `+${Math.floor(Math.random() * 30 + 15)}%`
-                : `-${Math.floor(Math.random() * 20 + 5)}%`;
+                ? `+${Math.min(15 + Math.max(0, 10 - (product.stockDays || 0)) * 3, 45)}%`
+                : `-${Math.min(5 + Math.max(0, (product.stockDays || 15) - 10), 25)}%`;
             
             return {
                 product: product.name,
@@ -401,8 +406,8 @@ async function getInsights() {
             metrics: {
                 productsTracked: products.length,
                 competitorPrices: priceHistory.length,
-                pricingOpportunities: Math.floor(products.length * 0.3),
-                riskAlerts: Math.floor(products.length * 0.2)
+                pricingOpportunities: recommendations.filter(r => r.status === 'pending').length,
+                riskAlerts: alerts.filter(a => !a.acknowledged).length
             }
         }
     };

@@ -248,8 +248,9 @@ async function generateProductForecast(product) {
         const dayOfWeek = forecastDate.getDay();
         const weekendMultiplier = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.2 : 1.0;
         
-        // Apply AI adjustment factor (varies by day based on AI insights)
-        const aiAdjustment = aiPrediction.adjustmentFactor * (0.9 + (Math.random() * 0.2)); // ±10% variation
+        // Apply AI adjustment factor (deterministic variation by day index)
+        const dayVariation = 0.9 + ((i * 7 + (product.id ? product.id.charCodeAt(0) : 0)) % 20) / 100;
+        const aiAdjustment = aiPrediction.adjustmentFactor * dayVariation;
         
         // Calculate predicted demand
         const predictedDemand = Math.round(

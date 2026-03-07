@@ -90,7 +90,7 @@ function validateProductData(data, isUpdate = false) {
     const price = parseFloat(data.currentPrice);
     if (isNaN(price) || price <= 0) {
       errors.push('currentPrice must be greater than 0');
-    } else if (!Number.isInteger(price * 100)) {
+    } else if ((String(data.currentPrice).split('.')[1] || '').length > 2) {
       errors.push('currentPrice must have at most 2 decimal places');
     }
   }
@@ -99,7 +99,7 @@ function validateProductData(data, isUpdate = false) {
     const cost = parseFloat(data.costPrice);
     if (isNaN(cost) || cost < 0) {
       errors.push('costPrice must be greater than or equal to 0');
-    } else if (!Number.isInteger(cost * 100)) {
+    } else if ((String(data.costPrice).split('.')[1] || '').length > 2) {
       errors.push('costPrice must have at most 2 decimal places');
     }
   }
@@ -443,6 +443,13 @@ async function updateProduct(productId, data, requestId) {
     if (!existing.Item || !existing.Item.isActive) {
       console.log(`[${requestId}] Product not found:`, productId);
       return buildResponse(404, { error: 'Product not found' });
+    }
+    
+    // Cross-validate price vs cost against existing values
+    const finalPrice = data.currentPrice !== undefined ? parseFloat(data.currentPrice) : existing.Item.currentPrice;
+    const finalCost = data.costPrice !== undefined ? parseFloat(data.costPrice) : existing.Item.costPrice;
+    if (!isNaN(finalPrice) && !isNaN(finalCost) && finalPrice < finalCost) {
+      return buildResponse(400, { error: 'currentPrice must be greater than or equal to costPrice' });
     }
     
     // Record price change if price updated

@@ -24,21 +24,6 @@ export default function Landing() {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  async function checkForProducts() {
-    try {
-      const result = await apiClient.getProducts();
-
-      if (result.data && result.data.products.length === 0) {
-        const onboardingCompleted = localStorage.getItem("onboarding_completed");
-        if (!onboardingCompleted && isAuthenticated) {
-          navigate("/onboarding");
-        }
-      }
-    } catch {
-      // Keep landing accessible if products API is unavailable.
-    }
-  }
-
   function handleGetStarted() {
     if (isAuthenticated) {
       const onboardingCompleted = localStorage.getItem("onboarding_completed");
