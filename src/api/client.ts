@@ -473,6 +473,14 @@ class ApiClient {
   async getRevenueHistory(days: number = 30): Promise<ApiResponse<{ history: RevenueHistoryItem[]; count: number }>> {
     return this.request(`/revenue/history?days=${days}`, { method: 'GET' });
   }
+
+  // WhatsApp
+  async sendWhatsAppMessage(to: string, message: string): Promise<ApiResponse<{ success: boolean; messageSid: string; status: string }>> {
+    return this.request('/whatsapp/send', {
+      method: 'POST',
+      body: JSON.stringify({ to, message }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

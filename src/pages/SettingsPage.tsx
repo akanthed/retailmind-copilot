@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, MessageSquare, Save, CheckCircle, Database, RefreshCw, AlertTriangle, LogOut, User } from "lucide-react";
+import { Settings, MessageSquare, Save, CheckCircle, LogOut, User, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient, UrlValidationSummary } from "@/api/client";
+import { apiClient } from "@/api/client";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,9 +19,7 @@ export default function SettingsPage() {
     localStorage.getItem("whatsapp_number") || ""
   );
   const [saved, setSaved] = useState(false);
-  const [liveDataHealth, setLiveDataHealth] = useState<UrlValidationSummary | null>(null);
-  const [loadingHealth, setLoadingHealth] = useState(true);
-  const [validatingUrls, setValidatingUrls] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const { toast } = useToast();
 
   const handleLogout = () => {
@@ -33,50 +31,51 @@ export default function SettingsPage() {
     navigate('/login');
   };
 
-  useEffect(() => {
-    loadLiveDataHealth(false);
-  }, []);
-
-  async function loadLiveDataHealth(showToast: boolean) {
-    setLoadingHealth(true);
-    try {
-      const result = await apiClient.validateProductUrls();
-      if (result.error) {
-        if (showToast) {
-          toast({
-            title: t('setup.validationFailed'),
-            description: result.error,
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      setLiveDataHealth(result.data?.urlValidation || null);
-
-      if (showToast && result.data?.urlValidation) {
-        toast({
-          title: t('setup.validationComplete'),
-          description: `${t('setup.checkedProducts')}: ${result.data.urlValidation.totalProducts}`,
-        });
-      }
-    } catch (error) {
-      if (showToast) {
-        toast({
-          title: t('setup.validationFailed'),
-          description: error instanceof Error ? error.message : t('setup.validationError'),
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoadingHealth(false);
-      setValidatingUrls(false);
+  async function handleSendTestMessage() {
+    if (!whatsappNumber) {
+      toast({
+        title: t('setup.invalidFormat'),
+        description: t('setup.phoneFormatError'),
+        variant: "destructive",
+      });
+      return;
     }
-  }
+    if (!whatsappNumber.startsWith('+')) {
+      toast({
+        title: t('setup.invalidFormat'),
+        description: t('setup.phoneFormatError'),
+        variant: "destructive",
+      });
+      return;
+    }
 
-  async function handleValidateUrls() {
-    setValidatingUrls(true);
-    await loadLiveDataHealth(true);
+    setSendingTest(true);
+    try {
+      const result = await apiClient.sendWhatsAppMessage(
+        whatsappNumber,
+        '\u2705 RetailMind AI connected! You will receive price alerts and recommendations on this number.'
+      );
+      if (result.error) {
+        toast({
+          title: 'Test Message Failed',
+          description: result.error,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Test Message Sent!',
+          description: `Check your WhatsApp on ${whatsappNumber}`,
+        });
+      }
+    } catch {
+      toast({
+        title: 'WhatsApp Not Configured',
+        description: 'The WhatsApp Lambda is not deployed or Twilio credentials are missing. Please deploy the whatsappSender Lambda with Twilio credentials.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingTest(false);
+    }
   }
 
   function handleSave() {
@@ -195,6 +194,13 @@ export default function SettingsPage() {
                     </>
                   )}
                 </Button>
+
+                {whatsappNumber && (
+                  <Button onClick={handleSendTestMessage} disabled={sendingTest} variant="outline" className="gap-2">
+                    <Send className="w-4 h-4" />
+                    {sendingTest ? 'Sending...' : 'Send Test Message'}
+                  </Button>
+                )}
                 
                 {whatsappNumber && (
                   <span className="text-sm text-muted-foreground">
@@ -209,84 +215,6 @@ export default function SettingsPage() {
                 <strong className="text-foreground">Note:</strong> {t('setup.noteWhatsappIntegration')}
               </p>
             </div>
-          </Card>
-
-          <Card className="premium-card rounded-2xl p-6 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <Database className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold mb-1">{t('setup.liveDataHealth')}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {t('setup.validateAmazonFlipkart')}
-                </p>
-              </div>
-              <Button onClick={handleValidateUrls} disabled={validatingUrls} variant="outline" className="gap-2">
-                <RefreshCw className={`w-4 h-4 ${validatingUrls ? 'animate-spin' : ''}`} />
-                {validatingUrls ? t('setup.validating') : t('setup.validateURLs')}
-              </Button>
-            </div>
-
-            {loadingHealth ? (
-              <p className="text-sm text-muted-foreground">{t('setup.checkingLiveData')}</p>
-            ) : !liveDataHealth ? (
-              <p className="text-sm text-muted-foreground">{t('setup.noValidationData')}</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="rounded-lg border p-3">
-                    <p className="text-xs text-muted-foreground">{t('setup.products')}</p>
-                    <p className="text-lg font-semibold">{liveDataHealth.totalProducts}</p>
-                  </div>
-                  <div className="rounded-lg border p-3">
-                    <p className="text-xs text-muted-foreground">{t('setup.withAnyUrl')}</p>
-                    <p className="text-lg font-semibold text-green-600">{liveDataHealth.productsWithAnyUrl}</p>
-                  </div>
-                  <div className="rounded-lg border p-3">
-                    <p className="text-xs text-muted-foreground">{t('setup.missingUrls')}</p>
-                    <p className="text-lg font-semibold text-orange-600">{liveDataHealth.productsMissingUrls}</p>
-                  </div>
-                  <div className="rounded-lg border p-3">
-                    <p className="text-xs text-muted-foreground">{t('setup.urlIssues')}</p>
-                    <p className="text-lg font-semibold text-red-600">{liveDataHealth.issueCount}</p>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground">
-                  {t('setup.lastChecked')}: {new Date(liveDataHealth.checkedAt).toLocaleString("en-IN")}
-                </div>
-
-                {liveDataHealth.issueCount > 0 && (
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                    <div className="flex items-center gap-2 text-orange-700 mb-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span className="text-sm font-medium">{t('setup.topUrlIssues')}</span>
-                    </div>
-                    <div className="space-y-1">
-                      {liveDataHealth.details
-                        .filter((item) => item.invalidCount > 0 || item.unreachableCount > 0 || !item.hasAnyUrl)
-                        .slice(0, 5)
-                        .map((item) => (
-                          <div key={item.productId} className="flex items-center justify-between gap-3 rounded-md bg-white/50 px-2 py-1">
-                            <div className="text-xs text-orange-800 break-words">
-                              {item.productName} {item.invalidCount > 0 ? `· ${item.invalidCount} ${t('setup.invalid')}` : ''}{item.unreachableCount > 0 ? ` · ${item.unreachableCount} ${t('setup.unreachable')}` : ''}{!item.hasAnyUrl ? ` · ${t('setup.missingURLs')}` : ''}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => navigate(`/products?editProductId=${item.productId}&from=settings`)}
-                            >
-                              {t('setup.fixUrl')}
-                            </Button>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </Card>
 
           {/* Future Settings Sections */}
