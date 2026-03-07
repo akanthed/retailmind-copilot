@@ -67,27 +67,69 @@ Measure the impact of every decision:
 ## 🏗️ AWS Architecture
 
 ```
-Frontend (React + TypeScript)
-         ↓
-    API Gateway
-         ↓
-    AWS Lambda (5 functions)
-    ├── AI Copilot (Bedrock Nova Pro)
-    ├── Products API
-    ├── Price Monitor
-    ├── Recommendations Engine
-    ├── Alerts System
-    └── Analytics Engine
-         ↓
-    Amazon DynamoDB (5 tables)
+┌─────────────────────────────────────────────────────────────────┐
+│                     Frontend (React + Vite)                     │
+│                  TypeScript + Tailwind CSS                      │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Amazon API Gateway (REST)                    │
+│  Routes: /products, /copilot, /recommendations, /alerts, etc.   │
+└─────┬───────┬────────┬────────┬────────┬────────┬──────────────┘
+      │       │        │        │        │        │
+      ▼       ▼        ▼        ▼        ▼        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        AWS Lambda Functions                      │
+├──────────────┬──────────────┬──────────────┬───────────────────┤
+│  AI Copilot  │   Products   │ Price Monitor│  Recommendations  │
+│   (Bedrock)  │     CRUD     │  & Scraper   │     Engine        │
+├──────────────┼──────────────┼──────────────┼───────────────────┤
+│    Alerts    │  Analytics   │Demand Forecast│  WhatsApp Sender │
+│   Generator  │   Engine     │   (AI-based) │   (Twilio API)    │
+└──────┬───────┴──────┬───────┴──────┬───────┴───────┬───────────┘
+       │              │              │               │
+       ▼              ▼              ▼               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Amazon Bedrock                             │
+│              Nova Pro Model (AI Intelligence)                   │
+│  • Natural language understanding                               │
+│  • Price analysis & recommendations                             │
+│  • Demand forecasting                                           │
+└─────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Amazon DynamoDB (NoSQL)                     │
+├──────────────┬──────────────┬──────────────┬───────────────────┤
+│   Products   │ PriceHistory │ Comparisons  │  Recommendations  │
+├──────────────┼──────────────┼──────────────┼───────────────────┤
+│    Alerts    │ Conversations│   Revenue    │   User Tracking   │
+└─────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    External Integrations                        │
+│  • SerpAPI (Real-time competitor prices)                        │
+│  • Twilio WhatsApp (Alert notifications)                        │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### AWS Services Used
-- **Amazon Bedrock** - Nova Pro model for AI intelligence
-- **AWS Lambda** - Serverless compute (5 functions)
-- **Amazon DynamoDB** - NoSQL database (5 tables)
-- **Amazon API Gateway** - RESTful API endpoints
-- **AWS IAM** - Security and access control
+- **Amazon Bedrock** - Nova Pro model for AI intelligence and demand forecasting
+- **AWS Lambda** - 8 serverless functions (Node.js 20)
+- **Amazon DynamoDB** - 8 NoSQL tables for data persistence
+- **Amazon API Gateway** - RESTful API with 15+ endpoints
+- **AWS IAM** - Security, roles, and access control
+
+### Key Features by Service
+- **AI Copilot**: Natural language queries, business insights
+- **Price Monitor**: Competitor tracking, historical analysis
+- **Recommendations**: AI-powered pricing & inventory suggestions
+- **Alerts**: Proactive notifications for market changes
+- **Analytics**: Revenue tracking, decision impact measurement
+- **Demand Forecast**: Festival-aware predictions using Bedrock
+- **WhatsApp**: Real-time alert delivery via Twilio
 
 ---
 
@@ -126,10 +168,11 @@ npm run dev
 Open http://localhost:5173 in your browser!
 
 ### What Gets Deployed
-- ✅ 5 DynamoDB tables (Products, PriceHistory, PriceComparison, Recommendations, Alerts)
-- ✅ 3 Lambda functions (Products API, Price Monitor, Price Comparison)
-- ✅ 1 API Gateway (REST API with routes)
-- ✅ 1 IAM role (Lambda execution)
+- ✅ 8 DynamoDB tables (Products, PriceHistory, PriceComparison, Recommendations, Alerts, Conversations, Revenue, UserTracking)
+- ✅ 8 Lambda functions (Products, AI Copilot, Price Monitor, Price Scraper, Recommendations, Alerts, Analytics, Demand Forecast)
+- ✅ 1 API Gateway (REST API with 15+ routes)
+- ✅ 1 IAM role (Lambda execution with Bedrock permissions)
+- ✅ WhatsApp integration (Twilio-based notifications)
 
 ### Manual Deployment (Step-by-Step)
 
@@ -179,11 +222,17 @@ For troubleshooting and advanced configuration, see:
 
 ## 📖 Documentation
 
-- **[Setup Guides](DAY-1-GETTING-STARTED.md)** - Step-by-step AWS setup
-- **[Demo Script](DEMO-SCRIPT.md)** - 2-minute demo walkthrough
-- **[Architecture](design.md)** - System design and decisions
-- **[Requirements](requirements.md)** - Feature specifications
-- **[Security](SECURITY.md)** - Security best practices
+- **[Getting Started](docs/GETTING-STARTED.md)** - Quick start guide
+- **[Demo Script](docs/DEMO-SCRIPT.md)** - 2-minute demo walkthrough
+- **[File Structure](docs/FILE-STRUCTURE.md)** - Project organization
+- **[API Documentation](docs/API-DOCS.md)** - Endpoint reference
+
+### Architecture & Design
+- **Lambda Functions**: 8 serverless functions handling different domains
+- **DynamoDB Tables**: 8 tables with optimized schemas
+- **API Gateway**: RESTful endpoints with CORS enabled
+- **Bedrock Integration**: Nova Pro for AI intelligence
+- **WhatsApp Alerts**: Twilio integration for notifications
 
 ---
 
@@ -227,6 +276,20 @@ Response: Based on current market analysis:
   "impact": "+₹3,240 revenue over 4 weeks",
   "confidence": 0.92
 }
+```
+
+### WhatsApp Alert Example
+```
+🔔 RetailMind Alert
+
+Product: Wireless Earbuds
+Alert: Competitor price drop detected
+
+TechStore: ₹1,799 (was ₹1,999)
+Your price: ₹1,999
+
+Action: Consider matching to maintain market share
+Expected impact: +18% sales volume
 ```
 
 ---
@@ -317,9 +380,15 @@ retailmind-copilot/
 │       ├── aiCopilot/
 │       ├── products/
 │       ├── priceMonitor/
+│       ├── priceScraper/
+│       ├── priceComparison/
 │       ├── recommendations/
 │       ├── alerts/
-│       └── analytics/
+│       ├── analytics/
+│       ├── demandForecast/
+│       ├── revenueCalculator/
+│       ├── userTracking/
+│       └── whatsappSender/
 ├── scripts/          # Setup scripts
 └── docs/            # Documentation
 ```
@@ -328,12 +397,14 @@ retailmind-copilot/
 
 ## 🚀 Future Enhancements
 
-- [ ] Real competitor data integration (web scraping)
-- [ ] Email/SMS notifications (SNS)
-- [ ] Multi-location support
-- [ ] Demand forecasting with ML
-- [ ] Mobile app (iOS/Android)
-- [ ] Multi-language support
+- [ ] Multi-channel notifications (Email via SES, SMS via SNS)
+- [ ] Advanced ML models for demand forecasting
+- [ ] Multi-location inventory management
+- [ ] Supplier integration and automated ordering
+- [ ] Mobile app (iOS/Android with React Native)
+- [ ] Multi-language support (Hindi, Tamil, Bengali)
+- [ ] Voice commands via Alexa integration
+- [ ] Blockchain for supply chain transparency
 
 ---
 
