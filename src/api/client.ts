@@ -244,6 +244,21 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    try {
+      const storedTokens = localStorage.getItem('retailmind_auth_tokens');
+      if (storedTokens) {
+        const tokens = JSON.parse(storedTokens);
+        if (tokens.idToken) {
+          return { Authorization: `Bearer ${tokens.idToken}` };
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return {};
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -255,6 +270,7 @@ class ApiClient {
       const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
+          ...this.getAuthHeaders(),
           ...(shouldSetJsonContentType ? { 'Content-Type': 'application/json' } : {}),
           ...options.headers,
         },
@@ -344,6 +360,7 @@ class ApiClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
         },
         body: JSON.stringify(params),
       });

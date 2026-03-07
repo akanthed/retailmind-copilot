@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Sparkles, Mail, Lock, Store, Loader2, CheckCircle2 } from 'lucide-react
 export default function SignupPage() {
   const { signup, confirmAccount } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [step, setStep] = useState<'signup' | 'confirm'>('signup');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -51,9 +52,10 @@ export default function SignupPage() {
         title: 'Email confirmed!',
         description: 'You can now sign in to your account',
       });
-      // Redirect to login after a short delay
+      setIsLoading(false);
+      // Use React Router navigation instead of hard redirect
       setTimeout(() => {
-        window.location.href = '/login';
+        navigate('/login', { replace: true });
       }, 1500);
     } catch (error: any) {
       console.error('Confirmation failed:', error);
